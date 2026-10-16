@@ -5,8 +5,8 @@
   --destaque: #39c5ff;
   --ok: #3ddc84;
   --erro: #ff5a5f;
-  --painel: rgba(57, 197, 255, 0.06);
-  --borda: rgba(57, 197, 255, 0.18);
+  --painel: rgba(57, 197, 255, 0.05);
+  --borda: rgba(57, 197, 255, 0.16);
 
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
   color: var(--texto);
@@ -20,87 +20,147 @@
 
 body {
   margin: 0;
-  background: radial-gradient(circle at 50% 40%, #0c1a26 0%, var(--fundo) 60%);
   min-height: 100vh;
-}
-
-.tela {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
+  background: radial-gradient(circle at 20% 0%, #0c1a26 0%, var(--fundo) 55%);
   user-select: none;
 }
 
-/* O "reator" pulsando: o primeiro sinal de vida do Jarvis */
-.nucleo {
-  width: 96px;
-  height: 96px;
+/* ---------- Estrutura ---------- */
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.conteudo {
+  flex: 1;
+  width: 100%;
+  padding: 48px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+/* ---------- Barra do topo ---------- */
+
+.barra-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 32px;
+  border-bottom: 1px solid var(--borda);
+}
+
+.barra-topo__marca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 300;
+  letter-spacing: 0.35em;
+}
+
+.barra-topo__acoes {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* O "reator": pulsa quando o backend está vivo */
+.reator {
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   border: 2px solid var(--destaque);
   box-shadow:
-    0 0 24px var(--destaque),
-    inset 0 0 24px var(--destaque);
+    0 0 10px var(--destaque),
+    inset 0 0 6px var(--destaque);
   animation: pulsar 2.4s ease-in-out infinite;
 }
 
-.marca {
-  margin: 8px 0 0;
-  font-size: 40px;
-  font-weight: 300;
-  letter-spacing: 0.4em;
-  padding-left: 0.4em; /* compensa o espaçamento da última letra */
-}
-
-.subtitulo {
-  margin: 0;
-  color: var(--texto-suave);
-  font-size: 14px;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-}
-
-/* Sem backend, o reator fica vermelho e para de pulsar */
-.nucleo--desconectado {
+.reator--desconectado {
   --destaque: var(--erro);
   animation: none;
   opacity: 0.6;
 }
 
-.subtitulo--ok {
-  color: var(--ok);
+.indicador {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--texto-suave);
 }
 
-.subtitulo--erro {
+.indicador__ponto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--texto-suave);
+}
+
+.indicador--conectado .indicador__ponto {
+  background: var(--ok);
+}
+
+.indicador--desconectado {
   color: var(--erro);
 }
 
-.aviso {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
+.indicador--desconectado .indicador__ponto {
+  background: var(--erro);
 }
 
-.dica {
-  margin: 0;
-  color: var(--texto-suave);
+.botao {
+  font: inherit;
   font-size: 13px;
-}
-
-.dica code {
-  user-select: text;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--borda);
   background: var(--painel);
   color: var(--texto);
+  cursor: pointer;
+}
+
+.botao:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ---------- Saudação ---------- */
+
+.saudacao__titulo {
+  margin: 0;
+  font-size: 44px;
+  font-weight: 300;
+}
+
+.saudacao__nome {
+  color: var(--destaque);
+}
+
+.saudacao__data {
+  margin: 12px 0 0;
+  color: var(--texto-suave);
+  font-size: 18px;
+}
+
+.saudacao__hora {
+  margin: 4px 0 0;
+  font-size: 64px;
+  font-weight: 200;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Painéis ---------- */
+
+.paineis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
 }
 
 .painel {
-  margin-top: 24px;
-  width: min(420px, calc(100vw - 32px));
   padding: 20px 24px;
   border: 1px solid var(--borda);
   border-radius: 12px;
@@ -108,7 +168,7 @@ body {
 }
 
 .painel__titulo {
-  margin: 0 0 12px;
+  margin: 0 0 16px;
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.25em;
@@ -116,35 +176,88 @@ body {
   color: var(--texto-suave);
 }
 
-.habilidades {
+.lista {
   margin: 0;
   padding: 0;
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
-.habilidade {
+.item {
   display: flex;
   gap: 12px;
   align-items: flex-start;
 }
 
-.habilidade__icone {
-  color: var(--ok);
-  font-weight: 700;
-}
-
-.habilidade strong {
+.item strong {
   font-weight: 500;
 }
 
-.habilidade p {
+.item p {
   margin: 2px 0 0;
   font-size: 13px;
   color: var(--texto-suave);
 }
+
+.item__icone {
+  width: 16px;
+  color: var(--ok);
+  font-weight: 700;
+}
+
+.item--em_breve {
+  opacity: 0.55;
+}
+
+.item--em_breve .item__icone {
+  color: var(--texto-suave);
+}
+
+.selo {
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--borda);
+  font-size: 11px;
+  color: var(--texto-suave);
+}
+
+.dados {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px 20px;
+  font-size: 14px;
+}
+
+.dados dt {
+  color: var(--texto-suave);
+}
+
+.dados dd {
+  margin: 0;
+}
+
+/* ---------- Aviso ---------- */
+
+.aviso {
+  padding: 14px 18px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 90, 95, 0.4);
+  background: rgba(255, 90, 95, 0.08);
+  font-size: 14px;
+}
+
+.aviso code {
+  user-select: text;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* ---------- Animação ---------- */
 
 @keyframes pulsar {
   0%,
@@ -153,13 +266,31 @@ body {
     opacity: 0.85;
   }
   50% {
-    transform: scale(1.06);
+    transform: scale(1.12);
     opacity: 1;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nucleo {
+  .reator {
     animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .conteudo {
+    padding: 32px 16px;
+  }
+
+  .barra-topo {
+    padding: 12px 16px;
+  }
+
+  .saudacao__titulo {
+    font-size: 32px;
+  }
+
+  .saudacao__hora {
+    font-size: 48px;
   }
 }

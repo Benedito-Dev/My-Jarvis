@@ -43,3 +43,10 @@ def carregar_todos(pasta: Path = PASTA_ROSTOS) -> dict[str, np.ndarray]:
     if not pasta.exists():
         return {}
     return {caminho.stem: np.load(caminho) for caminho in sorted(pasta.glob("*.npy"))}
+
+
+def listar_nomes(pasta: Path = PASTA_ROSTOS) -> list[str]:
+    """Nomes das pessoas cadastradas, sem carregar as assinaturas."""
+    if not pasta.exists():
+        return []
+    return [caminho.stem for caminho in sorted(pasta.glob("*.npy"))]

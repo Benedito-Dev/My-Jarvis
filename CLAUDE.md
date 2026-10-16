@@ -28,6 +28,9 @@ da habilidade (ex.: `desbloqueio-facial`).
 - Organização por **habilidade** (`backend/src/jarvis/habilidades/<nome>/`), não MVC
 - Só adicione lib ou pasta quando o passo atual precisar
 - Dados pessoais (`dados/`) nunca vão para o git
+- O dono do projeto é o **Benedito**
+- Nome do assistente é configuração (`nucleo/config.py`, env `JARVIS_NOME`), não constante:
+  o frontend exibe o que vier de `/status`
 
 ## Comandos (dentro de `backend/`)
 
@@ -43,5 +46,6 @@ uv run ruff check . && uv run ruff format --check .
 ```bash
 npx npm@11 install         # o npm do Node 20 tem bug (edgesOut)
 npm run build              # tsc + vite build (checa os tipos)
+npm test                   # testes (Vitest)
 npm run tauri dev          # abre o app
 ```

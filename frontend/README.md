@@ -16,6 +16,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh   # Rust
 npm install          # instala dependências
 npm run tauri dev    # abre o app em modo desenvolvimento (recarrega ao salvar)
 npm run build        # checa os tipos e gera o build da tela
+npm test             # testes (Vitest)
 ```
 
 ## Estrutura

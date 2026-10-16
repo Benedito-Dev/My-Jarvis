@@ -6,7 +6,7 @@
 ## Contexto
 
 No Passo 5, o Jarvis passa a falar as mensagens da tela de bloqueio
-("Por favor, aproxime seu rosto", "Acesso negado", "Bem-vindo, Roberio").
+("Por favor, aproxime seu rosto", "Acesso negado", "Bem-vindo, Benedito").
 A fala não pode travar o vídeo.
 
 ## Decisão

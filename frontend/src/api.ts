@@ -7,6 +7,7 @@ export type Habilidade = {
   id: string;
   nome: string;
   descricao: string;
+  situacao: "pronta" | "em_breve";
 };
 
 export type Status = {
@@ -15,12 +16,19 @@ export type Status = {
   habilidades: Habilidade[];
 };
 
-export async function buscarStatus(): Promise<Status> {
-  const resposta = await fetch(`${URL_BACKEND}/status`, {
+export type Rostos = {
+  cadastrados: string[];
+};
+
+async function buscar<T>(caminho: string): Promise<T> {
+  const resposta = await fetch(`${URL_BACKEND}${caminho}`, {
     signal: AbortSignal.timeout(TEMPO_LIMITE_MS),
   });
   if (!resposta.ok) {
-    throw new Error(`Backend respondeu ${resposta.status}`);
+    throw new Error(`Backend respondeu ${resposta.status} em ${caminho}`);
   }
   return resposta.json();
 }
+
+export const buscarStatus = () => buscar<Status>("/status");
+export const buscarRostos = () => buscar<Rostos>("/rostos");

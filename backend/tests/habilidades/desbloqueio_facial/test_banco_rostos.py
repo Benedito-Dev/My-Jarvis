@@ -8,10 +8,10 @@ from jarvis.habilidades.desbloqueio_facial.banco_rostos import NomeInvalidoError
 def test_salva_e_carrega_as_assinaturas(tmp_path):
     assinaturas = [np.full(128, 0.1, dtype=np.float32), np.full(128, 0.2, dtype=np.float32)]
 
-    caminho = banco_rostos.salvar("Roberio", assinaturas, pasta=tmp_path)
-    carregadas = banco_rostos.carregar("roberio", pasta=tmp_path)
+    caminho = banco_rostos.salvar("Benedito", assinaturas, pasta=tmp_path)
+    carregadas = banco_rostos.carregar("benedito", pasta=tmp_path)
 
-    assert caminho == tmp_path / "roberio.npy"
+    assert caminho == tmp_path / "benedito.npy"
     assert carregadas.shape == (2, 128)
     np.testing.assert_array_equal(carregadas, np.stack(assinaturas))
 
@@ -38,3 +38,11 @@ def test_carrega_todos_os_cadastrados(tmp_path):
 
 def test_carrega_todos_sem_pasta_retorna_vazio(tmp_path):
     assert banco_rostos.carregar_todos(pasta=tmp_path / "nao_existe") == {}
+
+
+def test_lista_nomes_sem_carregar_assinaturas(tmp_path):
+    banco_rostos.salvar("bia", [np.zeros(128)], pasta=tmp_path)
+    banco_rostos.salvar("ana", [np.zeros(128)], pasta=tmp_path)
+
+    assert banco_rostos.listar_nomes(pasta=tmp_path) == ["ana", "bia"]
+    assert banco_rostos.listar_nomes(pasta=tmp_path / "nao_existe") == []

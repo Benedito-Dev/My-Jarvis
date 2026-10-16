@@ -8,7 +8,7 @@ novas **habilidades** aos poucos.
 A primeira habilidade é o **desbloqueio por reconhecimento facial**:
 
 ```
-"Por favor, aproxime seu rosto"  ──►  📷  ──►  ✅ "Bem-vindo, Roberio"
+"Por favor, aproxime seu rosto"  ──►  📷  ──►  ✅ "Bem-vindo, Benedito"
 ```
 
 ## Escopo

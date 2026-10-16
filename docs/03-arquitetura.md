@@ -56,7 +56,7 @@ backend/
 │   └── jarvis/
 │       ├── __main__.py        ← ponto de entrada: `uv run python -m jarvis`
 │       ├── api/               ← API local (FastAPI) que o frontend consulta
-│       ├── nucleo/            ← coisas compartilhadas (caminhos, downloads, voz)
+│       ├── nucleo/            ← coisas compartilhadas (config, caminhos, downloads, voz)
 │       └── habilidades/
 │           └── desbloqueio_facial/
 │               ├── fluxo.py         ← orquestra: liga entrada → lógica → saída
@@ -109,10 +109,14 @@ sem precisar abrir a câmera.
 
 ```
 frontend/
-├── src/            ← a tela (React + TypeScript). É aqui que mexemos
-│   ├── main.tsx    ← liga o React na página
-│   ├── App.tsx     ← componente principal
-│   └── App.css
+├── src/                ← a tela (React + TypeScript). É aqui que mexemos
+│   ├── main.tsx        ← liga o React na página
+│   ├── App.tsx         ← monta a tela juntando os componentes
+│   ├── App.css
+│   ├── api.ts          ← única porta de saída para o backend
+│   ├── tempo.ts        ← lógica pura (saudação, datas no fuso de SP) + tempo.test.ts
+│   ├── hooks/          ← estado vivo (conexão com o backend, relógio)
+│   └── componentes/    ← pedaços visuais (BarraTopo, Saudacao, Paineis...)
 ├── src-tauri/      ← a "casca" nativa (Rust): janela, ícone, permissões
 │   ├── tauri.conf.json   ← título, tamanho da janela, identificador do app
 │   └── src/lib.rs
@@ -126,5 +130,9 @@ O frontend conversa com o backend pela API local
  frontend/src/api.ts ── GET /status ──► backend/src/jarvis/api/app.py
 ```
 
-Regra: o frontend **só mostra e envia comandos**. Câmera, reconhecimento e voz
-ficam no backend.
+Regras do frontend:
+
+- **Só mostra e envia comandos.** Câmera, reconhecimento e voz ficam no backend.
+- **Só o `api.ts` fala com o backend.** Componentes nunca chamam `fetch` direto.
+- **Lógica pura fora dos componentes** (ex.: `tempo.ts`), para testar com Vitest.
+- Datas sempre no fuso `America/Sao_Paulo`, nunca no fuso da máquina.

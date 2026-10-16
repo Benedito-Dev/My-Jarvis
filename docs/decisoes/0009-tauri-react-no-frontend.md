@@ -24,13 +24,13 @@ inicial para onde o usuário vai depois de desbloquear. É a hora de a pasta
 - **pywebview + React:** o Python abriria a janela. Simples, mas com poucos recursos
   de app nativo.
 - **Interface em Python (PySide/Qt):** dispensaria o frontend separado, mas fugiria
-  do monorepo e do TypeScript que o Roberio já usa.
+  do monorepo e do TypeScript que o Benedito já usa.
 
 ## Consequências
 
 - ✅ App nativo e leve (~10 MB), com caminho aberto para ícone na barra de menu e
   atalhos globais (ex.: "Ei Jarvis")
-- ✅ TypeScript/React, stack que o Roberio já conhece
+- ✅ TypeScript/React, stack que o Benedito já conhece
 - ⚠️ Precisa do Rust instalado (rustup) e a primeira compilação leva ~1 min
 - ⚠️ O npm do Node 20 tem um bug de instalação (`edgesOut`). Use `npx npm@11 install`
   ou atualize o Node para 22+
