@@ -16,6 +16,7 @@ Cada decisão importante ganha **um arquivo** nesta pasta.
 | [0008](0008-say-do-macos-para-falar.md) | `say` do macOS para o Jarvis falar | ✅ Aceita | 2026-10-16 |
 | [0009](0009-tauri-react-no-frontend.md) | Tauri + React + TypeScript no frontend | ✅ Aceita | 2026-10-16 |
 | [0010](0010-fastapi-como-ponte-local.md) | FastAPI como ponte local | ✅ Aceita | 2026-10-16 |
+| [0011](0011-app-captura-backend-decide.md) | Desbloqueio pelo app: o app captura, o backend decide | ✅ Aceita | 2026-10-16 |
 
 ## Como criar uma nova decisão
 

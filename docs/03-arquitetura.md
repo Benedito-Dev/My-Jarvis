@@ -62,6 +62,7 @@ backend/
 │               ├── fluxo.py         ← orquestra: liga entrada → lógica → saída
 │               ├── camera.py        ← fala com o hardware
 │               ├── reconhecedor.py  ← lógica pura (detecta e gera assinaturas)
+│               ├── desbloqueio.py   ← lógica pura: avalia um quadro (usada pela API e pelo terminal)
 │               ├── banco_rostos.py  ← salva/carrega as assinaturas em dados/
 │               ├── tela.py          ← mostra o vídeo e as mensagens
 │               └── modelos/         ← modelos de IA (os grandes são baixados, fora do git)
@@ -115,6 +116,7 @@ frontend/
 │   ├── App.css
 │   ├── api.ts          ← única porta de saída para o backend
 │   ├── tempo.ts        ← lógica pura (saudação, datas no fuso de SP) + tempo.test.ts
+│   ├── desbloqueio.ts  ← lógica pura: texto/cor de cada estado do desbloqueio
 │   ├── hooks/          ← estado vivo (conexão com o backend, relógio)
 │   └── componentes/    ← pedaços visuais (BarraTopo, Saudacao, Paineis...)
 ├── src-tauri/      ← a "casca" nativa (Rust): janela, ícone, permissões
@@ -127,8 +129,15 @@ O frontend conversa com o backend pela API local
 (`http://127.0.0.1:8765`, decisão [0010](decisoes/0010-fastapi-como-ponte-local.md)):
 
 ```
- frontend/src/api.ts ── GET /status ──► backend/src/jarvis/api/app.py
+ frontend/src/api.ts ── GET  /status ──────────────► backend/src/jarvis/api/app.py
+                     ── GET  /rostos
+                     ── GET  /sessao              ──► api/sessao.py (quem desbloqueou)
+                     ── POST /desbloqueio/quadro  ──► desbloqueio_facial/desbloqueio.py
+                         (foto JPEG da câmera do app)    (o backend decide)
 ```
+
+Desbloqueio: **o app captura, o backend decide**
+(decisão [0011](decisoes/0011-app-captura-backend-decide.md)).
 
 Regras do frontend:
 

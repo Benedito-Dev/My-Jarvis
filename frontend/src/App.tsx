@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { BarraTopo } from "./componentes/BarraTopo";
 import { PainelHabilidades } from "./componentes/PainelHabilidades";
 import { PainelSistema } from "./componentes/PainelSistema";
 import { Saudacao } from "./componentes/Saudacao";
+import { TelaBloqueio } from "./componentes/TelaBloqueio";
 import { useConexaoBackend } from "./hooks/useConexaoBackend";
 import { useRelogio } from "./hooks/useRelogio";
 import "./App.css";
@@ -21,14 +22,33 @@ function App() {
     document.title = nomeAssistente;
   }, [nomeAssistente]);
 
-  // Até o Passo 4 (ligar tudo), o "dono" é o primeiro rosto cadastrado.
-  const nome = conexao.estado === "conectado" ? (conexao.rostos.cadastrados[0] ?? null) : null;
+  // Quem desbloqueou. Vem da tela de bloqueio (depois do "Bem-vindo") ou, se o app
+  // abrir com a sessão do backend já desbloqueada, da primeira resposta do backend.
+  const [usuario, setUsuario] = useState<string | null>(null);
+  const aoDesbloquear = useCallback((nome: string) => setUsuario(nome), []);
+  const sessaoInicialLida = useRef(false);
+
+  useEffect(() => {
+    if (conexao.estado !== "conectado" || sessaoInicialLida.current) return;
+    sessaoInicialLida.current = true;
+    if (conexao.sessao.usuario) setUsuario(conexao.sessao.usuario);
+  }, [conexao]);
+
+  if (!usuario) {
+    return (
+      <TelaBloqueio
+        nomeAssistente={nomeAssistente}
+        backendOnline={conexao.estado === "conectado"}
+        onDesbloqueado={aoDesbloquear}
+      />
+    );
+  }
 
   return (
     <div className="app">
       <BarraTopo conexao={conexao} nomeAssistente={nomeAssistente} />
       <main className="conteudo">
-        <Saudacao agora={agora} nome={nome} />
+        <Saudacao agora={agora} nome={usuario} />
 
         {conexao.estado === "desconectado" && (
           <div className="aviso" role="alert">

@@ -27,7 +27,7 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ pendente
 | ✅ | 1. Nasce o frontend | Janela de app "J.A.R.V.I.S." abre (Tauri + React) |
 | ✅ | 2. Backend vira servidor | O Python responde perguntas do frontend (FastAPI local) |
 | ✅ | 3. Tela inicial | Saudação, data/hora e habilidades vindas do backend |
-| ⬜ | 4. Ligar tudo | Desbloqueou pelo rosto → a tela inicial abre sozinha |
+| ✅ | 4. Ligar tudo | Tela de bloqueio no app (câmera) → backend reconhece → tela inicial |
 | ⬜ | 5. Botão Bloquear | Clicou → volta para a tela de bloqueio |
 
 ## Fase 3: Conversa (planejada)
@@ -43,5 +43,4 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ pendente
 ## Depois (ideias, sem ordem)
 
 - 🖥️ Automações no Mac
-- 📷 Levar a tela de bloqueio (câmera) para dentro do app
 - 🗣️ Voz mais natural (voz Premium do Mac ou voz de IA)

@@ -1,12 +1,19 @@
 import { useEffect, useState } from "react";
-import { buscarRostos, buscarStatus, type Rostos, type Status } from "../api";
+import {
+  buscarRostos,
+  buscarSessao,
+  buscarStatus,
+  type Rostos,
+  type Sessao,
+  type Status,
+} from "../api";
 
 // De quanto em quanto tempo o app confere se o backend está vivo.
 const INTERVALO_VERIFICACAO_MS = 3000;
 
 export type Conexao =
   | { estado: "verificando" }
-  | { estado: "conectado"; status: Status; rostos: Rostos }
+  | { estado: "conectado"; status: Status; rostos: Rostos; sessao: Sessao }
   | { estado: "desconectado" };
 
 export function useConexaoBackend(): Conexao {
@@ -17,8 +24,12 @@ export function useConexaoBackend(): Conexao {
 
     async function verificar() {
       try {
-        const [status, rostos] = await Promise.all([buscarStatus(), buscarRostos()]);
-        if (ativo) setConexao({ estado: "conectado", status, rostos });
+        const [status, rostos, sessao] = await Promise.all([
+          buscarStatus(),
+          buscarRostos(),
+          buscarSessao(),
+        ]);
+        if (ativo) setConexao({ estado: "conectado", status, rostos, sessao });
       } catch {
         if (ativo) setConexao({ estado: "desconectado" });
       }

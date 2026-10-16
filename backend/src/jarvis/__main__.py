@@ -13,7 +13,7 @@ from jarvis.api import app as api
 from jarvis.habilidades import desbloqueio_facial
 from jarvis.habilidades.desbloqueio_facial.banco_rostos import NomeInvalidoError
 from jarvis.habilidades.desbloqueio_facial.camera import CameraIndisponivelError
-from jarvis.habilidades.desbloqueio_facial.fluxo import NenhumRostoCadastradoError
+from jarvis.habilidades.desbloqueio_facial.desbloqueio import NenhumRostoCadastradoError
 
 
 def saudacao() -> str:

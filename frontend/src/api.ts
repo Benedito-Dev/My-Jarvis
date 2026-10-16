@@ -20,15 +20,52 @@ export type Rostos = {
   cadastrados: string[];
 };
 
-async function buscar<T>(caminho: string): Promise<T> {
+export type Sessao = {
+  usuario: string | null; // null = bloqueado
+};
+
+export type EstadoDesbloqueio =
+  | "sem_rosto"
+  | "varios_rostos"
+  | "longe"
+  | "desconhecido"
+  | "reconhecendo"
+  | "desbloqueado";
+
+export type Retangulo = {
+  topo: number;
+  direita: number;
+  base: number;
+  esquerda: number;
+};
+
+export type Avaliacao = {
+  estado: EstadoDesbloqueio;
+  progresso: number;
+  usuario: string | null;
+  rostos: Retangulo[];
+};
+
+async function requisitar<T>(caminho: string, opcoes: RequestInit = {}): Promise<T> {
   const resposta = await fetch(`${URL_BACKEND}${caminho}`, {
+    ...opcoes,
     signal: AbortSignal.timeout(TEMPO_LIMITE_MS),
   });
   if (!resposta.ok) {
-    throw new Error(`Backend respondeu ${resposta.status} em ${caminho}`);
+    // O FastAPI devolve o motivo do erro em { detail: "..." }
+    const corpo = await resposta.json().catch(() => null);
+    throw new Error(corpo?.detail ?? `Backend respondeu ${resposta.status} em ${caminho}`);
   }
   return resposta.json();
 }
 
-export const buscarStatus = () => buscar<Status>("/status");
-export const buscarRostos = () => buscar<Rostos>("/rostos");
+export const buscarStatus = () => requisitar<Status>("/status");
+export const buscarRostos = () => requisitar<Rostos>("/rostos");
+export const buscarSessao = () => requisitar<Sessao>("/sessao");
+
+export const enviarQuadro = (jpeg: Blob) =>
+  requisitar<Avaliacao>("/desbloqueio/quadro", {
+    method: "POST",
+    headers: { "Content-Type": "image/jpeg" },
+    body: jpeg,
+  });

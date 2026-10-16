@@ -1,16 +1,18 @@
-"""Orquestra a habilidade: liga a entrada (câmera) à lógica e à saída (tela)."""
+"""Orquestra a habilidade no terminal: liga a webcam à lógica e à janela do OpenCV."""
 
 import time
 from pathlib import Path
 
 from jarvis.habilidades.desbloqueio_facial import banco_rostos, tela
 from jarvis.habilidades.desbloqueio_facial.camera import Camera
+from jarvis.habilidades.desbloqueio_facial.desbloqueio import (
+    FRASES,
+    Desbloqueador,
+    EstadoDesbloqueio,
+)
 from jarvis.habilidades.desbloqueio_facial.reconhecedor import (
-    ConfirmadorDeDesbloqueio,
     DetectorDeRostos,
     ExtratorDeAssinaturas,
-    esta_perto,
-    identificar,
 )
 from jarvis.nucleo.voz import Locutor
 
@@ -20,14 +22,15 @@ AMOSTRAS_CADASTRO = 5
 # Por quanto tempo a mensagem de boas-vindas fica na tela antes de fechar.
 SEGUNDOS_BOAS_VINDAS = 3.0
 
-# Mensagens da tela de bloqueio que o Jarvis também fala em voz alta.
-APROXIME = "Por favor, aproxime seu rosto"
-ACESSO_NEGADO = "Acesso negado"
-MENSAGENS_FALADAS = {APROXIME, ACESSO_NEGADO}
-
-
-class NenhumRostoCadastradoError(RuntimeError):
-    """Não dá para desbloquear sem ninguém cadastrado."""
+# Texto e cor do quadrado em cada estado (a fonte do OpenCV não tem acentos).
+APARENCIA = {
+    EstadoDesbloqueio.SEM_ROSTO: ("Por favor, aproxime seu rosto", tela.AMARELO),
+    EstadoDesbloqueio.VARIOS_ROSTOS: ("Apenas uma pessoa por vez", tela.AMARELO),
+    EstadoDesbloqueio.LONGE: ("Por favor, aproxime seu rosto", tela.AMARELO),
+    EstadoDesbloqueio.DESCONHECIDO: ("Acesso negado", tela.VERMELHO),
+    EstadoDesbloqueio.RECONHECENDO: ("Reconhecendo...", tela.VERDE),
+    EstadoDesbloqueio.DESBLOQUEADO: ("Reconhecendo...", tela.VERDE),
+}
 
 
 def executar() -> None:
@@ -78,15 +81,7 @@ def cadastrar(nome: str) -> Path | None:
 
 def desbloquear() -> str | None:
     """Tela de bloqueio: retorna o nome de quem desbloqueou, ou None se o usuário sair."""
-    cadastrados = banco_rostos.carregar_todos()
-    if not cadastrados:
-        raise NenhumRostoCadastradoError(
-            "Nenhum rosto cadastrado. Rode primeiro: uv run python -m jarvis cadastrar"
-        )
-
-    detector = DetectorDeRostos()
-    extrator = ExtratorDeAssinaturas()
-    confirmador = ConfirmadorDeDesbloqueio()
+    desbloqueador = Desbloqueador(banco_rostos.carregar_todos())
     locutor = Locutor()
 
     with Camera() as camera:
@@ -95,37 +90,20 @@ def desbloquear() -> str | None:
                 quadro = camera.ler_quadro()
                 if quadro is None:
                     return None
-                limpo = quadro.copy()
-                rostos = detector.detectar(quadro)
+                avaliacao = desbloqueador.avaliar(quadro.copy())
 
-                nome_visto = None
-                if len(rostos) != 1:
-                    mensagem = APROXIME if not rostos else "Apenas uma pessoa por vez"
-                    tela.desenhar_rostos(quadro, rostos, tela.AMARELO)
-                elif not esta_perto(rostos[0], quadro.shape[1]):
-                    mensagem = APROXIME
-                    tela.desenhar_rostos(quadro, rostos, tela.AMARELO)
-                else:
-                    identificacao = identificar(extrator.extrair(limpo, rostos[0]), cadastrados)
-                    nome_visto = identificacao.nome
-                    if nome_visto is None:
-                        mensagem = ACESSO_NEGADO
-                        tela.desenhar_rostos(quadro, rostos, tela.VERMELHO)
-                    else:
-                        mensagem = "Reconhecendo..."
-                        tela.desenhar_rostos(quadro, rostos, tela.VERDE)
-
-                confirmado = confirmador.registrar(nome_visto)
-                if mensagem in MENSAGENS_FALADAS:
-                    locutor.falar(mensagem)
+                if avaliacao.estado in FRASES:
+                    locutor.falar(FRASES[avaliacao.estado])
+                mensagem, cor = APARENCIA[avaliacao.estado]
+                tela.desenhar_rostos(quadro, avaliacao.rostos, cor)
                 tela.escrever(quadro, "JARVIS BLOQUEADO")
                 tela.escrever(quadro, mensagem, linha=1)
-                tela.desenhar_progresso(quadro, confirmador.progresso)
+                tela.desenhar_progresso(quadro, avaliacao.progresso)
 
-                if confirmado is not None:
-                    locutor.falar(f"Bem-vindo, {confirmado.capitalize()}", interromper=True)
-                    _mostrar_boas_vindas(camera, confirmado)
-                    return confirmado
+                if avaliacao.usuario is not None:
+                    locutor.falar(f"Bem-vindo, {avaliacao.usuario.capitalize()}", interromper=True)
+                    _mostrar_boas_vindas(camera, avaliacao.usuario)
+                    return avaliacao.usuario
                 if tela.mostrar(quadro) is tela.Acao.SAIR:
                     return None
         finally:
