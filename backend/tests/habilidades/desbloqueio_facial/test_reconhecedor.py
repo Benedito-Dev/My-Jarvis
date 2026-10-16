@@ -3,9 +3,13 @@ import pytest
 
 from jarvis.habilidades.desbloqueio_facial.reconhecedor import (
     CAMINHO_MODELO_SFACE,
+    ConfirmadorDeDesbloqueio,
     DetectorDeRostos,
     ExtratorDeAssinaturas,
     Rosto,
+    esta_perto,
+    identificar,
+    similaridade,
 )
 
 
@@ -75,3 +79,73 @@ def test_assinatura_tem_128_numeros():
     assinatura = extrator.extrair(quadro, rosto)
 
     assert assinatura.shape == (128,)
+
+
+# --- Identificação ---------------------------------------------------------------
+
+
+def vetor(*valores: float) -> np.ndarray:
+    return np.array(valores, dtype=np.float32)
+
+
+def test_similaridade_de_cosseno():
+    assert similaridade(vetor(1, 0), vetor(2, 0)) == pytest.approx(1.0)  # mesma direção
+    assert similaridade(vetor(1, 0), vetor(0, 1)) == pytest.approx(0.0)  # perpendiculares
+    assert similaridade(vetor(1, 0), vetor(-1, 0)) == pytest.approx(-1.0)  # opostas
+
+
+def test_identifica_a_pessoa_mais_parecida():
+    cadastrados = {
+        "ana": np.stack([vetor(1, 0, 0), vetor(0.9, 0.1, 0)]),
+        "bia": np.stack([vetor(0, 1, 0)]),
+    }
+
+    resultado = identificar(vetor(0.1, 1, 0), cadastrados)
+
+    assert resultado.nome == "bia"
+    assert resultado.similaridade > 0.9
+
+
+def test_desconhecido_abaixo_do_limiar():
+    cadastrados = {"ana": np.stack([vetor(1, 0, 0)])}
+
+    resultado = identificar(vetor(0, 0, 1), cadastrados)
+
+    assert resultado.nome is None
+    assert resultado.similaridade == pytest.approx(0.0)
+
+
+def test_rosto_perto_ou_longe():
+    largo = Rosto(topo=0, direita=300, base=300, esquerda=0)  # 300 de 1280 = 23%
+    estreito = Rosto(topo=0, direita=100, base=100, esquerda=0)  # 100 de 1280 = 8%
+
+    assert esta_perto(largo, largura_quadro=1280)
+    assert not esta_perto(estreito, largura_quadro=1280)
+
+
+def test_confirma_so_depois_de_n_quadros_seguidos():
+    confirmador = ConfirmadorDeDesbloqueio(quadros_necessarios=3)
+
+    assert confirmador.registrar("ana") is None
+    assert confirmador.registrar("ana") is None
+    assert confirmador.progresso == pytest.approx(2 / 3)
+    assert confirmador.registrar("ana") == "ana"
+
+
+def test_quadro_sem_reconhecimento_zera_a_contagem():
+    confirmador = ConfirmadorDeDesbloqueio(quadros_necessarios=2)
+
+    confirmador.registrar("ana")
+    confirmador.registrar(None)
+
+    assert confirmador.progresso == 0
+    assert confirmador.registrar("ana") is None
+
+
+def test_trocar_de_pessoa_recomeca_a_contagem():
+    confirmador = ConfirmadorDeDesbloqueio(quadros_necessarios=2)
+
+    confirmador.registrar("ana")
+
+    assert confirmador.registrar("bia") is None
+    assert confirmador.registrar("bia") == "bia"

@@ -11,8 +11,13 @@ NOME_JANELA = "Jarvis"
 TECLAS_SAIR = {ord("q"), 27}  # q ou ESC
 TECLA_CAPTURAR = ord(" ")  # espaço
 VERDE = (0, 255, 0)  # o OpenCV usa BGR
+VERMELHO = (0, 0, 255)
+AMARELO = (0, 220, 255)
 BRANCO = (255, 255, 255)
 PRETO = (0, 0, 0)
+
+
+_janela_na_frente = False
 
 
 class Acao(Enum):
@@ -23,10 +28,19 @@ class Acao(Enum):
     SAIR = auto()
 
 
-def desenhar_rostos(quadro: np.ndarray, rostos: list[Rosto]) -> None:
-    """Desenha um quadrado verde em volta de cada rosto (altera o quadro)."""
+def desenhar_rostos(
+    quadro: np.ndarray, rostos: list[Rosto], cor: tuple[int, int, int] = VERDE
+) -> None:
+    """Desenha um quadrado em volta de cada rosto (altera o quadro)."""
     for rosto in rostos:
-        cv2.rectangle(quadro, (rosto.esquerda, rosto.topo), (rosto.direita, rosto.base), VERDE, 2)
+        cv2.rectangle(quadro, (rosto.esquerda, rosto.topo), (rosto.direita, rosto.base), cor, 2)
+
+
+def desenhar_progresso(quadro: np.ndarray, progresso: float) -> None:
+    """Barra na parte de baixo da tela, de 0 (vazia) a 1 (cheia). Altera o quadro."""
+    altura, largura = quadro.shape[:2]
+    if progresso > 0:
+        cv2.rectangle(quadro, (0, altura - 12), (round(largura * progresso), altura), VERDE, -1)
 
 
 def escrever(quadro: np.ndarray, texto: str, linha: int = 0) -> None:
@@ -42,7 +56,12 @@ def escrever(quadro: np.ndarray, texto: str, linha: int = 0) -> None:
 
 def mostrar(quadro: np.ndarray) -> Acao:
     """Mostra o quadro e retorna o que o usuário pediu."""
+    global _janela_na_frente
     cv2.imshow(NOME_JANELA, quadro)
+    if not _janela_na_frente:
+        # Sem isso, no macOS a janela costuma abrir atrás do terminal.
+        cv2.setWindowProperty(NOME_JANELA, cv2.WND_PROP_TOPMOST, 1)
+        _janela_na_frente = True
     tecla = cv2.waitKey(1) & 0xFF
     janela_fechada = cv2.getWindowProperty(NOME_JANELA, cv2.WND_PROP_VISIBLE) < 1
     if tecla in TECLAS_SAIR or janela_fechada:
@@ -53,5 +72,7 @@ def mostrar(quadro: np.ndarray) -> Acao:
 
 
 def fechar() -> None:
+    global _janela_na_frente
+    _janela_na_frente = False
     cv2.destroyAllWindows()
     cv2.waitKey(1)  # no macOS, a janela só some após processar mais um evento

@@ -36,3 +36,10 @@ def carregar(nome: str, pasta: Path = PASTA_ROSTOS) -> np.ndarray | None:
     if not caminho.exists():
         return None
     return np.load(caminho)
+
+
+def carregar_todos(pasta: Path = PASTA_ROSTOS) -> dict[str, np.ndarray]:
+    """Retorna {nome: assinaturas} de todas as pessoas cadastradas."""
+    if not pasta.exists():
+        return {}
+    return {caminho.stem: np.load(caminho) for caminho in sorted(pasta.glob("*.npy"))}

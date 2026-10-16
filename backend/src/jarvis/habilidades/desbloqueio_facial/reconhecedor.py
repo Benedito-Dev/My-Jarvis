@@ -108,3 +108,77 @@ class ExtratorDeAssinaturas:
             raise ValueError("O rosto precisa vir do DetectorDeRostos (com os pontos do rosto).")
         alinhado = self._modelo.alignCrop(quadro_bgr, rosto.deteccao)
         return self._modelo.feature(alinhado).flatten().copy()
+
+
+# --- Identificação (é alguém cadastrado?) --------------------------------------
+
+# Similaridade de cosseno mínima para considerar "mesma pessoa". É o valor
+# recomendado pelos autores do SFace (vai de -1 a 1; quanto maior, mais parecido).
+LIMIAR_MESMA_PESSOA = 0.363
+
+# Rostos muito pequenos (longe da câmera) geram assinaturas ruins.
+# Exigimos que o rosto ocupe pelo menos esta fração da largura da imagem.
+LARGURA_MINIMA_ROSTO = 0.15
+
+# Quantos quadros seguidos precisam reconhecer a mesma pessoa para desbloquear.
+# Evita que um único quadro "sortudo" abra o Jarvis.
+QUADROS_PARA_CONFIRMAR = 5
+
+
+@dataclass(frozen=True)
+class Identificacao:
+    """Resultado da comparação: quem é (ou None) e quão parecido estava."""
+
+    nome: str | None
+    similaridade: float
+
+
+def similaridade(assinatura: np.ndarray, outra: np.ndarray) -> float:
+    """Similaridade de cosseno entre duas assinaturas (1 = idênticas)."""
+    return float(np.dot(assinatura, outra) / (np.linalg.norm(assinatura) * np.linalg.norm(outra)))
+
+
+def identificar(
+    assinatura: np.ndarray,
+    cadastrados: dict[str, np.ndarray],
+    limiar: float = LIMIAR_MESMA_PESSOA,
+) -> Identificacao:
+    """Compara a assinatura com todas as amostras de todos os cadastrados.
+
+    Fica com a pessoa da amostra mais parecida, se passar do limiar.
+    """
+    melhor_nome, melhor = None, -1.0
+    for nome, amostras in cadastrados.items():
+        for amostra in amostras:
+            valor = similaridade(assinatura, amostra)
+            if valor > melhor:
+                melhor_nome, melhor = nome, valor
+    return Identificacao(nome=melhor_nome if melhor >= limiar else None, similaridade=melhor)
+
+
+def esta_perto(rosto: Rosto, largura_quadro: int, minimo: float = LARGURA_MINIMA_ROSTO) -> bool:
+    """O rosto está perto o suficiente da câmera para ser reconhecido?"""
+    return (rosto.direita - rosto.esquerda) / largura_quadro >= minimo
+
+
+class ConfirmadorDeDesbloqueio:
+    """Só confirma quando a mesma pessoa é reconhecida em N quadros seguidos."""
+
+    def __init__(self, quadros_necessarios: int = QUADROS_PARA_CONFIRMAR) -> None:
+        self._necessarios = quadros_necessarios
+        self._nome: str | None = None
+        self._seguidos = 0
+
+    def registrar(self, nome: str | None) -> str | None:
+        """Registra quem foi visto neste quadro. Retorna o nome quando confirmar."""
+        if nome is None or nome != self._nome:
+            self._nome = nome
+            self._seguidos = 0 if nome is None else 1
+        else:
+            self._seguidos += 1
+        return self._nome if self._seguidos >= self._necessarios else None
+
+    @property
+    def progresso(self) -> float:
+        """De 0 a 1: quanto falta para confirmar."""
+        return min(self._seguidos / self._necessarios, 1.0)

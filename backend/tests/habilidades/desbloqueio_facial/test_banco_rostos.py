@@ -24,3 +24,17 @@ def test_pessoa_nao_cadastrada_retorna_none(tmp_path):
 def test_rejeita_nomes_inseguros(tmp_path, nome):
     with pytest.raises(NomeInvalidoError):
         banco_rostos.salvar(nome, [np.zeros(128)], pasta=tmp_path)
+
+
+def test_carrega_todos_os_cadastrados(tmp_path):
+    banco_rostos.salvar("ana", [np.zeros(128)], pasta=tmp_path)
+    banco_rostos.salvar("bia", [np.ones(128), np.ones(128)], pasta=tmp_path)
+
+    todos = banco_rostos.carregar_todos(pasta=tmp_path)
+
+    assert sorted(todos) == ["ana", "bia"]
+    assert todos["bia"].shape == (2, 128)
+
+
+def test_carrega_todos_sem_pasta_retorna_vazio(tmp_path):
+    assert banco_rostos.carregar_todos(pasta=tmp_path / "nao_existe") == {}
