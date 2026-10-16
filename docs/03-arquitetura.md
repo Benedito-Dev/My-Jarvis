@@ -58,6 +58,7 @@ backend/
 │       ├── nucleo/            ← coisas compartilhadas (config, log)
 │       └── habilidades/
 │           └── desbloqueio_facial/
+│               ├── fluxo.py         ← orquestra: liga entrada → lógica → saída
 │               ├── camera.py        ← fala com o hardware
 │               ├── reconhecedor.py  ← lógica pura (compara rostos)
 │               └── tela.py          ← mostra o vídeo e as mensagens
@@ -80,6 +81,8 @@ backend/
 | Entrada (hardware) | Só captura dados. Não decide nada. |
 | Lógica | Não sabe que existe câmera ou tela. Por isso é fácil de testar. |
 | Saída (interface) | Só mostra. Não decide nada. |
+
+O `fluxo.py` é o "maestro": chama cada papel na ordem certa, sem fazer o trabalho deles.
 
 Separar a lógica do hardware permite testar o reconhecedor com uma foto,
 sem precisar abrir a câmera.
