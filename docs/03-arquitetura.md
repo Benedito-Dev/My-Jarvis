@@ -55,7 +55,7 @@ backend/
 ├── src/
 │   └── jarvis/
 │       ├── __main__.py        ← ponto de entrada: `uv run python -m jarvis`
-│       ├── nucleo/            ← coisas compartilhadas (caminhos, downloads)
+│       ├── nucleo/            ← coisas compartilhadas (caminhos, downloads, voz)
 │       └── habilidades/
 │           └── desbloqueio_facial/
 │               ├── fluxo.py         ← orquestra: liga entrada → lógica → saída

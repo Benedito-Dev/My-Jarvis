@@ -18,7 +18,7 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ pendente
 | ✅ | 2. Detectar rosto | Quadrado verde em volta do seu rosto |
 | ✅ | 3. Cadastrar rosto | Seu rosto fica salvo em `dados/` |
 | ✅ | 4. Reconhecer | "Bem-vindo, Roberio" ou "Acesso negado" |
-| ⬜ | 5. Bônus | "Por favor, aproxime seu rosto" + fala em voz alta |
+| ✅ | 5. Bônus | "Por favor, aproxime seu rosto" + fala em voz alta |
 
 ## Depois (ideias, sem ordem)
 

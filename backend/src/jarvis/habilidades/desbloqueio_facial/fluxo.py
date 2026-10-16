@@ -12,12 +12,18 @@ from jarvis.habilidades.desbloqueio_facial.reconhecedor import (
     esta_perto,
     identificar,
 )
+from jarvis.nucleo.voz import Locutor
 
 # Várias amostras (com o rosto levemente virado) deixam o reconhecimento mais robusto.
 AMOSTRAS_CADASTRO = 5
 
 # Por quanto tempo a mensagem de boas-vindas fica na tela antes de fechar.
 SEGUNDOS_BOAS_VINDAS = 3.0
+
+# Mensagens da tela de bloqueio que o Jarvis também fala em voz alta.
+APROXIME = "Por favor, aproxime seu rosto"
+ACESSO_NEGADO = "Acesso negado"
+MENSAGENS_FALADAS = {APROXIME, ACESSO_NEGADO}
 
 
 class NenhumRostoCadastradoError(RuntimeError):
@@ -81,6 +87,7 @@ def desbloquear() -> str | None:
     detector = DetectorDeRostos()
     extrator = ExtratorDeAssinaturas()
     confirmador = ConfirmadorDeDesbloqueio()
+    locutor = Locutor()
 
     with Camera() as camera:
         try:
@@ -93,31 +100,30 @@ def desbloquear() -> str | None:
 
                 nome_visto = None
                 if len(rostos) != 1:
-                    mensagem = (
-                        "Por favor, aproxime seu rosto"
-                        if not rostos
-                        else "Apenas uma pessoa por vez"
-                    )
+                    mensagem = APROXIME if not rostos else "Apenas uma pessoa por vez"
                     tela.desenhar_rostos(quadro, rostos, tela.AMARELO)
                 elif not esta_perto(rostos[0], quadro.shape[1]):
-                    mensagem = "Por favor, aproxime seu rosto"
+                    mensagem = APROXIME
                     tela.desenhar_rostos(quadro, rostos, tela.AMARELO)
                 else:
                     identificacao = identificar(extrator.extrair(limpo, rostos[0]), cadastrados)
                     nome_visto = identificacao.nome
                     if nome_visto is None:
-                        mensagem = "Acesso negado"
+                        mensagem = ACESSO_NEGADO
                         tela.desenhar_rostos(quadro, rostos, tela.VERMELHO)
                     else:
                         mensagem = "Reconhecendo..."
                         tela.desenhar_rostos(quadro, rostos, tela.VERDE)
 
                 confirmado = confirmador.registrar(nome_visto)
+                if mensagem in MENSAGENS_FALADAS:
+                    locutor.falar(mensagem)
                 tela.escrever(quadro, "JARVIS BLOQUEADO")
                 tela.escrever(quadro, mensagem, linha=1)
                 tela.desenhar_progresso(quadro, confirmador.progresso)
 
                 if confirmado is not None:
+                    locutor.falar(f"Bem-vindo, {confirmado.capitalize()}", interromper=True)
                     _mostrar_boas_vindas(camera, confirmado)
                     return confirmado
                 if tela.mostrar(quadro) is tela.Acao.SAIR:
