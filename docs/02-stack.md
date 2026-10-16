@@ -5,11 +5,16 @@
 | Item | Escolha | Por quê |
 |---|---|---|
 | Plataforma | **Desktop (macOS, Apple Silicon)** | Precisa de câmera, microfone e acesso ao sistema |
-| Linguagem | **Python** | Melhor ecossistema para câmera, voz e IA |
+| Repositório | **Monorepo** (`backend/` + `frontend/`) | Tudo versionado junto, cada lado com sua stack |
+| Backend | **Python** | Melhor ecossistema para câmera, voz e IA |
 | Versão | **Python 3.12** | Estável e compatível com as libs de visão (dlib, OpenCV). Versões mais novas ainda têm lacunas nessas libs |
-| Gerenciador | **uv** | Cria o ambiente virtual, instala dependências e fixa versões (`uv.lock`) com um só comando |
+| Gerenciador (backend) | **uv** | Cria o ambiente virtual, instala dependências e fixa versões (`uv.lock`) com um só comando |
 
-## Bibliotecas (entram conforme o passo precisar)
+## Frontend
+
+📋 **A definir.** Será decidido quando a primeira tela for necessária.
+
+## Bibliotecas do backend (entram conforme o passo precisar)
 
 | Lib | Para quê | Entra no passo |
 |---|---|---|

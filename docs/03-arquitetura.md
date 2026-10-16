@@ -1,5 +1,30 @@
 # 🏗️ Arquitetura
 
+## Visão geral: monorepo
+
+Um único repositório com o **backend** e o **frontend** lado a lado.
+
+```
+My-Jarvis/
+├── backend/     🧠 Python: o "cérebro" (câmera, reconhecimento, voz, IA)
+├── frontend/    🖥️ a interface que o usuário vê (tecnologia a definir)
+└── docs/        📚 documentação compartilhada
+```
+
+```
+ frontend  ──── pede / mostra ────►  backend  ──►  📷 câmera, 🎤 microfone, 🤖 IA
+ (tela)     ◄──── responde ───────   (lógica)
+```
+
+- O **backend** faz todo o trabalho pesado e não depende de interface.
+- O **frontend** só mostra e envia comandos. Nunca acessa câmera nem decide nada.
+- Enquanto o frontend não existir, o backend usa janelas simples do OpenCV para
+  ver os resultados.
+
+---
+
+# Backend
+
 ## Decisão: organizar por **habilidade**, não por camada técnica
 
 O Jarvis cresce ganhando habilidades (rosto, voz, IA...). Por isso cada
@@ -23,11 +48,10 @@ repositories/                                      ...
 sistemas web com banco de dados. O Jarvis ainda não tem banco nem telas.
 Criar essas camadas agora seria estrutura vazia.
 
-## Estrutura de pastas
+## Estrutura de pastas do backend
 
 ```
-My-Jarvis/
-├── docs/                      ← você está aqui
+backend/
 ├── src/
 │   └── jarvis/
 │       ├── __main__.py        ← ponto de entrada: `uv run python -m jarvis`
@@ -65,3 +89,10 @@ sem precisar abrir a câmera.
 - **Nomes em português** para pastas e módulos do domínio (`habilidades`, `reconhecedor`)
 - Código Python segue o PEP 8 (o `ruff` garante)
 - Dados pessoais (fotos, assinaturas faciais) **nunca** vão para o git
+
+---
+
+# Frontend
+
+Ainda não definido (ver decisão [0005](decisoes/0005-monorepo-backend-frontend.md)).
+A pasta `frontend/` existe para reservar o lugar.

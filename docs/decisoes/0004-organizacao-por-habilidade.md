@@ -10,7 +10,7 @@ crescer ganhando habilidades (rosto, voz, IA...).
 
 ## Decisão
 
-Cada habilidade em **sua própria pasta** (`src/jarvis/habilidades/<nome>/`),
+Cada habilidade em **sua própria pasta** (`backend/src/jarvis/habilidades/<nome>/`),
 com separação interna entre entrada, lógica e saída.
 Detalhes em [03-arquitetura.md](../03-arquitetura.md).
 

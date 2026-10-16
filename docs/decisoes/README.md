@@ -10,6 +10,7 @@ Cada decisão importante ganha **um arquivo** nesta pasta.
 | [0002](0002-python-3-12.md) | Python 3.12 | ✅ Aceita | 2026-10-16 |
 | [0003](0003-uv-gerenciador.md) | uv como gerenciador | ✅ Aceita | 2026-10-16 |
 | [0004](0004-organizacao-por-habilidade.md) | Organização por habilidade | ✅ Aceita | 2026-10-16 |
+| [0005](0005-monorepo-backend-frontend.md) | Monorepo com backend e frontend | ✅ Aceita | 2026-10-16 |
 
 ## Como criar uma nova decisão
 
