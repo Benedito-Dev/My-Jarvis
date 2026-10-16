@@ -19,11 +19,12 @@
 | Lib | Para quê | Entra no passo |
 |---|---|---|
 | `opencv-python` | Abrir a câmera e desenhar na tela | 1 |
-| `face_recognition` | Detectar e comparar rostos (usa dlib por baixo) | 2 a 4 |
+| `opencv-python` (YuNet) | Detectar rostos em tempo real ([decisão 0006](decisoes/0006-yunet-para-detectar-rostos.md)) | 2 |
+| 📋 a definir | Reconhecer de quem é o rosto (`face_recognition` ou SFace do OpenCV) | 3 e 4 |
 
 > Só adicionamos uma lib quando um passo do roadmap precisa dela.
 
-### ⚠️ Armadilha conhecida: `face_recognition`
+### ⚠️ Armadilha conhecida: `face_recognition` (se ela for escolhida no Passo 3)
 
 Testado em 2026-10-16 (Python 3.12, Apple Silicon):
 

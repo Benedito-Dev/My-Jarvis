@@ -3,8 +3,17 @@
 import cv2
 import numpy as np
 
+from jarvis.habilidades.desbloqueio_facial.reconhecedor import Rosto
+
 NOME_JANELA = "Jarvis"
 TECLAS_SAIR = {ord("q"), 27}  # q ou ESC
+VERDE = (0, 255, 0)  # o OpenCV usa BGR
+
+
+def desenhar_rostos(quadro: np.ndarray, rostos: list[Rosto]) -> None:
+    """Desenha um quadrado verde em volta de cada rosto (altera o quadro)."""
+    for rosto in rostos:
+        cv2.rectangle(quadro, (rosto.esquerda, rosto.topo), (rosto.direita, rosto.base), VERDE, 2)
 
 
 def mostrar(quadro: np.ndarray) -> bool:
