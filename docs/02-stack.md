@@ -23,6 +23,19 @@
 
 > Só adicionamos uma lib quando um passo do roadmap precisa dela.
 
+### ⚠️ Armadilha conhecida: `face_recognition`
+
+Testado em 2026-10-16 (Python 3.12, Apple Silicon):
+
+| Sintoma | Causa | Correção |
+|---|---|---|
+| `No module named 'pkg_resources'` ao importar | A lib está sem manutenção desde 2020 e usa `pkg_resources`, removido no `setuptools` 81 | Adicionar `setuptools<81` às dependências junto com a lib |
+| Instalação demora ~12 min | O `dlib` é compilado do zero (precisa de `cmake`) | Normal, só na primeira vez (depois fica em cache) |
+
+```bash
+uv add face_recognition "setuptools<81"
+```
+
 ## Ferramentas de qualidade
 
 | Ferramenta | Para quê |
