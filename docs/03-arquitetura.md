@@ -55,13 +55,15 @@ backend/
 ├── src/
 │   └── jarvis/
 │       ├── __main__.py        ← ponto de entrada: `uv run python -m jarvis`
-│       ├── nucleo/            ← coisas compartilhadas (config, log)
+│       ├── nucleo/            ← coisas compartilhadas (caminhos, downloads)
 │       └── habilidades/
 │           └── desbloqueio_facial/
 │               ├── fluxo.py         ← orquestra: liga entrada → lógica → saída
 │               ├── camera.py        ← fala com o hardware
-│               ├── reconhecedor.py  ← lógica pura (compara rostos)
-│               └── tela.py          ← mostra o vídeo e as mensagens
+│               ├── reconhecedor.py  ← lógica pura (detecta e gera assinaturas)
+│               ├── banco_rostos.py  ← salva/carrega as assinaturas em dados/
+│               ├── tela.py          ← mostra o vídeo e as mensagens
+│               └── modelos/         ← modelos de IA (os grandes são baixados, fora do git)
 ├── dados/                     ← rostos cadastrados (fora do git)
 ├── tests/
 └── pyproject.toml
@@ -69,11 +71,15 @@ backend/
 
 > A estrutura acima é o alvo. As pastas são criadas **só quando o passo precisar**.
 
-## Dentro de cada habilidade: 3 papéis
+## Dentro de cada habilidade: papéis
 
 ```
  camera.py  ──►  reconhecedor.py  ──►  tela.py
  (entrada)       (decide)              (saída)
+                       │
+                       ▼
+                 banco_rostos.py
+                 (guarda)
 ```
 
 | Papel | Regra |
@@ -81,6 +87,7 @@ backend/
 | Entrada (hardware) | Só captura dados. Não decide nada. |
 | Lógica | Não sabe que existe câmera ou tela. Por isso é fácil de testar. |
 | Saída (interface) | Só mostra. Não decide nada. |
+| Persistência | Só salva e carrega arquivos em `dados/`. Não decide nada. |
 
 O `fluxo.py` é o "maestro": chama cada papel na ordem certa, sem fazer o trabalho deles.
 

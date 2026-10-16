@@ -12,6 +12,7 @@ Cada decisão importante ganha **um arquivo** nesta pasta.
 | [0004](0004-organizacao-por-habilidade.md) | Organização por habilidade | ✅ Aceita | 2026-10-16 |
 | [0005](0005-monorepo-backend-frontend.md) | Monorepo com backend e frontend | ✅ Aceita | 2026-10-16 |
 | [0006](0006-yunet-para-detectar-rostos.md) | YuNet (OpenCV) para detectar rostos | ✅ Aceita | 2026-10-16 |
+| [0007](0007-sface-para-reconhecer-rostos.md) | SFace (OpenCV) para reconhecer rostos | ✅ Aceita | 2026-10-16 |
 
 ## Como criar uma nova decisão
 

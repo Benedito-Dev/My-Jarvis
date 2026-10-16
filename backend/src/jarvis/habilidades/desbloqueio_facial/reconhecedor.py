@@ -1,13 +1,19 @@
-"""Lógica: encontra rostos numa imagem. Não sabe que existe câmera ou tela."""
+"""Lógica: encontra rostos e gera suas assinaturas. Não sabe que existe câmera ou tela."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import cv2
 import numpy as np
 
+from jarvis.nucleo.arquivos import baixar_se_necessario
+
+PASTA_MODELOS = Path(__file__).parent / "modelos"
+
+# --- Detecção (onde está o rosto?) ---------------------------------------------
+
 # Modelo YuNet do OpenCV Zoo (licença MIT): detector de rostos leve e rápido.
-CAMINHO_MODELO = Path(__file__).parent / "modelos" / "face_detection_yunet_2023mar.onnx"
+CAMINHO_MODELO = PASTA_MODELOS / "face_detection_yunet_2023mar.onnx"
 
 # Detectar na imagem inteira (1280x720) é desperdício. Reduzimos para esta
 # largura, detectamos e convertemos as posições de volta para o tamanho original.
@@ -15,6 +21,17 @@ LARGURA_DETECCAO = 320
 
 # De 0 a 1: quão confiante o modelo precisa estar para dizer "isto é um rosto".
 CONFIANCA_MINIMA = 0.8
+
+# --- Reconhecimento (de quem é o rosto?) ---------------------------------------
+
+# Modelo SFace do OpenCV Zoo (licença Apache 2.0). Tem 37 MB, por isso não fica
+# no git: é baixado no primeiro uso e conferido pelo hash.
+URL_MODELO_SFACE = (
+    "https://github.com/opencv/opencv_zoo/raw/main/models/"
+    "face_recognition_sface/face_recognition_sface_2021dec.onnx"
+)
+SHA256_MODELO_SFACE = "0ba9fbfa01b5270c96627c4ef784da859931e02f04419c829e83484087c34e79"
+CAMINHO_MODELO_SFACE = PASTA_MODELOS / "face_recognition_sface_2021dec.onnx"
 
 
 @dataclass(frozen=True)
@@ -25,6 +42,9 @@ class Rosto:
     direita: int
     base: int
     esquerda: int
+    # Linha completa do YuNet já na escala original: retângulo, 5 pontos do
+    # rosto (olhos, nariz, boca) e confiança. O SFace usa os pontos para alinhar.
+    deteccao: np.ndarray | None = field(default=None, compare=False, repr=False)
 
 
 class DetectorDeRostos:
@@ -54,13 +74,37 @@ class DetectorDeRostos:
         if deteccoes is None:
             return []
 
-        # Cada detecção começa com (x, y, largura, altura) na imagem reduzida.
-        return [
-            Rosto(
-                topo=round(y / escala),
-                direita=round((x + w) / escala),
-                base=round((y + h) / escala),
-                esquerda=round(x / escala),
+        rostos = []
+        for linha in deteccoes:
+            # Os 14 primeiros valores são coordenadas; o último é a confiança.
+            original = linha.copy()
+            original[:14] /= escala
+            x, y, w, h = original[:4]
+            rostos.append(
+                Rosto(
+                    topo=round(y),
+                    direita=round(x + w),
+                    base=round(y + h),
+                    esquerda=round(x),
+                    deteccao=original,
+                )
             )
-            for x, y, w, h in deteccoes[:, :4]
-        ]
+        return rostos
+
+
+class ExtratorDeAssinaturas:
+    """Transforma um rosto numa assinatura: 128 números que o identificam."""
+
+    def __init__(self, caminho_modelo: Path | None = None) -> None:
+        if caminho_modelo is None:
+            caminho_modelo = baixar_se_necessario(
+                URL_MODELO_SFACE, CAMINHO_MODELO_SFACE, SHA256_MODELO_SFACE
+            )
+        self._modelo = cv2.FaceRecognizerSF.create(str(caminho_modelo), "")
+
+    def extrair(self, quadro_bgr: np.ndarray, rosto: Rosto) -> np.ndarray:
+        """Retorna a assinatura (vetor de 128 floats) do rosto no quadro."""
+        if rosto.deteccao is None:
+            raise ValueError("O rosto precisa vir do DetectorDeRostos (com os pontos do rosto).")
+        alinhado = self._modelo.alignCrop(quadro_bgr, rosto.deteccao)
+        return self._modelo.feature(alinhado).flatten().copy()
