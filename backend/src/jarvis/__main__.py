@@ -3,11 +3,13 @@
 uv run python -m jarvis                        # tela de bloqueio: desbloqueia pelo rosto
 uv run python -m jarvis cadastrar --nome Ana   # cadastra o rosto da Ana
 uv run python -m jarvis ver                    # só mostra a câmera com os rostos marcados
+uv run python -m jarvis servidor               # sobe a API local para o app (frontend)
 """
 
 import argparse
 import sys
 
+from jarvis.api import app as api
 from jarvis.habilidades import desbloqueio_facial
 from jarvis.habilidades.desbloqueio_facial.banco_rostos import NomeInvalidoError
 from jarvis.habilidades.desbloqueio_facial.camera import CameraIndisponivelError
@@ -24,6 +26,7 @@ def _argumentos() -> argparse.Namespace:
     cadastro = comandos.add_parser("cadastrar", help="cadastra o rosto de uma pessoa")
     cadastro.add_argument("--nome", help="nome da pessoa (sem espaços)")
     comandos.add_parser("ver", help="mostra a câmera com os rostos marcados")
+    comandos.add_parser("servidor", help="sobe a API local para o app (frontend)")
     return parser.parse_args()
 
 
@@ -36,6 +39,9 @@ def main() -> None:
         elif argumentos.comando == "ver":
             print("Abrindo a câmera... (aperte q ou ESC para sair)")
             desbloqueio_facial.executar()
+        elif argumentos.comando == "servidor":
+            print(f"Servidor em http://{api.HOST}:{api.PORTA} (Ctrl+C para parar)")
+            api.rodar()
         else:
             _desbloquear()
     except (CameraIndisponivelError, NomeInvalidoError, NenhumRostoCadastradoError) as erro:

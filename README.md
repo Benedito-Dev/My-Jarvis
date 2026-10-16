@@ -19,6 +19,7 @@ uv sync                    # instala dependências
 uv run python -m jarvis cadastrar --nome SeuNome   # cadastra seu rosto (1ª vez)
 uv run python -m jarvis                            # tela de bloqueio: desbloqueia pelo rosto
 uv run python -m jarvis ver                        # só mostra a câmera com rostos marcados
+uv run python -m jarvis servidor                   # API local para o app (porta 8765)
 uv run pytest              # testes
 ```
 

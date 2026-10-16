@@ -3,6 +3,10 @@
   --texto: #d8e6f0;
   --texto-suave: #6f8796;
   --destaque: #39c5ff;
+  --ok: #3ddc84;
+  --erro: #ff5a5f;
+  --painel: rgba(57, 197, 255, 0.06);
+  --borda: rgba(57, 197, 255, 0.18);
 
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
   color: var(--texto);
@@ -56,6 +60,90 @@ body {
   font-size: 14px;
   letter-spacing: 0.3em;
   text-transform: uppercase;
+}
+
+/* Sem backend, o reator fica vermelho e para de pulsar */
+.nucleo--desconectado {
+  --destaque: var(--erro);
+  animation: none;
+  opacity: 0.6;
+}
+
+.subtitulo--ok {
+  color: var(--ok);
+}
+
+.subtitulo--erro {
+  color: var(--erro);
+}
+
+.aviso {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.dica {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: 13px;
+}
+
+.dica code {
+  user-select: text;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--painel);
+  color: var(--texto);
+}
+
+.painel {
+  margin-top: 24px;
+  width: min(420px, calc(100vw - 32px));
+  padding: 20px 24px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  background: var(--painel);
+}
+
+.painel__titulo {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.habilidades {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.habilidade {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.habilidade__icone {
+  color: var(--ok);
+  font-weight: 700;
+}
+
+.habilidade strong {
+  font-weight: 500;
+}
+
+.habilidade p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--texto-suave);
 }
 
 @keyframes pulsar {

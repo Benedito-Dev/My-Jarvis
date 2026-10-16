@@ -55,6 +55,7 @@ backend/
 ├── src/
 │   └── jarvis/
 │       ├── __main__.py        ← ponto de entrada: `uv run python -m jarvis`
+│       ├── api/               ← API local (FastAPI) que o frontend consulta
 │       ├── nucleo/            ← coisas compartilhadas (caminhos, downloads, voz)
 │       └── habilidades/
 │           └── desbloqueio_facial/
@@ -116,6 +117,13 @@ frontend/
 │   ├── tauri.conf.json   ← título, tamanho da janela, identificador do app
 │   └── src/lib.rs
 └── index.html
+```
+
+O frontend conversa com o backend pela API local
+(`http://127.0.0.1:8765`, decisão [0010](decisoes/0010-fastapi-como-ponte-local.md)):
+
+```
+ frontend/src/api.ts ── GET /status ──► backend/src/jarvis/api/app.py
 ```
 
 Regra: o frontend **só mostra e envia comandos**. Câmera, reconhecimento e voz

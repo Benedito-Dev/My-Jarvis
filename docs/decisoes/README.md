@@ -15,6 +15,7 @@ Cada decisão importante ganha **um arquivo** nesta pasta.
 | [0007](0007-sface-para-reconhecer-rostos.md) | SFace (OpenCV) para reconhecer rostos | ✅ Aceita | 2026-10-16 |
 | [0008](0008-say-do-macos-para-falar.md) | `say` do macOS para o Jarvis falar | ✅ Aceita | 2026-10-16 |
 | [0009](0009-tauri-react-no-frontend.md) | Tauri + React + TypeScript no frontend | ✅ Aceita | 2026-10-16 |
+| [0010](0010-fastapi-como-ponte-local.md) | FastAPI como ponte local | ✅ Aceita | 2026-10-16 |
 
 ## Como criar uma nova decisão
 

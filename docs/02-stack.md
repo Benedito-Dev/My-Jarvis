@@ -28,6 +28,7 @@ Detalhes em [decisão 0009](decisoes/0009-tauri-react-no-frontend.md).
 | `opencv-python` (YuNet) | Detectar rostos em tempo real ([decisão 0006](decisoes/0006-yunet-para-detectar-rostos.md)) | 2 |
 | `opencv-python` (SFace) | Gerar a assinatura do rosto e comparar ([decisão 0007](decisoes/0007-sface-para-reconhecer-rostos.md)) | 3 e 4 |
 | `say` (macOS, embutido) | O Jarvis falar em voz alta ([decisão 0008](decisoes/0008-say-do-macos-para-falar.md)) | 5 |
+| `fastapi` + `uvicorn` | API local para o frontend ([decisão 0010](decisoes/0010-fastapi-como-ponte-local.md)) | Fase 2 |
 
 > Só adicionamos uma lib quando um passo do roadmap precisa dela.
 
