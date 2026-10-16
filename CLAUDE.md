@@ -1,7 +1,7 @@
 # My-Jarvis: instruções para o Claude
 
 Assistente pessoal de desktop (macOS) em **monorepo**: `backend/` (Python 3.12 + uv),
-`frontend/` (a definir) e `docs/`.
+`frontend/` (Tauri 2 + React + TypeScript) e `docs/`.
 
 ## 📚 Fonte da verdade
 
@@ -36,4 +36,12 @@ uv sync                    # instala dependências
 uv run python -m jarvis    # roda
 uv run pytest              # testes
 uv run ruff check . && uv run ruff format --check .
+```
+
+## Comandos (dentro de `frontend/`)
+
+```bash
+npx npm@11 install         # o npm do Node 20 tem bug (edgesOut)
+npm run build              # tsc + vite build (checa os tipos)
+npm run tauri dev          # abre o app
 ```

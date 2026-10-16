@@ -1,0 +1,77 @@
+:root {
+  --fundo: #05080d;
+  --texto: #d8e6f0;
+  --texto-suave: #6f8796;
+  --destaque: #39c5ff;
+
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+  color: var(--texto);
+  background: var(--fundo);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at 50% 40%, #0c1a26 0%, var(--fundo) 60%);
+  min-height: 100vh;
+}
+
+.tela {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  user-select: none;
+}
+
+/* O "reator" pulsando: o primeiro sinal de vida do Jarvis */
+.nucleo {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 2px solid var(--destaque);
+  box-shadow:
+    0 0 24px var(--destaque),
+    inset 0 0 24px var(--destaque);
+  animation: pulsar 2.4s ease-in-out infinite;
+}
+
+.marca {
+  margin: 8px 0 0;
+  font-size: 40px;
+  font-weight: 300;
+  letter-spacing: 0.4em;
+  padding-left: 0.4em; /* compensa o espaçamento da última letra */
+}
+
+.subtitulo {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: 14px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+@keyframes pulsar {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nucleo {
+    animation: none;
+  }
+}

@@ -12,7 +12,13 @@
 
 ## Frontend
 
-📋 **A definir.** Será decidido quando a primeira tela for necessária.
+| Item | Escolha |
+|---|---|
+| App de desktop | **Tauri 2** (casca nativa em Rust) |
+| Tela | **React 19 + TypeScript**, com **Vite** |
+| Pré-requisitos | Rust (rustup), Node 20+ / npm 11 |
+
+Detalhes em [decisão 0009](decisoes/0009-tauri-react-no-frontend.md).
 
 ## Bibliotecas do backend (entram conforme o passo precisar)
 

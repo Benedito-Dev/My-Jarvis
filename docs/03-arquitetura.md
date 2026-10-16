@@ -7,7 +7,7 @@ Um único repositório com o **backend** e o **frontend** lado a lado.
 ```
 My-Jarvis/
 ├── backend/     🧠 Python: o "cérebro" (câmera, reconhecimento, voz, IA)
-├── frontend/    🖥️ a interface que o usuário vê (tecnologia a definir)
+├── frontend/    🖥️ a interface que o usuário vê (Tauri + React)
 └── docs/        📚 documentação compartilhada
 ```
 
@@ -104,5 +104,19 @@ sem precisar abrir a câmera.
 
 # Frontend
 
-Ainda não definido (ver decisão [0005](decisoes/0005-monorepo-backend-frontend.md)).
-A pasta `frontend/` existe para reservar o lugar.
+**Tauri 2 + React + TypeScript** (decisão [0009](decisoes/0009-tauri-react-no-frontend.md)).
+
+```
+frontend/
+├── src/            ← a tela (React + TypeScript). É aqui que mexemos
+│   ├── main.tsx    ← liga o React na página
+│   ├── App.tsx     ← componente principal
+│   └── App.css
+├── src-tauri/      ← a "casca" nativa (Rust): janela, ícone, permissões
+│   ├── tauri.conf.json   ← título, tamanho da janela, identificador do app
+│   └── src/lib.rs
+└── index.html
+```
+
+Regra: o frontend **só mostra e envia comandos**. Câmera, reconhecimento e voz
+ficam no backend.

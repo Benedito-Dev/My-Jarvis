@@ -6,7 +6,7 @@ Projeto pessoal em fase inicial. O escopo vai sendo definido ao longo dos commit
 
 ```
 backend/    🧠 Python: o cérebro do Jarvis
-frontend/   🖥️ interface (a definir)
+frontend/   🖥️ Tauri + React: o rosto do Jarvis
 docs/       📚 documentação
 ```
 
@@ -23,3 +23,11 @@ uv run pytest              # testes
 ```
 
 Documentação completa em [`docs/`](docs/README.md).
+
+## Como rodar o frontend
+
+```bash
+cd frontend
+npm install                # (no Node 20, use: npx npm@11 install)
+npm run tauri dev          # abre o app
+```
