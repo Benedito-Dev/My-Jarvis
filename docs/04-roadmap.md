@@ -7,7 +7,7 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ pendente
 | | Passo | Resultado visível |
 |---|---|---|
 | ✅ | Documentação base | Pasta `docs/` com visão, stack, arquitetura e roadmap |
-| ⬜ | Ambiente Python | `uv run python -m jarvis` imprime "Olá, eu sou o Jarvis" |
+| ✅ | Ambiente Python | `uv run python -m jarvis` imprime "Olá, eu sou o Jarvis" |
 
 ## Fase 1: Desbloqueio facial
 
