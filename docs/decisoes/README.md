@@ -1,0 +1,23 @@
+# 📝 Registro de Decisões
+
+Cada decisão importante ganha **um arquivo** nesta pasta.
+
+## Índice
+
+| # | Decisão | Status | Data |
+|---|---|---|---|
+| [0001](0001-desktop-nao-web.md) | Desktop, não web | ✅ Aceita | 2026-10-16 |
+| [0002](0002-python-3-12.md) | Python 3.12 | ✅ Aceita | 2026-10-16 |
+| [0003](0003-uv-gerenciador.md) | uv como gerenciador | ✅ Aceita | 2026-10-16 |
+| [0004](0004-organizacao-por-habilidade.md) | Organização por habilidade | ✅ Aceita | 2026-10-16 |
+
+## Como criar uma nova decisão
+
+1. Copie o [`_modelo.md`](_modelo.md) para `NNNN-titulo-curto.md` (próximo número livre)
+2. Preencha e adicione uma linha no índice acima
+
+## Regras
+
+- **Nunca apague uma decisão antiga.** Se ela mudar, crie uma nova e marque a
+  antiga como `🔁 Substituída por NNNN`.
+- Status possíveis: `📋 Proposta` · `✅ Aceita` · `🔁 Substituída` · `❌ Rejeitada`
