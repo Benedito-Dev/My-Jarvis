@@ -1,7 +1,27 @@
 """Entrada: captura quadros da webcam. Não decide nada."""
 
+import sys
+
 import cv2
 import numpy as np
+
+# Onde liberar a câmera muda em cada sistema, então a dica também muda.
+DICAS_DE_PERMISSAO = {
+    "darwin": (
+        "Verifique se o app (Terminal/VS Code) tem permissão em "
+        "Ajustes > Privacidade e Segurança > Câmera"
+    ),
+    "linux": "Verifique se existe /dev/video0 e se o seu usuário está no grupo 'video'",
+    "win32": "Verifique se a câmera está liberada em Configurações > Privacidade > Câmera",
+}
+
+
+def dica_de_permissao(plataforma: str = sys.platform) -> str:
+    """Como liberar a câmera neste sistema."""
+    for inicio, dica in DICAS_DE_PERMISSAO.items():
+        if plataforma.startswith(inicio):
+            return dica
+    return "Verifique as permissões de câmera do sistema"
 
 
 class CameraIndisponivelError(RuntimeError):
@@ -25,8 +45,7 @@ class Camera:
         if not self._captura.isOpened():
             self._captura.release()
             raise CameraIndisponivelError(
-                "Não consegui abrir a câmera. Verifique se o app (Terminal/VS Code) "
-                "tem permissão em Ajustes > Privacidade e Segurança > Câmera, "
+                f"Não consegui abrir a câmera. {dica_de_permissao()}, "
                 "e se nenhum outro app está usando a câmera."
             )
         return self

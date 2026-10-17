@@ -39,7 +39,7 @@ export function useCamera(videoRef: RefObject<HTMLVideoElement | null>): EstadoC
 
 function descreverErro(erro: unknown): string {
   if (erro instanceof DOMException && erro.name === "NotAllowedError") {
-    return "Sem permissão de câmera. Libere em Ajustes > Privacidade e Segurança > Câmera.";
+    return "Sem permissão de câmera. Libere o acesso à câmera nas configurações do sistema.";
   }
   if (erro instanceof DOMException && erro.name === "NotFoundError") {
     return "Nenhuma câmera encontrada.";

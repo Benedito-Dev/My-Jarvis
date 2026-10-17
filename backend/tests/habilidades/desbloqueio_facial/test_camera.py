@@ -2,7 +2,11 @@ import numpy as np
 import pytest
 
 from jarvis.habilidades.desbloqueio_facial import camera as modulo_camera
-from jarvis.habilidades.desbloqueio_facial.camera import Camera, CameraIndisponivelError
+from jarvis.habilidades.desbloqueio_facial.camera import (
+    Camera,
+    CameraIndisponivelError,
+    dica_de_permissao,
+)
 
 
 class CapturaFalsa:
@@ -31,10 +35,21 @@ def test_erro_claro_quando_camera_nao_abre(monkeypatch):
     captura = CapturaFalsa(aberta=False)
     usar_captura(monkeypatch, captura)
 
-    with pytest.raises(CameraIndisponivelError, match="permissão"):
+    # A dica muda de sistema para sistema; esta parte da mensagem não.
+    with pytest.raises(CameraIndisponivelError, match="Não consegui abrir a câmera"):
         with Camera():
             pass
     assert captura.liberada
+
+
+def test_cada_sistema_tem_a_sua_dica_de_permissao():
+    assert "Ajustes" in dica_de_permissao("darwin")
+    assert "/dev/video0" in dica_de_permissao("linux")
+    assert "Configurações" in dica_de_permissao("win32")
+
+
+def test_sistema_desconhecido_ainda_recebe_uma_dica_generica():
+    assert dica_de_permissao("freebsd14")
 
 
 def test_quadro_vem_espelhado(monkeypatch):
