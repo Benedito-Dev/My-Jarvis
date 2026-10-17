@@ -3,9 +3,13 @@ import type { Conexao } from "../hooks/useConexaoBackend";
 type Props = {
   conexao: Conexao;
   nomeAssistente: string;
+  onBloquear: () => void;
+  bloqueando: boolean;
 };
 
-export function BarraTopo({ conexao, nomeAssistente }: Props) {
+export function BarraTopo({ conexao, nomeAssistente, onBloquear, bloqueando }: Props) {
+  // Sem backend não há como bloquear: quem guarda o estado da sessão é ele.
+  const indisponivel = conexao.estado !== "conectado";
   return (
     <header className="barra-topo">
       <div className="barra-topo__marca">
@@ -14,9 +18,14 @@ export function BarraTopo({ conexao, nomeAssistente }: Props) {
       </div>
       <div className="barra-topo__acoes">
         <IndicadorConexao conexao={conexao} />
-        {/* Passa a funcionar no Passo 5 da Fase 2 */}
-        <button className="botao" type="button" disabled title="Em breve">
-          🔒 Bloquear
+        <button
+          className="botao"
+          type="button"
+          onClick={onBloquear}
+          disabled={bloqueando || indisponivel}
+          title={indisponivel ? "Backend desconectado" : "Voltar para a tela de bloqueio"}
+        >
+          🔒 {bloqueando ? "Bloqueando..." : "Bloquear"}
         </button>
       </div>
     </header>

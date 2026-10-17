@@ -63,6 +63,11 @@ export const buscarStatus = () => requisitar<Status>("/status");
 export const buscarRostos = () => requisitar<Rostos>("/rostos");
 export const buscarSessao = () => requisitar<Sessao>("/sessao");
 
+// Tranca o Jarvis de novo. Quem decide o estado é o backend, nunca o app:
+// enquanto a sessão lá estiver aberta, qualquer rosto entra sem ser avaliado.
+export const bloquearSessao = () =>
+  requisitar<Sessao>("/sessao/bloquear", { method: "POST" });
+
 export const enviarQuadro = (jpeg: Blob) =>
   requisitar<Avaliacao>("/desbloqueio/quadro", {
     method: "POST",

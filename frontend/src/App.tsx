@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { bloquearSessao } from "./api";
 import { BarraTopo } from "./componentes/BarraTopo";
 import { PainelHabilidades } from "./componentes/PainelHabilidades";
 import { PainelSistema } from "./componentes/PainelSistema";
@@ -34,6 +35,28 @@ function App() {
     if (conexao.sessao.usuario) setUsuario(conexao.sessao.usuario);
   }, [conexao]);
 
+  // Bloquear é decisão do backend. Só voltamos para a tela de bloqueio depois que
+  // ele confirma: se trancássemos só aqui, a tela reabriria no primeiro quadro,
+  // porque a sessão de lá continuaria aberta e responderia "desbloqueado".
+  const [bloqueio, setBloqueio] = useState<{ emAndamento: boolean; erro: string | null }>({
+    emAndamento: false,
+    erro: null,
+  });
+
+  const aoBloquear = useCallback(async () => {
+    setBloqueio({ emAndamento: true, erro: null });
+    try {
+      await bloquearSessao();
+      setUsuario(null);
+      setBloqueio({ emAndamento: false, erro: null });
+    } catch (erro) {
+      setBloqueio({
+        emAndamento: false,
+        erro: erro instanceof Error ? erro.message : String(erro),
+      });
+    }
+  }, []);
+
   if (!usuario) {
     return (
       <TelaBloqueio
@@ -46,9 +69,20 @@ function App() {
 
   return (
     <div className="app">
-      <BarraTopo conexao={conexao} nomeAssistente={nomeAssistente} />
+      <BarraTopo
+        conexao={conexao}
+        nomeAssistente={nomeAssistente}
+        onBloquear={aoBloquear}
+        bloqueando={bloqueio.emAndamento}
+      />
       <main className="conteudo">
         <Saudacao agora={agora} nome={usuario} />
+
+        {bloqueio.erro && (
+          <div className="aviso" role="alert">
+            <strong>Não consegui bloquear.</strong> {bloqueio.erro}
+          </div>
+        )}
 
         {conexao.estado === "desconectado" && (
           <div className="aviso" role="alert">
