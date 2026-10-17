@@ -60,7 +60,8 @@ class Desbloqueador:
     ) -> None:
         if not cadastrados:
             raise NenhumRostoCadastradoError(
-                "Nenhum rosto cadastrado. Rode primeiro: uv run python -m jarvis cadastrar"
+                "Nenhum rosto cadastrado. Use o botão 'Cadastrar rosto' no app, "
+                "ou rode: uv run python -m jarvis cadastrar"
             )
         self._cadastrados = cadastrados
         self._detector = detector or DetectorDeRostos()

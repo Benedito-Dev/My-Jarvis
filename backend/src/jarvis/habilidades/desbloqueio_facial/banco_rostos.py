@@ -14,12 +14,21 @@ class NomeInvalidoError(ValueError):
     """O nome não pode virar um nome de arquivo seguro."""
 
 
-def _caminho(nome: str, pasta: Path) -> Path:
+def validar_nome(nome: str) -> str:
+    """Devolve o nome se ele pode virar um arquivo seguro; se não, levanta erro.
+
+    Separado do `_caminho` porque o cadastro precisa recusar um nome ruim antes
+    de pedir as fotos, não depois.
+    """
     if not re.fullmatch(r"[\w-]+", nome):
         raise NomeInvalidoError(
             f"Nome inválido: {nome!r}. Use só letras, números, - ou _ (sem espaços)."
         )
-    return pasta / f"{nome.lower()}.npy"
+    return nome
+
+
+def _caminho(nome: str, pasta: Path) -> Path:
+    return pasta / f"{validar_nome(nome).lower()}.npy"
 
 
 def salvar(nome: str, assinaturas: list[np.ndarray], pasta: Path = PASTA_ROSTOS) -> Path:
