@@ -45,7 +45,7 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ pendente
 
 | | Passo | Resultado visível |
 |---|---|---|
-| ⬜ | 1. Ouvir | Segura ESPAÇO, fala, e o Jarvis grava a sua voz |
+| 🔄 | 1. Ouvir | Segura ESPAÇO, fala, e o Jarvis grava a sua voz (falta testar no app) |
 | ⬜ | 2. Transcrever | "Você disse: que horas são" (Whisper local) |
 | ⬜ | 3. Comandos simples | "Que horas são?" → "São 16 e 30" |
 | ⬜ | 4. Cérebro de IA | Pergunta livre → resposta (Claude) |
