@@ -89,3 +89,40 @@ def test_sem_cadastro_avisa(tmp_path):
 
     with pytest.raises(NenhumRostoCadastradoError):
         sessao.avaliar_quadro(QUADRO)
+
+
+def test_bloquear_volta_ao_estado_bloqueado(pasta):
+    sessao, _, _ = criar_sessao(pasta, [Avaliacao(EstadoDesbloqueio.DESBLOQUEADO, 1.0, "benedito")])
+    sessao.avaliar_quadro(QUADRO)
+    assert sessao.usuario == "benedito"
+
+    sessao.bloquear()
+
+    assert sessao.usuario is None
+
+
+def test_bloquear_faz_a_proxima_tentativa_recomecar_do_zero(pasta):
+    # Dois desbloqueios no roteiro: o segundo só é alcançado se, depois de bloquear,
+    # a sessão criar um desbloqueador novo em vez de reaproveitar o antigo.
+    sessao, _, criados = criar_sessao(
+        pasta,
+        [
+            Avaliacao(EstadoDesbloqueio.DESBLOQUEADO, 1.0, "benedito"),
+            Avaliacao(EstadoDesbloqueio.DESBLOQUEADO, 1.0, "benedito"),
+        ],
+    )
+    sessao.avaliar_quadro(QUADRO)
+    sessao.bloquear()
+
+    resultado = sessao.avaliar_quadro(QUADRO)
+
+    assert resultado.usuario == "benedito"
+    assert len(criados) == 2  # releu os cadastros da pasta
+
+
+def test_bloquear_ja_bloqueada_nao_quebra(pasta):
+    sessao, _, _ = criar_sessao(pasta, [])
+
+    sessao.bloquear()
+
+    assert sessao.usuario is None

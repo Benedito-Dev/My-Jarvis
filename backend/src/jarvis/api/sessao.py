@@ -44,6 +44,16 @@ class Sessao:
         with self._trava:
             return self._usuario
 
+    def bloquear(self) -> None:
+        """Volta ao estado bloqueado. Chamar de novo quando já está bloqueado não faz mal.
+
+        Também descarta o desbloqueador: a próxima tentativa recomeça do zero,
+        com a contagem de quadros zerada e os cadastros relidos.
+        """
+        with self._trava:
+            self._usuario = None
+            self._desbloqueador = None
+
     def avaliar_quadro(self, quadro_bgr: np.ndarray) -> Avaliacao:
         """Avalia um quadro vindo do app. Pode levantar NenhumRostoCadastradoError."""
         with self._trava:

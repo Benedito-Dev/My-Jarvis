@@ -24,10 +24,12 @@ from jarvis.nucleo.config import NOME_ASSISTENTE
 HOST = "127.0.0.1"
 PORTA = 8765
 
-# Endereços de onde o app pode chamar a API.
+# Endereços de onde o app pode chamar a API. A origem do webview muda conforme
+# o sistema, então os três precisam estar aqui (decisão 0012).
 ORIGENS_PERMITIDAS = [
-    "http://localhost:1420",  # app em desenvolvimento (npm run tauri dev)
-    "tauri://localhost",  # app instalado (macOS)
+    "http://localhost:1420",  # app em desenvolvimento (npm run tauri dev), nos três
+    "tauri://localhost",  # app instalado no macOS e no Linux
+    "http://tauri.localhost",  # app instalado no Windows (lá o webview não usa tauri://)
 ]
 
 # Um quadro JPEG de 640x360 tem uns 30-60 KB. Bem acima disso é engano ou abuso.
@@ -107,6 +109,12 @@ def criar_app(
     def ver_sessao() -> SessaoResposta:
         """Bloqueado (usuario = null) ou desbloqueado por quem."""
         return SessaoResposta(usuario=_exibir(sessao.usuario))
+
+    @app.post("/sessao/bloquear")
+    def bloquear() -> SessaoResposta:
+        """Tranca o Jarvis de novo (botão Bloquear do app)."""
+        sessao.bloquear()
+        return SessaoResposta(usuario=None)
 
     @app.post("/desbloqueio/quadro")
     async def avaliar_quadro(request: Request) -> AvaliacaoResposta:

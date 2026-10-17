@@ -138,3 +138,34 @@ def test_sem_ninguem_cadastrado_responde_409(tmp_path):
 
     assert resposta.status_code == 409
     assert "cadastrar" in resposta.json()["detail"]
+
+
+# --- Botão Bloquear ---------------------------------------------------------------
+
+
+def test_bloquear_tranca_a_sessao(tmp_path):
+    cliente = cliente_com_roteiro(
+        tmp_path, [Avaliacao(EstadoDesbloqueio.DESBLOQUEADO, 1.0, "benedito")]
+    )
+    cliente.post("/desbloqueio/quadro", content=jpeg())
+    assert cliente.get("/sessao").json() == {"usuario": "Benedito"}
+
+    resposta = cliente.post("/sessao/bloquear")
+
+    assert resposta.status_code == 200
+    assert resposta.json() == {"usuario": None}
+    assert cliente.get("/sessao").json() == {"usuario": None}
+
+
+def test_bloquear_sem_estar_desbloqueado_nao_quebra(tmp_path):
+    cliente = cliente_com_roteiro(tmp_path, [])
+
+    assert cliente.post("/sessao/bloquear").json() == {"usuario": None}
+
+
+def test_app_instalado_pode_chamar_a_api_nos_tres_sistemas():
+    # A origem do webview muda conforme o sistema (decisão 0012).
+    for origem in ("tauri://localhost", "http://tauri.localhost"):
+        resposta = cliente.post("/sessao/bloquear", headers={"Origin": origem})
+
+        assert resposta.headers["access-control-allow-origin"] == origem, origem
