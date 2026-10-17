@@ -57,6 +57,8 @@ backend/
 │       ├── __main__.py        ← ponto de entrada: `uv run python -m jarvis`
 │       ├── api/               ← API local (FastAPI) que o frontend consulta
 │       ├── nucleo/            ← coisas compartilhadas (config, caminhos, downloads, voz)
+│       │   ├── voz.py         ← Locutor: quando falar (regras)
+│       │   └── motor_voz.py   ← qual comando falar em cada sistema (decisão 0012)
 │       └── habilidades/
 │           └── desbloqueio_facial/
 │               ├── fluxo.py         ← orquestra: liga entrada → lógica → saída
@@ -101,6 +103,11 @@ sem precisar abrir a câmera.
 - **Nomes em português** para pastas e módulos do domínio (`habilidades`, `reconhecedor`)
 - Código Python segue o PEP 8 (o `ruff` garante)
 - Dados pessoais (fotos, assinaturas faciais) **nunca** vão para o git
+- **Diferença entre sistemas fica num arquivo só**, nunca espalhada em `if`:
+  o Jarvis roda em macOS, Linux e Windows ([decisão 0012](decisoes/0012-multiplataforma.md)).
+  `motor_voz.py` é o exemplo: `voz.py` não sabe em que sistema está
+- Testes **passam nas três máquinas**: o que depende do sistema vira função pura
+  que recebe a plataforma por parâmetro, em vez de ler `sys.platform` direto
 
 ---
 

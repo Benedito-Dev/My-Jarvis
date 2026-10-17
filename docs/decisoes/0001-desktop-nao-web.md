@@ -9,7 +9,11 @@ O Jarvis precisa decidir onde roda: no navegador ou como aplicativo do computado
 
 ## Decisão
 
-Aplicativo de **desktop para macOS** (Apple Silicon).
+Aplicativo de **desktop**, não página web.
+
+> Esta decisão nasceu só para macOS (Apple Silicon). A
+> [0012](0012-multiplataforma.md) ampliou o alvo para **macOS, Linux e
+> Windows** — o que vale aqui é "desktop, não web".
 
 ## Alternativas consideradas
 

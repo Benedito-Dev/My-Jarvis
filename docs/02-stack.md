@@ -4,7 +4,7 @@
 
 | Item | Escolha | Por quê |
 |---|---|---|
-| Plataforma | **Desktop (macOS, Apple Silicon)** | Precisa de câmera, microfone e acesso ao sistema |
+| Plataforma | **Desktop: macOS, Linux e Windows** | Precisa de câmera, microfone e acesso ao sistema. As três máquinas do dono ([decisão 0012](decisoes/0012-multiplataforma.md)) |
 | Repositório | **Monorepo** (`backend/` + `frontend/`) | Tudo versionado junto, cada lado com sua stack |
 | Backend | **Python** | Melhor ecossistema para câmera, voz e IA |
 | Versão | **Python 3.12** | Estável e compatível com as libs de visão (dlib, OpenCV). Versões mais novas ainda têm lacunas nessas libs |
@@ -27,14 +27,14 @@ Detalhes em [decisão 0009](decisoes/0009-tauri-react-no-frontend.md).
 | `opencv-python` | Abrir a câmera e desenhar na tela | 1 |
 | `opencv-python` (YuNet) | Detectar rostos em tempo real ([decisão 0006](decisoes/0006-yunet-para-detectar-rostos.md)) | 2 |
 | `opencv-python` (SFace) | Gerar a assinatura do rosto e comparar ([decisão 0007](decisoes/0007-sface-para-reconhecer-rostos.md)) | 3 e 4 |
-| `say` (macOS, embutido) | O Jarvis falar em voz alta ([decisão 0008](decisoes/0008-say-do-macos-para-falar.md)) | 5 |
+| `say` (macOS) / `spd-say` (Linux) | O Jarvis falar em voz alta. Um motor por sistema, ambos embutidos ([decisões 0008](decisoes/0008-say-do-macos-para-falar.md) e [0012](decisoes/0012-multiplataforma.md)) | 5 |
 | `fastapi` + `uvicorn` | API local para o frontend ([decisão 0010](decisoes/0010-fastapi-como-ponte-local.md)) | Fase 2 |
 
 > Só adicionamos uma lib quando um passo do roadmap precisa dela.
 
 ### ⚠️ Armadilha conhecida: `face_recognition` (não usada, ver decisão 0007; fica de referência)
 
-Testado em 2026-10-16 (Python 3.12, Apple Silicon):
+Testado em 2026-10-16 (Python 3.12, macOS Apple Silicon):
 
 | Sintoma | Causa | Correção |
 |---|---|---|
@@ -54,9 +54,35 @@ uv add face_recognition "setuptools<81"
 
 ## Pré-requisitos na máquina
 
+O `uv` baixa o próprio Python 3.12, então basta instalar o `uv` e, para o app
+do Tauri, o Rust e as libs de interface do sistema.
+
+### macOS
+
 ```bash
-brew install uv cmake   # cmake é necessário para compilar o dlib
+brew install uv
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh   # Rust, para o Tauri
 ```
 
-O Python 3.12 já está instalado via Homebrew (`/opt/homebrew/bin/python3.12`).
-O `uv` também consegue baixar o Python sozinho, se precisar.
+Se um dia o `dlib` voltar à mesa, ele precisa de `brew install cmake`.
+
+### Linux (Debian/Ubuntu/Mint)
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh                  # uv
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh   # Rust, para o Tauri
+
+# Libs de interface que o Tauri compila contra (WebKitGTK)
+sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev \
+                 libayatana-appindicator3-dev libxdo-dev
+```
+
+A voz usa o `spd-say` (pacote `speech-dispatcher`), que já vem na maioria das
+distros. Sem ele o Jarvis funciona, mas em silêncio.
+
+### Windows
+
+Ainda não verificado — ver [decisão 0012](decisoes/0012-multiplataforma.md).
+Vai precisar do `uv`, do Rust (MSVC) e do WebView2.
+
+> Verificado em 2026-10-16: macOS (Apple Silicon) e Linux Mint 21.3.

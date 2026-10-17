@@ -30,6 +30,17 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ pendente
 | ✅ | 4. Ligar tudo | Tela de bloqueio no app (câmera) → backend reconhece → tela inicial |
 | ⬜ | 5. Botão Bloquear | Clicou → volta para a tela de bloqueio |
 
+## Fase 2.5: Rodar nas três máquinas
+
+[Decisão 0012](decisoes/0012-multiplataforma.md). O dono usa Linux, Windows e Mac.
+
+| | Passo | Resultado visível |
+|---|---|---|
+| ✅ | 1. Voz por sistema | `motor_voz.py`: `say` no Mac, `spd-say` no Linux; testes passam nos 3 |
+| ✅ | 2. App nativo no Linux | Janela do J.A.R.V.I.S. abre no Linux e desbloqueia pelo rosto |
+| ⬜ | 3. App nativo no Windows | Motor de voz SAPI, origem CORS `http://tauri.localhost`, WebView2 |
+| ⬜ | 4. Mesma voz nos 3 | Piper TTS local (pt-BR de verdade, não o espeak-ng robótico) |
+
 ## Fase 3: Conversa (planejada)
 
 | | Passo | Resultado visível |

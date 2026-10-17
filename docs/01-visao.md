@@ -2,8 +2,8 @@
 
 ## O que é
 
-Um **assistente pessoal de desktop** (estilo Jarvis) que roda no Mac e ganha
-novas **habilidades** aos poucos.
+Um **assistente pessoal de desktop** (estilo Jarvis) que roda nas três máquinas
+do dono — **macOS, Linux e Windows** — e ganha novas **habilidades** aos poucos.
 
 A primeira habilidade é o **desbloqueio por reconhecimento facial**:
 
@@ -34,4 +34,5 @@ Ideias futuras (nada prometido):
 
 - Segurança de nível bancário (uma foto pode enganar o desbloqueio, e isso é aceito na v1)
 - Versão web ou mobile
-- Windows/Linux (o alvo é macOS com Apple Silicon)
+- Mesma voz nos três sistemas (hoje cada um usa a voz que tem;
+  ver [decisão 0012](decisoes/0012-multiplataforma.md))

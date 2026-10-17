@@ -1,7 +1,11 @@
 # My-Jarvis: instruções para o Claude
 
-Assistente pessoal de desktop (macOS) em **monorepo**: `backend/` (Python 3.12 + uv),
+Assistente pessoal de desktop em **monorepo**: `backend/` (Python 3.12 + uv),
 `frontend/` (Tauri 2 + React + TypeScript) e `docs/`.
+
+Roda em **macOS, Linux e Windows** (decisão `0012`). Diferença entre sistemas
+fica concentrada num arquivo só (ex.: `nucleo/motor_voz.py`), nunca espalhada em
+`if sys.platform` — e os testes precisam passar nas três máquinas.
 
 ## 📚 Fonte da verdade
 

@@ -10,10 +10,12 @@ frontend/   🖥️ Tauri + React: o rosto do Jarvis
 docs/       📚 documentação
 ```
 
+Roda em macOS, Linux e Windows. Pré-requisitos de cada sistema em
+[`docs/02-stack.md`](docs/02-stack.md).
+
 ## Como rodar o backend
 
 ```bash
-brew install uv cmake      # uma vez só
 cd backend
 uv sync                    # instala dependências
 uv run python -m jarvis cadastrar --nome SeuNome   # cadastra seu rosto (1ª vez)

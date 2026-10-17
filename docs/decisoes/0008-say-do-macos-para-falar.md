@@ -31,4 +31,9 @@ Regras do `Locutor`, para a fala não virar bagunça:
 - ✅ Zero dependências novas, funciona offline
 - ✅ O vídeo continua fluido enquanto o Jarvis fala
 - ⚠️ Só funciona no macOS (alinhado com a [0001](0001-desktop-nao-web.md))
+
+> **Atualização:** as regras do `Locutor` descritas aqui continuam valendo. O
+> que mudou é que o *comando* de fala saiu do `Locutor` e virou um motor por
+> sistema (`nucleo/motor_voz.py`): ver [0012](0012-multiplataforma.md). O `say`
+> segue sendo o motor do macOS.
 - ⚠️ Voz robótica. Dá pra trocar por outra voz instalada (ex.: Felipe) em `VOZ_PADRAO`
