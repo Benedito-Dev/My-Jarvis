@@ -10,8 +10,12 @@ pub fn run() {
         // Aqui o próprio app responde pelo usuário: ele instalou o Jarvis para ser
         // reconhecido pelo rosto, então a câmera é a função, não uma surpresa.
         // Tudo o mais continua no padrão (negado).
+        //
+        // O microfone entra pelo mesmo motivo, no passo de ouvir: o WebKitGTK o
+        // nega igual. A gravação só acontece enquanto a barra de espaço está
+        // segurada — o app não fica escutando sozinho.
         .on_permission_request(|_webview, tipo| match tipo {
-            PermissionKind::Camera => PermissionResponse::Allow,
+            PermissionKind::Camera | PermissionKind::Microphone => PermissionResponse::Allow,
             _ => PermissionResponse::Default,
         })
         .run(tauri::generate_context!())

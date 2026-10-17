@@ -3,9 +3,11 @@ import { bloquearSessao } from "./api";
 import { BarraTopo } from "./componentes/BarraTopo";
 import { PainelHabilidades } from "./componentes/PainelHabilidades";
 import { PainelSistema } from "./componentes/PainelSistema";
+import { PainelVoz } from "./componentes/PainelVoz";
 import { Saudacao } from "./componentes/Saudacao";
 import { TelaBloqueio } from "./componentes/TelaBloqueio";
 import { useConexaoBackend } from "./hooks/useConexaoBackend";
+import { useGravacao } from "./hooks/useGravacao";
 import { useRelogio } from "./hooks/useRelogio";
 import "./App.css";
 
@@ -57,6 +59,10 @@ function App() {
     }
   }, []);
 
+  // Segurar ESPAÇO grava a voz. Só depois de desbloquear: na tela de bloqueio o
+  // espaço não deve fazer nada.
+  const gravacao = useGravacao(!!usuario && conexao.estado === "conectado");
+
   if (!usuario) {
     return (
       <TelaBloqueio
@@ -98,6 +104,7 @@ function App() {
               versao={conexao.status.versao}
               cadastrados={conexao.rostos.cadastrados}
             />
+            <PainelVoz gravacao={gravacao} />
           </div>
         )}
       </main>

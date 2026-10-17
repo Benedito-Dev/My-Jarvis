@@ -68,6 +68,19 @@ export const buscarSessao = () => requisitar<Sessao>("/sessao");
 export const bloquearSessao = () =>
   requisitar<Sessao>("/sessao/bloquear", { method: "POST" });
 
+export type Gravacao = {
+  arquivo: string;
+  bytes: number;
+};
+
+// Manda o áudio gravado no app para o backend guardar.
+export const enviarGravacao = (audio: Blob) =>
+  requisitar<Gravacao>("/conversa/gravacao", {
+    method: "POST",
+    headers: { "Content-Type": audio.type || "audio/webm" },
+    body: audio,
+  });
+
 export const enviarQuadro = (jpeg: Blob) =>
   requisitar<Avaliacao>("/desbloqueio/quadro", {
     method: "POST",

@@ -390,3 +390,45 @@ body {
     font-size: 48px;
   }
 }
+
+/* --- Painel de voz (segurar ESPAÇO grava) ------------------------------- */
+
+.voz {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.voz__ponto {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--texto-suave);
+  transition: background 0.2s;
+}
+
+.voz__ponto--gravando {
+  background: var(--erro);
+  animation: pulsar-voz 1.1s ease-in-out infinite;
+}
+
+@keyframes pulsar-voz {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.voz__mensagem {
+  margin: 0;
+  font-size: 14px;
+  color: var(--texto-suave);
+}
+
+.voz__mensagem--ok {
+  color: var(--ok);
+}
+
+.voz__mensagem--erro {
+  color: var(--erro);
+}
