@@ -169,3 +169,45 @@ def test_app_instalado_pode_chamar_a_api_nos_tres_sistemas():
         resposta = cliente.post("/sessao/bloquear", headers={"Origin": origem})
 
         assert resposta.headers["access-control-allow-origin"] == origem, origem
+
+
+# --- Gravar a voz -----------------------------------------------------------------
+
+
+def test_gravacao_e_guardada(tmp_path):
+    cliente = TestClient(criar_app(pasta_gravacoes=tmp_path))
+
+    resposta = cliente.post(
+        "/conversa/gravacao", content=b"isto seria um webm", headers={"Content-Type": "audio/webm"}
+    )
+
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["bytes"] == len(b"isto seria um webm")
+    assert corpo["arquivo"].endswith(".webm")
+    assert (tmp_path / corpo["arquivo"]).read_bytes() == b"isto seria um webm"
+
+
+def test_gravacao_vazia_e_recusada(tmp_path):
+    cliente = TestClient(criar_app(pasta_gravacoes=tmp_path))
+
+    assert cliente.post("/conversa/gravacao", content=b"").status_code == 400
+
+
+def test_gravacao_grande_demais_e_recusada(tmp_path):
+    cliente = TestClient(criar_app(pasta_gravacoes=tmp_path))
+
+    resposta = cliente.post("/conversa/gravacao", content=b"0" * (11 * 1024 * 1024))
+
+    assert resposta.status_code == 413
+
+
+def test_gravacao_de_tipo_desconhecido_e_recusada(tmp_path):
+    cliente = TestClient(criar_app(pasta_gravacoes=tmp_path))
+
+    resposta = cliente.post(
+        "/conversa/gravacao", content=b"dados", headers={"Content-Type": "text/html"}
+    )
+
+    assert resposta.status_code == 415
+    assert list(tmp_path.glob("*")) == []

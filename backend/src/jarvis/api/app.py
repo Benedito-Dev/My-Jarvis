@@ -13,6 +13,8 @@ from pydantic import BaseModel
 
 from jarvis.api.sessao import Sessao
 from jarvis.habilidades import HABILIDADES, Situacao
+from jarvis.habilidades.conversa import gravacoes
+from jarvis.habilidades.conversa.gravacoes import TipoDeAudioInvalidoError
 from jarvis.habilidades.desbloqueio_facial import banco_rostos
 from jarvis.habilidades.desbloqueio_facial.desbloqueio import (
     EstadoDesbloqueio,
@@ -34,6 +36,9 @@ ORIGENS_PERMITIDAS = [
 
 # Um quadro JPEG de 640x360 tem uns 30-60 KB. Bem acima disso é engano ou abuso.
 TAMANHO_MAXIMO_QUADRO = 2 * 1024 * 1024
+
+# Um minuto de voz em webm/opus dá uns 500 KB. 10 MB cobre falas bem longas.
+TAMANHO_MAXIMO_AUDIO = 10 * 1024 * 1024
 
 
 class HabilidadeResposta(BaseModel):
@@ -57,6 +62,11 @@ class SessaoResposta(BaseModel):
     usuario: str | None  # None = bloqueado
 
 
+class GravacaoResposta(BaseModel):
+    arquivo: str
+    bytes: int
+
+
 class RetanguloResposta(BaseModel):
     topo: int
     direita: int
@@ -76,7 +86,9 @@ def _exibir(nome: str | None) -> str | None:
 
 
 def criar_app(
-    pasta_rostos: Path = banco_rostos.PASTA_ROSTOS, sessao: Sessao | None = None
+    pasta_rostos: Path = banco_rostos.PASTA_ROSTOS,
+    sessao: Sessao | None = None,
+    pasta_gravacoes: Path = gravacoes.PASTA_GRAVACOES,
 ) -> FastAPI:
     sessao = sessao or Sessao(pasta_rostos)
     app = FastAPI(title="Jarvis", version=version("jarvis"))
@@ -115,6 +127,23 @@ def criar_app(
         """Tranca o Jarvis de novo (botão Bloquear do app)."""
         sessao.bloquear()
         return SessaoResposta(usuario=None)
+
+    @app.post("/conversa/gravacao")
+    async def guardar_gravacao(request: Request) -> GravacaoResposta:
+        """Recebe o áudio gravado no app e guarda em dados/gravacoes/."""
+        audio = await request.body()
+        if not audio:
+            raise HTTPException(400, "A gravação chegou vazia.")
+        if len(audio) > TAMANHO_MAXIMO_AUDIO:
+            raise HTTPException(413, "Gravação grande demais.")
+
+        tipo = request.headers.get("content-type", "audio/webm")
+        try:
+            caminho = await run_in_threadpool(gravacoes.salvar, audio, tipo, pasta_gravacoes)
+        except TipoDeAudioInvalidoError as erro:
+            raise HTTPException(415, str(erro)) from erro
+
+        return GravacaoResposta(arquivo=caminho.name, bytes=len(audio))
 
     @app.post("/desbloqueio/quadro")
     async def avaliar_quadro(request: Request) -> AvaliacaoResposta:
