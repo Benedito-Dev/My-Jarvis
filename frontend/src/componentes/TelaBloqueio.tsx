@@ -1,7 +1,8 @@
 import { useEffect, useRef } from "react";
 import { aparencia } from "../desbloqueio";
 import { useCamera } from "../hooks/useCamera";
-import { LARGURA_QUADRO, useDesbloqueio } from "../hooks/useDesbloqueio";
+import { useDesbloqueio } from "../hooks/useDesbloqueio";
+import { LARGURA_QUADRO } from "../quadro";
 
 // Quanto tempo o "Bem-vindo" fica na tela antes de entrar.
 const DURACAO_BOAS_VINDAS_MS = 2500;

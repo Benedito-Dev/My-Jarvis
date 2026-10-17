@@ -1,9 +1,10 @@
 type Props = {
   versao: string;
   cadastrados: string[];
+  onCadastrarRosto: () => void;
 };
 
-export function PainelSistema({ versao, cadastrados }: Props) {
+export function PainelSistema({ versao, cadastrados, onCadastrarRosto }: Props) {
   return (
     <section className="painel">
       <h2 className="painel__titulo">Sistema</h2>
@@ -17,6 +18,9 @@ export function PainelSistema({ versao, cadastrados }: Props) {
         <dt>Versão</dt>
         <dd>{versao}</dd>
       </dl>
+      <button className="botao" type="button" onClick={onCadastrarRosto}>
+        + Cadastrar rosto
+      </button>
     </section>
   );
 }

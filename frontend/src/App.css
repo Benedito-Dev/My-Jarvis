@@ -432,3 +432,98 @@ body {
 .voz__mensagem--erro {
   color: var(--erro);
 }
+
+/* --- Cadastrar rosto pelo app ------------------------------------------ */
+
+.botao--destaque {
+  border-color: var(--destaque);
+  color: var(--destaque);
+}
+
+.cadastro {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(5, 8, 13, 0.85);
+}
+
+.cadastro__caixa {
+  width: min(460px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 24px;
+  border: 1px solid var(--borda);
+  border-radius: 14px;
+  background: var(--fundo);
+}
+
+.cadastro__titulo {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.cadastro__video {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 10px;
+  background: #000;
+  transform: scaleX(-1); /* espelhado, como a tela de bloqueio */
+}
+
+.cadastro__campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.cadastro__entrada {
+  font: inherit;
+  font-size: 15px;
+  text-transform: none;
+  letter-spacing: normal;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--borda);
+  background: var(--painel);
+  color: var(--texto);
+}
+
+.cadastro__entrada:disabled {
+  opacity: 0.5;
+}
+
+.cadastro__mensagem {
+  margin: 0;
+  font-size: 14px;
+  color: var(--texto-suave);
+}
+
+.cadastro__mensagem--ok {
+  color: var(--ok);
+}
+
+.cadastro__mensagem--erro {
+  color: var(--erro);
+}
+
+.cadastro__acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}

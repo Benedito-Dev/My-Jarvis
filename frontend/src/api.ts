@@ -68,6 +68,35 @@ export const buscarSessao = () => requisitar<Sessao>("/sessao");
 export const bloquearSessao = () =>
   requisitar<Sessao>("/sessao/bloquear", { method: "POST" });
 
+export type EstadoCadastro =
+  | "sem_rosto"
+  | "varios_rostos"
+  | "longe"
+  | "capturada"
+  | "concluido";
+
+export type Amostra = {
+  estado: EstadoCadastro;
+  capturadas: number;
+  necessarias: number;
+  rostos: Retangulo[];
+};
+
+// Manda uma foto para virar amostra do rosto de `nome`. Quem decide se a foto
+// serve é o backend, igual ao desbloqueio (decisão 0011).
+export const enviarAmostra = (nome: string, jpeg: Blob) =>
+  requisitar<Amostra>(`/cadastro/${encodeURIComponent(nome)}/amostra`, {
+    method: "POST",
+    headers: { "Content-Type": "image/jpeg" },
+    body: jpeg,
+  });
+
+// Joga fora um cadastro pela metade, quando o usuário desiste.
+export const cancelarCadastro = (nome: string) =>
+  requisitar<{ havia: boolean }>(`/cadastro/${encodeURIComponent(nome)}`, {
+    method: "DELETE",
+  });
+
 export type Gravacao = {
   arquivo: string;
   bytes: number;
