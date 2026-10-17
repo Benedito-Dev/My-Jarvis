@@ -5,7 +5,8 @@ Assistente pessoal de desktop em **monorepo**: `backend/` (Python 3.12 + uv),
 
 Roda em **macOS, Linux e Windows** (decisão `0012`). Diferença entre sistemas
 fica concentrada num arquivo só (ex.: `nucleo/motor_voz.py`), nunca espalhada em
-`if sys.platform` — e os testes precisam passar nas três máquinas.
+`if sys.platform` — e os testes precisam passar nas três máquinas. O CI
+(`.github/workflows/testes.yml`) confere isso a cada push.
 
 ## 📚 Fonte da verdade
 

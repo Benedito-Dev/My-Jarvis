@@ -69,6 +69,9 @@ ficar sem voz nunca pode impedir o desbloqueio.
 - ✅ A suíte de testes passa em qualquer máquina: `motor_voz` é função pura
   (texto → lista de argumentos) e o `Locutor` recebe o motor injetado. Antes,
   `test_voz.py` exigia o comando `say` e só passava no Mac
+- ✅ O CI (`.github/workflows/testes.yml`) roda a suíte nos três sistemas a cada
+  push, então "funciona nos três" é verificado, não prometido. Gratuito por ser
+  repositório público — em repositório privado, minuto de macOS conta 10×
 - ⚠️ **A voz soa diferente em cada sistema.** No Linux o espeak-ng é bem
   robótico e só tem pt-PT, não pt-BR. Resolver isso é o passo do Piper
 - ⚠️ **Os rostos cadastrados não viajam entre as máquinas.** `backend/dados/`

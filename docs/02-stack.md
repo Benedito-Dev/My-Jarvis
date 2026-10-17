@@ -50,7 +50,14 @@ uv add face_recognition "setuptools<81"
 | Ferramenta | Para quê |
 |---|---|
 | `ruff` | Lint e formatação (um só comando) |
-| `pytest` | Testes |
+| `pytest` | Testes do backend |
+| `vitest` | Testes do frontend |
+| GitHub Actions | Roda os testes nos três sistemas a cada push ([decisão 0012](decisoes/0012-multiplataforma.md)) |
+
+O CI está em `.github/workflows/testes.yml`. Ele roda `pytest`, `ruff`,
+`vitest` e o `build` no Ubuntu, no macOS e no Windows — as três máquinas do
+alvo. Não compila o app do Tauri: isso é lento e exige as libs nativas de cada
+sistema, e o que costuma quebrar entre sistemas é o código, não o build.
 
 ## Pré-requisitos na máquina
 

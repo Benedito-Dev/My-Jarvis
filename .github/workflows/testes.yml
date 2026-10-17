@@ -1,0 +1,74 @@
+# Roda os testes nas três máquinas em que o Jarvis precisa funcionar
+# (decisão 0012). Sem isso, código que só vale para um sistema passa
+# despercebido até alguém abrir o projeto na outra máquina.
+#
+# Só os testes: compilar o Tauri nos três sistemas é lento e exige as libs
+# nativas de cada um. O que quebra entre sistemas é o código, não o build.
+name: Testes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch: # permite rodar à mão pelo site do GitHub
+
+jobs:
+  backend:
+    name: Backend (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false # um sistema quebrado não esconde o resultado dos outros
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Instalar o uv
+        uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Instalar dependências
+        working-directory: backend
+        run: uv sync --locked
+
+      - name: Testes
+        working-directory: backend
+        run: uv run pytest -q
+
+      - name: Lint e formatação
+        working-directory: backend
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+  frontend:
+    name: Frontend (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependências
+        working-directory: frontend
+        run: npm ci
+
+      - name: Testes
+        working-directory: frontend
+        run: npm test
+
+      - name: Build (o tsc confere os tipos)
+        working-directory: frontend
+        run: npm run build
