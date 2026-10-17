@@ -1,4 +1,13 @@
+from jarvis.nucleo.motor_voz import MotorDeVoz
 from jarvis.nucleo.voz import SEGUNDOS_ENTRE_REPETICOES, Locutor
+
+# Motor de mentira: estes testes são sobre as regras de *quando* falar, não
+# sobre o comando de cada sistema (isso é do test_motor_voz.py). Com o motor
+# injetado, a suíte passa igual no Mac, no Linux e no Windows.
+MOTOR_FALSO = MotorDeVoz(nome="falso", falar=lambda frase: ["falar", frase])
+MOTOR_QUE_PRECISA_CANCELAR = MotorDeVoz(
+    nome="falso-com-cancelar", falar=lambda frase: ["falar", frase], cancelar=["calar"]
+)
 
 
 class ProcessoFalso:
@@ -15,13 +24,13 @@ class ProcessoFalso:
 
 
 class Cenario:
-    """Locutor com `say` e relógio de mentira."""
+    """Locutor com motor de mentira e relógio de mentira."""
 
-    def __init__(self) -> None:
+    def __init__(self, motor: MotorDeVoz = MOTOR_FALSO) -> None:
         self.agora = 0.0
         self.comandos: list[list[str]] = []
         self.processos: list[ProcessoFalso] = []
-        self.locutor = Locutor(voz="Luciana", iniciar=self._iniciar, relogio=lambda: self.agora)
+        self.locutor = Locutor(motor=motor, iniciar=self._iniciar, relogio=lambda: self.agora)
 
     def _iniciar(self, comando):
         self.comandos.append(comando)
@@ -32,11 +41,11 @@ class Cenario:
         self.processos[-1].terminou = True
 
 
-def test_fala_com_o_comando_say():
+def test_fala_usando_o_comando_do_motor():
     cenario = Cenario()
 
     assert cenario.locutor.falar("Olá")
-    assert cenario.comandos == [["say", "-v", "Luciana", "Olá"]]
+    assert cenario.comandos == [["falar", "Olá"]]
 
 
 def test_ignora_frase_nova_enquanto_fala():
@@ -53,7 +62,16 @@ def test_interromper_corta_a_fala_atual():
 
     assert cenario.locutor.falar("Bem-vindo", interromper=True)
     assert cenario.processos[0].interrompido
-    assert cenario.comandos[-1][-1] == "Bem-vindo"
+    assert cenario.comandos[-1] == ["falar", "Bem-vindo"]
+
+
+def test_interromper_usa_o_cancelar_do_motor_quando_existe():
+    cenario = Cenario(motor=MOTOR_QUE_PRECISA_CANCELAR)
+    cenario.locutor.falar("Aproxime seu rosto")
+
+    assert cenario.locutor.falar("Bem-vindo", interromper=True)
+    # Matar o processo não basta neste motor: o cancelar roda antes da nova fala.
+    assert cenario.comandos == [["falar", "Aproxime seu rosto"], ["calar"], ["falar", "Bem-vindo"]]
 
 
 def test_nao_repete_a_mesma_frase_logo_em_seguida():
@@ -74,3 +92,14 @@ def test_frase_diferente_nao_precisa_esperar():
     cenario.terminar_fala()
 
     assert cenario.locutor.falar("Acesso negado")
+
+
+def test_sem_motor_fica_mudo_mas_nao_quebra():
+    locutor = Locutor(motor=None, iniciar=_nao_deve_ser_chamado)
+
+    assert locutor.muda
+    assert not locutor.falar("Bem-vindo", interromper=True)
+
+
+def _nao_deve_ser_chamado(comando):
+    raise AssertionError(f"Locutor mudo não deveria rodar nada, mas rodou {comando}")
