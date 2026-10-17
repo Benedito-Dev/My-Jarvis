@@ -25,7 +25,9 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Instalar o uv
-        uses: astral-sh/setup-uv@v10
+        # Versão exata: o setup-uv parou de publicar tag de major flutuante no v7,
+        # então `@v10` não resolve. As outras actions ainda têm (`@v7`).
+        uses: astral-sh/setup-uv@v10.3.0
         with:
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
