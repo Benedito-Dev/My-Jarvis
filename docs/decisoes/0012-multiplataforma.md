@@ -74,8 +74,9 @@ ficar sem voz nunca pode impedir o desbloqueio.
 - ⚠️ **Os rostos cadastrados não viajam entre as máquinas.** `backend/dados/`
   está no `.gitignore` (dado pessoal não vai para o git), então cada máquina
   precisa do seu próprio `jarvis cadastrar`
-- ⚠️ **Windows ainda não verificado.** Falta o motor SAPI e a origem CORS
-  `http://tauri.localhost` (no Windows o webview não usa `tauri://`)
+- ⚠️ **Windows ainda não verificado.** Falta o motor de voz SAPI. A origem
+  CORS do Windows (`http://tauri.localhost`, já que lá o webview não usa
+  `tauri://`) já está liberada e coberta por teste
 - ⚠️ Os números das decisões [0006](0006-yunet-para-detectar-rostos.md) e
   [0007](0007-sface-para-reconhecer-rostos.md) foram medidos no Mac. Valem como
   referência, não como promessa nas outras máquinas

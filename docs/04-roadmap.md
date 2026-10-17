@@ -28,7 +28,7 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ pendente
 | ✅ | 2. Backend vira servidor | O Python responde perguntas do frontend (FastAPI local) |
 | ✅ | 3. Tela inicial | Saudação, data/hora e habilidades vindas do backend |
 | ✅ | 4. Ligar tudo | Tela de bloqueio no app (câmera) → backend reconhece → tela inicial |
-| ⬜ | 5. Botão Bloquear | Clicou → volta para a tela de bloqueio |
+| ✅ | 5. Botão Bloquear | Clicou → volta para a tela de bloqueio |
 
 ## Fase 2.5: Rodar nas três máquinas
 
@@ -38,7 +38,7 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ pendente
 |---|---|---|
 | ✅ | 1. Voz por sistema | `motor_voz.py`: `say` no Mac, `spd-say` no Linux; testes passam nos 3 |
 | ✅ | 2. App nativo no Linux | Janela do J.A.R.V.I.S. abre no Linux e desbloqueia pelo rosto |
-| ⬜ | 3. App nativo no Windows | Motor de voz SAPI, origem CORS `http://tauri.localhost`, WebView2 |
+| ⬜ | 3. App nativo no Windows | Motor de voz SAPI e WebView2 (a origem CORS do Windows já está liberada) |
 | ⬜ | 4. Mesma voz nos 3 | Piper TTS local (pt-BR de verdade, não o espeak-ng robótico) |
 
 ## Fase 3: Conversa (planejada)
