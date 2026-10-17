@@ -29,6 +29,7 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ pendente
 | ✅ | 3. Tela inicial | Saudação, data/hora e habilidades vindas do backend |
 | ✅ | 4. Ligar tudo | Tela de bloqueio no app (câmera) → backend reconhece → tela inicial |
 | ✅ | 5. Botão Bloquear | Clicou → volta para a tela de bloqueio |
+| ✅ | 6. Cadastrar pelo app | "+ Cadastrar rosto" captura 5 amostras, sem terminal |
 
 ## Fase 2.5: Rodar nas três máquinas
 

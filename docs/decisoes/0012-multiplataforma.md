@@ -76,7 +76,8 @@ ficar sem voz nunca pode impedir o desbloqueio.
   robótico e só tem pt-PT, não pt-BR. Resolver isso é o passo do Piper
 - ⚠️ **Os rostos cadastrados não viajam entre as máquinas.** `backend/dados/`
   está no `.gitignore` (dado pessoal não vai para o git), então cada máquina
-  precisa do seu próprio `jarvis cadastrar`
+  precisa do seu próprio cadastro. Como isso se repete em três máquinas, o
+  cadastro passou a caber no próprio app (botão "Cadastrar rosto"), sem terminal
 - ⚠️ **Windows ainda não verificado.** Falta o motor de voz SAPI. A origem
   CORS do Windows (`http://tauri.localhost`, já que lá o webview não usa
   `tauri://`) já está liberada e coberta por teste
