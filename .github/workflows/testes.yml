@@ -1,76 +1,130 @@
-# Roda os testes nas três máquinas em que o Jarvis precisa funcionar
-# (decisão 0012). Sem isso, código que só vale para um sistema passa
-# despercebido até alguém abrir o projeto na outra máquina.
+# CI do Jarvis: valida o backend e o frontend antes de aceitar mudancas.
 #
-# Só os testes: compilar o Tauri nos três sistemas é lento e exige as libs
-# nativas de cada um. O que quebra entre sistemas é o código, não o build.
-name: Testes
+# A matriz de sistemas existe porque o projeto precisa funcionar em Linux,
+# macOS e Windows. A qualidade esta em um job separado porque lint e
+# formatacao nao precisam ser repetidos tres vezes.
+name: Jarvis CI
 
 on:
   push:
     branches: [main]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - ".github/workflows/**"
+      - "backend/pyproject.toml"
+      - "README.md"
+      - "CLAUDE.md"
   pull_request:
-  workflow_dispatch: # permite rodar à mão pelo site do GitHub
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - ".github/workflows/**"
+      - "backend/pyproject.toml"
+      - "README.md"
+      - "CLAUDE.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  FORCE_COLOR: "1"
+  PYTHONUNBUFFERED: "1"
 
 jobs:
-  backend:
-    name: Backend (${{ matrix.os }})
+  backend-tests:
+    name: Backend / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false # um sistema quebrado não esconde o resultado dos outros
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Instalar o uv
-        # Versão exata: o setup-uv parou de publicar tag de major flutuante no v7,
-        # então `@v10` não resolve. As outras actions ainda têm (`@v7`).
-        uses: astral-sh/setup-uv@v10.3.0
-        with:
-          enable-cache: true
-          cache-dependency-glob: backend/uv.lock
-
-      - name: Instalar dependências
-        working-directory: backend
-        run: uv sync --locked
-
-      - name: Testes
-        working-directory: backend
-        run: uv run pytest -q
-
-      - name: Lint e formatação
-        working-directory: backend
-        run: |
-          uv run ruff check .
-          uv run ruff format --check .
-
-  frontend:
-    name: Frontend (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
-    steps:
-      - uses: actions/checkout@v7
+    defaults:
+      run:
+        working-directory: backend
 
-      - uses: actions/setup-node@v7
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90e1 # v7.0.1
+
+      - name: Configurar uv e Python
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
-          node-version: 22
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: uv sync --locked --dev
+
+      - name: Executar testes
+        run: uv run pytest -q
+
+  backend-quality:
+    name: Backend / qualidade
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90e1 # v7.0.1
+
+      - name: Configurar uv e Python
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: uv sync --locked --dev
+
+      - name: Ruff / lint
+        run: uv run ruff check .
+
+      - name: Ruff / formatacao
+        run: uv run ruff format --check .
+
+  frontend:
+    name: Frontend / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90e1 # v7.0.1
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Instalar dependências
-        working-directory: frontend
+      - name: Instalar dependencias
         run: npm ci
 
-      - name: Testes
-        working-directory: frontend
+      - name: Executar testes
         run: npm test
 
-      - name: Build (o tsc confere os tipos)
-        working-directory: frontend
+      - name: Compilar e verificar tipos
         run: npm run build
