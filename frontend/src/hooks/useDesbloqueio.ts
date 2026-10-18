@@ -3,7 +3,7 @@ import { enviarQuadro, type Avaliacao } from "../api";
 import { capturar } from "../quadro";
 
 // Pausas do laço: entre quadros, e depois de um erro (para não martelar o backend).
-const PAUSA_ENTRE_QUADROS_MS = 80;
+const PAUSA_ENTRE_QUADROS_MS = 0;
 const PAUSA_APOS_ERRO_MS = 1000;
 
 export type Desbloqueio = {

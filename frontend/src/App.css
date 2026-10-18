@@ -262,24 +262,23 @@ body {
 .bloqueio {
   position: fixed;
   inset: 0;
-  background: #000;
-}
-
-.bloqueio__video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transform: scaleX(-1); /* espelhado, como um espelho */
-}
-
-.bloqueio__sobreposicao {
-  position: absolute;
-  inset: 0;
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: space-between;
   padding: 24px 32px 48px;
-  background: linear-gradient(rgba(5, 8, 13, 0.7), transparent 25%, transparent 70%, rgba(5, 8, 13, 0.85));
+  /* Fundo de HUD: grade fina, halo azul atrás do visor e escuro por baixo. */
+  background:
+    radial-gradient(circle at 50% 46%, rgba(79, 158, 255, 0.14), transparent 55%),
+    repeating-linear-gradient(90deg, rgba(79, 158, 255, 0.05) 0 1px, transparent 1px 48px),
+    repeating-linear-gradient(0deg, rgba(79, 158, 255, 0.05) 0 1px, transparent 1px 48px),
+    #02050a;
+}
+
+/* O cabeçalho e o rodapé entram depois que a abertura já passou. */
+.bloqueio__topo,
+.bloqueio__rodape {
+  animation: surgir 0.5s 2s ease-out backwards;
 }
 
 .bloqueio__topo {
@@ -290,7 +289,45 @@ body {
   letter-spacing: 0.35em;
 }
 
-.bloqueio__marcacoes {
+/* --- O visor: a câmera vive dentro do círculo -------------------------- */
+
+.visor {
+  --cor-visor: var(--destaque);
+  position: relative;
+  width: min(54vh, 54vw);
+  aspect-ratio: 1;
+}
+
+.visor--ok {
+  --cor-visor: var(--ok);
+}
+
+.visor--erro {
+  --cor-visor: var(--erro);
+}
+
+/* A janela redonda que recorta o vídeo. Fica dentro dos anéis.
+   Ela abre como uma íris, depois que os anéis já estão montados. */
+.visor__janela {
+  animation: abrir-iris 0.7s 1.6s ease-out backwards;
+  position: absolute;
+  inset: 12%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #000;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--cor-visor) 45%, transparent),
+    0 0 40px color-mix(in srgb, var(--cor-visor) 22%, transparent);
+}
+
+.visor__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* espelhado, como um espelho */
+}
+
+.visor__marcacoes {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -298,23 +335,269 @@ body {
   transform: scaleX(-1); /* acompanha o vídeo espelhado */
 }
 
-.marcacao {
+/* --- Os anéis em volta do visor ---------------------------------------- */
+
+.aneis {
+  animation: montar-aneis 0.8s 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--cor-visor);
+  overflow: visible;
+}
+
+.aneis__borda {
   fill: none;
-  stroke-width: 3;
-  vector-effect: non-scaling-stroke;
-  transition: all 0.1s linear;
+  stroke: color-mix(in srgb, currentColor 30%, transparent);
+  stroke-width: 0.6;
 }
 
-.marcacao--ok {
+.aneis__risco {
+  stroke: color-mix(in srgb, currentColor 45%, transparent);
+  stroke-width: 0.8;
+}
+
+.aneis__risco--longo {
+  stroke: currentColor;
+  stroke-width: 1.2;
+}
+
+/* A coroa de risquinhos dá uma volta completa a cada 60 s: movimento de
+   instrumento ligado, não de animação chamativa. */
+.aneis__coroa {
+  transform-origin: 50% 50%;
+  animation: girar 60s linear infinite;
+}
+
+.aneis__arco {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  transform-origin: 50% 50%;
+  opacity: 0.75;
+}
+
+/* Arcos quebrados: o tracejado desenha só pedaços do círculo. */
+.aneis__arco--horario {
+  stroke-dasharray: 120 60 40 90;
+  animation: girar 14s linear infinite;
+}
+
+.aneis__arco--anti {
+  stroke-dasharray: 30 160 70 40;
+  opacity: 0.45;
+  animation: girar 22s linear infinite reverse;
+}
+
+/* O reconhecimento fecha um arco em volta do rosto. */
+.aneis__progresso {
+  fill: none;
   stroke: var(--ok);
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.2s linear;
 }
 
-.marcacao--aviso {
-  stroke: #ffd23f;
+/* O visor abre do centro para fora. */
+@keyframes abrir-iris {
+  from {
+    clip-path: circle(0% at 50% 50%);
+  }
+  to {
+    clip-path: circle(50% at 50% 50%);
+  }
 }
 
-.marcacao--erro {
-  stroke: var(--erro);
+/* Os anéis chegam girando e crescendo, como instrumento ligando. */
+@keyframes montar-aneis {
+  from {
+    opacity: 0;
+    transform: scale(0.45) rotate(-40deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aneis__coroa,
+  .aneis__arco,
+  .aneis,
+  .visor__janela {
+    animation: none;
+  }
+}
+
+/* --- A abertura (só enfeite, some em ~2,6 s) --------------------------- */
+
+.abertura {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  color: var(--destaque);
+  animation: sumir-abertura 0.5s 2.1s ease-in forwards;
+}
+
+/* Os dois eixos que cortam a tela no primeiro instante. */
+.abertura__eixo {
+  position: absolute;
+  background: linear-gradient(90deg, transparent, var(--destaque), transparent);
+  opacity: 0.55;
+}
+
+.abertura__eixo--horizontal {
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  animation: abrir-eixo 0.5s ease-out backwards;
+}
+
+.abertura__eixo--vertical {
+  left: 50%;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(180deg, transparent, var(--destaque), transparent);
+  animation: abrir-eixo 0.5s 0.12s ease-out backwards;
+}
+
+/* Molduras nos quatro cantos da tela. */
+.abertura__moldura {
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  border: 1px solid var(--destaque);
+  opacity: 0.8;
+  animation: surgir 0.4s 1.05s ease-out backwards;
+}
+
+.abertura__moldura--no {
+  top: 14px;
+  left: 14px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.abertura__moldura--ne {
+  top: 14px;
+  right: 14px;
+  border-left: none;
+  border-bottom: none;
+}
+
+.abertura__moldura--so {
+  bottom: 14px;
+  left: 14px;
+  border-right: none;
+  border-top: none;
+}
+
+.abertura__moldura--se {
+  bottom: 14px;
+  right: 14px;
+  border-left: none;
+  border-top: none;
+}
+
+.abertura__marca {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin: 0;
+  transform: translate(-50%, -140%);
+  font-size: clamp(28px, 6vw, 64px);
+  font-weight: 200;
+  letter-spacing: 0.5em;
+  text-indent: 0.5em; /* compensa o espaço que o letter-spacing joga no fim */
+  animation: surgir 0.6s 0.45s ease-out backwards;
+}
+
+.abertura__log {
+  position: absolute;
+  top: 52%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-align: left;
+  opacity: 0.85;
+}
+
+.abertura__log li {
+  margin-top: 4px;
+  animation: surgir 0.25s ease-out backwards; /* o atraso vem do componente */
+}
+
+@keyframes abrir-eixo {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes surgir {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes sumir-abertura {
+  to {
+    opacity: 0;
+  }
+}
+
+/* A marca e o log nascem já deslocados; o `surgir` não pode desfazer isso. */
+.abertura__marca {
+  animation-name: surgir-marca;
+}
+
+@keyframes surgir-marca {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -120%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -140%);
+  }
+}
+
+.abertura__log {
+  animation: surgir-log 0.3s 0.3s ease-out backwards;
+}
+
+@keyframes surgir-log {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.85;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .abertura {
+    display: none;
+  }
 }
 
 .bloqueio__rodape {
@@ -526,4 +809,189 @@ body {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+/* --- Scanner do rosto (tela de bloqueio) -------------------------------- */
+
+/* Azul do começo ao fim da análise; vermelho só quando o acesso é negado. */
+.scanner {
+  --cor-scanner: var(--destaque);
+  color: var(--cor-scanner);
+  transition: color 0.3s;
+}
+
+.scanner--erro {
+  --cor-scanner: var(--erro);
+}
+
+/* O oval que acompanha a cabeça: presente, mas sem roubar a cena.
+   Sem `filter`: no WebKitGTK (Linux) o desenho é feito na CPU e um drop-shadow
+   redesenhado a cada quadro travava a tela. O brilho vem de um traço largo e
+   translúcido atrás (`--halo`), que custa quase nada. */
+.scanner__contorno {
+  fill: color-mix(in srgb, var(--cor-scanner) 5%, transparent);
+  stroke: color-mix(in srgb, var(--cor-scanner) 60%, transparent);
+  stroke-width: 2;
+}
+
+.scanner__halo {
+  fill: none;
+  stroke: color-mix(in srgb, var(--cor-scanner) 18%, transparent);
+  stroke-width: 7;
+}
+
+/* --- A varredura ------------------------------------------------------- */
+
+/* Paradas do gradiente da faixa de luz (stop-color, não fill). */
+.scanner__luz {
+  stop-color: var(--cor-scanner);
+}
+
+.scanner__luz--ponta {
+  stop-opacity: 0;
+}
+
+.scanner__luz--meio {
+  stop-opacity: 0.45;
+}
+
+/* Linha brilhante na frente da faixa: é ela que marca onde a leitura está.
+   O brilho é um traço largo translúcido atrás dela, não um filtro (ver acima). */
+.scanner__feixe {
+  stroke: var(--cor-scanner);
+  stroke-width: 2.5;
+}
+
+.scanner__feixe-halo {
+  stroke: color-mix(in srgb, var(--cor-scanner) 30%, transparent);
+  stroke-width: 9;
+}
+
+/* Desce lendo o rosto e volta subindo (alternate), sem piscar no recomeço. */
+.scanner__varredura {
+  animation: varrer 1.8s ease-in-out infinite alternate;
+}
+
+@keyframes varrer {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(var(--percurso));
+  }
+}
+
+/* Quem prefere menos movimento não leva a varredura piscando na cara. */
+@media (prefers-reduced-motion: reduce) {
+  .scanner__varredura {
+    animation: none;
+    opacity: 0.35;
+  }
+}
+
+/* --- Leituras laterais -------------------------------------------------- */
+
+.leituras {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: color-mix(in srgb, var(--destaque) 85%, white);
+  animation: surgir 0.5s 2.2s ease-out backwards;
+}
+
+.leituras--esquerda {
+  left: 40px;
+  width: 190px;
+  border-left: 1px solid color-mix(in srgb, var(--destaque) 35%, transparent);
+  padding-left: 14px;
+}
+
+.leituras--direita {
+  right: 40px;
+  width: 190px;
+  text-align: right;
+  border-right: 1px solid color-mix(in srgb, var(--destaque) 35%, transparent);
+  padding-right: 14px;
+}
+
+.leituras__titulo {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  opacity: 0.6;
+}
+
+.leitura {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 6px;
+}
+
+.leitura__rotulo {
+  opacity: 0.55;
+}
+
+.leitura__valor--erro {
+  color: var(--erro);
+}
+
+.leituras__relogio {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 200;
+  letter-spacing: 0.1em;
+}
+
+.leituras__data {
+  margin: 4px 0 0;
+  opacity: 0.55;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+/* Barras só de enfeite: sobem e descem em tempos diferentes. */
+.leituras__barras {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  gap: 4px;
+  height: 46px;
+  margin-top: 18px;
+}
+
+.leituras__barras span {
+  width: 4px;
+  height: 100%;
+  background: color-mix(in srgb, var(--destaque) 55%, transparent);
+  transform-origin: bottom;
+  animation: pulsar-barra 1.8s ease-in-out infinite alternate;
+}
+
+@keyframes pulsar-barra {
+  from {
+    transform: scaleY(0.15);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+/* Janela estreita: as colunas atrapalhariam o visor, então saem. */
+@media (max-width: 900px) {
+  .leituras {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leituras__barras span {
+    animation: none;
+    transform: scaleY(0.5);
+  }
 }

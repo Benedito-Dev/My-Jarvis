@@ -32,11 +32,26 @@ export type EstadoDesbloqueio =
   | "reconhecendo"
   | "desbloqueado";
 
+// Os cinco pontos que o YuNet já calcula para alinhar o rosto antes de reconhecer.
+export type NomeDoPonto =
+  | "olho_direito"
+  | "olho_esquerdo"
+  | "nariz"
+  | "boca_direita"
+  | "boca_esquerda";
+
+export type Ponto = {
+  nome: NomeDoPonto;
+  x: number;
+  y: number;
+};
+
 export type Retangulo = {
   topo: number;
   direita: number;
   base: number;
   esquerda: number;
+  pontos: Ponto[];
 };
 
 export type Avaliacao = {

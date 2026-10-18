@@ -1,5 +1,11 @@
 import { useEffect, useState, type RefObject } from "react";
 
+// 720p é bonito na tela, mas cada quadro ainda é reduzido na CPU para virar o
+// JPEG que vai ao backend — a 1280x720 isso custava ~100 ms por quadro no
+// WebKitGTK. 640x480 é `ideal`, não exigência: câmera que não tenha esse modo
+// entrega o mais próximo.
+const RESOLUCAO = { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" };
+
 export type EstadoCamera =
   | { estado: "iniciando" }
   | { estado: "ligada" }
@@ -14,7 +20,7 @@ export function useCamera(videoRef: RefObject<HTMLVideoElement | null>): EstadoC
     let ativo = true;
 
     navigator.mediaDevices
-      .getUserMedia({ video: { width: 1280, height: 720, facingMode: "user" } })
+      .getUserMedia({ video: RESOLUCAO })
       .then((recebido) => {
         if (!ativo) {
           recebido.getTracks().forEach((trilha) => trilha.stop());
