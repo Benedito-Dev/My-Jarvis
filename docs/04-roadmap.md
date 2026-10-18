@@ -30,6 +30,7 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ pendente
 | ✅ | 4. Ligar tudo | Tela de bloqueio no app (câmera) → backend reconhece → tela inicial |
 | ✅ | 5. Botão Bloquear | Clicou → volta para a tela de bloqueio |
 | ✅ | 6. Cadastrar pelo app | "+ Cadastrar rosto" captura 5 amostras, sem terminal |
+| ✅ | 7. Tela de bloqueio em HUD | Abertura animada, visor circular central e scanner no rosto ([decisão 0014](decisoes/0014-tela-de-bloqueio-em-hud.md)) |
 
 ## Fase 2.5: Rodar nas três máquinas
 

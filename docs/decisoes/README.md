@@ -19,6 +19,7 @@ Cada decisão importante ganha **um arquivo** nesta pasta.
 | [0011](0011-app-captura-backend-decide.md) | Desbloqueio pelo app: o app captura, o backend decide | ✅ Aceita | 2026-10-16 |
 | [0012](0012-multiplataforma.md) | Rodar nos três sistemas (macOS, Linux e Windows) | ✅ Aceita | 2026-10-16 |
 | [0013](0013-app-grava-o-audio.md) | O app grava o áudio, não o Python | ✅ Aceita | 2026-10-17 |
+| [0014](0014-tela-de-bloqueio-em-hud.md) | Tela de bloqueio em HUD: o rosto vai até o visor | ✅ Aceita | 2026-10-17 |
 
 ## Como criar uma nova decisão
 
