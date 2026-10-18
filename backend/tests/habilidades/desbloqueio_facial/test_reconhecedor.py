@@ -149,3 +149,29 @@ def test_trocar_de_pessoa_recomeca_a_contagem():
 
     assert confirmador.registrar("bia") is None
     assert confirmador.registrar("bia") == "bia"
+
+
+# --- Pontos do rosto (olhos, nariz, boca) -----------------------------------------
+
+
+def test_rosto_sem_deteccao_nao_tem_pontos():
+    from jarvis.habilidades.desbloqueio_facial.reconhecedor import Rosto
+
+    assert Rosto(topo=1, direita=2, base=3, esquerda=0).pontos == []
+
+
+def test_pontos_saem_da_linha_do_yunet():
+    import numpy as np
+
+    from jarvis.habilidades.desbloqueio_facial.reconhecedor import NOMES_DOS_PONTOS, Rosto
+
+    # x,y,w,h seguidos dos 5 pontos (x,y) e da confiança.
+    linha = np.array(
+        [10, 20, 100, 120, 40, 50, 80, 50, 60, 70, 45, 90, 75, 90, 0.9], dtype=np.float32
+    )
+    rosto = Rosto(topo=20, direita=110, base=140, esquerda=10, deteccao=linha)
+
+    pontos = rosto.pontos
+
+    assert [p.nome for p in pontos] == list(NOMES_DOS_PONTOS)
+    assert [(p.x, p.y) for p in pontos] == [(40, 50), (80, 50), (60, 70), (45, 90), (75, 90)]

@@ -101,7 +101,8 @@ def test_quadro_responde_estado_e_rostos(tmp_path):
         "estado": "reconhecendo",
         "progresso": 0.4,
         "usuario": None,
-        "rostos": [{"topo": 10, "direita": 300, "base": 250, "esquerda": 100}],
+        # Este rosto foi montado à mão, sem a linha do YuNet, então não tem pontos.
+        "rostos": [{"topo": 10, "direita": 300, "base": 250, "esquerda": 100, "pontos": []}],
     }
 
 
@@ -322,3 +323,26 @@ def test_cadastro_pela_metade_pode_ser_cancelado(tmp_path):
 
 def test_cancelar_cadastro_que_nao_existe_nao_quebra():
     assert TestClient(criar_app()).delete("/cadastro/ninguem").json() == {"havia": False}
+
+
+def test_quadro_devolve_os_pontos_do_rosto(tmp_path):
+    import numpy as np
+
+    linha = np.array(
+        [100, 10, 200, 240, 150, 80, 250, 80, 200, 140, 160, 200, 240, 200, 0.9], dtype=np.float32
+    )
+    rosto = Rosto(topo=10, direita=300, base=250, esquerda=100, deteccao=linha)
+    cliente = cliente_com_roteiro(
+        tmp_path, [Avaliacao(EstadoDesbloqueio.RECONHECENDO, 0.4, None, [rosto])]
+    )
+
+    pontos = cliente.post("/desbloqueio/quadro", content=jpeg()).json()["rostos"][0]["pontos"]
+
+    assert [p["nome"] for p in pontos] == [
+        "olho_direito",
+        "olho_esquerdo",
+        "nariz",
+        "boca_direita",
+        "boca_esquerda",
+    ]
+    assert (pontos[2]["x"], pontos[2]["y"]) == (200, 140)

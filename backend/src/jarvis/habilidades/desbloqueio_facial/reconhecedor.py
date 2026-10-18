@@ -34,6 +34,19 @@ SHA256_MODELO_SFACE = "0ba9fbfa01b5270c96627c4ef784da859931e02f04419c829e8348408
 CAMINHO_MODELO_SFACE = PASTA_MODELOS / "face_recognition_sface_2021dec.onnx"
 
 
+# Ordem dos 5 pontos que o YuNet devolve, depois do retângulo.
+NOMES_DOS_PONTOS = ("olho_direito", "olho_esquerdo", "nariz", "boca_direita", "boca_esquerda")
+
+
+@dataclass(frozen=True)
+class Ponto:
+    """Um ponto do rosto, em pixels da imagem original."""
+
+    nome: str
+    x: int
+    y: int
+
+
 @dataclass(frozen=True)
 class Rosto:
     """Retângulo de um rosto, em pixels da imagem original."""
@@ -45,6 +58,22 @@ class Rosto:
     # Linha completa do YuNet já na escala original: retângulo, 5 pontos do
     # rosto (olhos, nariz, boca) e confiança. O SFace usa os pontos para alinhar.
     deteccao: np.ndarray | None = field(default=None, compare=False, repr=False)
+
+    @property
+    def pontos(self) -> list[Ponto]:
+        """Olhos, nariz e cantos da boca. Vazio se o rosto não veio do detector.
+
+        O SFace já usava esses pontos para alinhar o rosto; expô-los deixa o app
+        desenhar em cima do rosto em vez de só contorná-lo.
+        """
+        if self.deteccao is None:
+            return []
+        return [
+            Ponto(
+                nome, round(float(self.deteccao[4 + i * 2])), round(float(self.deteccao[5 + i * 2]))
+            )
+            for i, nome in enumerate(NOMES_DOS_PONTOS)
+        ]
 
 
 class DetectorDeRostos:

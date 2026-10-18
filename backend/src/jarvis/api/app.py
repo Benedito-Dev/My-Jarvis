@@ -77,11 +77,19 @@ class AmostraResposta(BaseModel):
     rostos: list["RetanguloResposta"]
 
 
+class PontoResposta(BaseModel):
+    nome: str
+    x: int
+    y: int
+
+
 class RetanguloResposta(BaseModel):
     topo: int
     direita: int
     base: int
     esquerda: int
+    # Olhos, nariz e cantos da boca: o app desenha o scanner em cima deles.
+    pontos: list[PontoResposta] = []
 
 
 class AvaliacaoResposta(BaseModel):
@@ -108,7 +116,13 @@ async def _imagem_do_corpo(request: Request) -> "np.ndarray":
 
 def _retangulos(rostos) -> list["RetanguloResposta"]:
     return [
-        RetanguloResposta(topo=r.topo, direita=r.direita, base=r.base, esquerda=r.esquerda)
+        RetanguloResposta(
+            topo=r.topo,
+            direita=r.direita,
+            base=r.base,
+            esquerda=r.esquerda,
+            pontos=[PontoResposta(nome=p.nome, x=p.x, y=p.y) for p in r.pontos],
+        )
         for r in rostos
     ]
 
