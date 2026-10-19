@@ -45,8 +45,9 @@ export function estadoDoNucleo(gravacao: EstadoGravacao): {
   }
 }
 
-// A Luciana fala ~13 letras por segundo; mais um respiro para começar.
-const MS_POR_LETRA_FALADA = 75;
+// A voz Faber (Piper) fala ~15 letras por segundo (medido: 98 letras em 6,6 s);
+// mais um respiro para começar.
+const MS_POR_LETRA_FALADA = 67;
 const MS_PARA_COMECAR_A_FALAR = 300;
 
 /**
