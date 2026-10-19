@@ -4,11 +4,10 @@ import { aparencia } from "../desbloqueio";
 import { Abertura, DURACAO_ABERTURA_MS } from "./Abertura";
 import { AneisHud } from "./AneisHud";
 import { LeiturasHud } from "./LeiturasHud";
-import { Scanner } from "./Scanner";
+import { MalhaRosto } from "./MalhaRosto";
 import { useCamera } from "../hooks/useCamera";
 import { useDesbloqueio } from "../hooks/useDesbloqueio";
 import { useRelogio } from "../hooks/useRelogio";
-import { LARGURA_QUADRO } from "../quadro";
 
 const DURACAO_BOAS_VINDAS_MS = 2500;
 
@@ -44,9 +43,11 @@ export function TelaBloqueio({ nomeAssistente, backendOnline, onDesbloqueado }: 
   }, []);
 
   const camera = useCamera(videoRef, modo === "facial");
-  const { avaliacao, erro, altura } = useDesbloqueio(
+  // Só reconhece depois da abertura: antes disso a câmera ainda está escondida,
+  // e o Jarvis desbloqueava sem a pessoa ter visto o próprio rosto no visor.
+  const { avaliacao, erro } = useDesbloqueio(
     videoRef,
-    modo === "facial" && camera.estado === "ligada" && backendOnline,
+    modo === "facial" && !abrindo && camera.estado === "ligada" && backendOnline,
   );
 
   const usuario = avaliacao?.estado === "desbloqueado" ? avaliacao.usuario : null;
@@ -138,14 +139,13 @@ export function TelaBloqueio({ nomeAssistente, backendOnline, onDesbloqueado }: 
           <div className={`visor visor--${tom}`}>
             <div className="visor__janela">
               <video ref={videoRef} className="visor__video" autoPlay playsInline muted />
-              <svg
-                className="visor__marcacoes"
-                viewBox={`0 0 ${LARGURA_QUADRO} ${altura}`}
-                preserveAspectRatio="xMidYMid slice"
-                aria-hidden="true"
-              >
-                <Scanner rostos={avaliacao?.rostos ?? []} tom={tom} />
-              </svg>
+              <MalhaRosto
+                videoRef={videoRef}
+                ligada={camera.estado === "ligada"}
+                tom={tom}
+                progresso={avaliacao?.progresso ?? 0}
+                confirmado={!!usuario}
+              />
             </div>
             <AneisHud progresso={avaliacao?.progresso ?? 0} />
           </div>

@@ -334,12 +334,13 @@ body {
   transform: scaleX(-1); /* espelhado, como um espelho */
 }
 
-.visor__marcacoes {
+/* A malha do rosto (MalhaRosto.tsx). Desenhada já espelhada pelo código,
+   porque os rótulos não podem sair de trás para frente. */
+.visor__malha {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  transform: scaleX(-1); /* acompanha o vídeo espelhado */
 }
 
 /* --- Os anéis em volta do visor ---------------------------------------- */
@@ -1360,84 +1361,6 @@ body {
   margin: 0;
   color: var(--erro);
   font-size: 13px;
-}
-
-/* --- Scanner do rosto (tela de bloqueio) -------------------------------- */
-
-/* Azul do começo ao fim da análise; vermelho só quando o acesso é negado. */
-.scanner {
-  --cor-scanner: var(--destaque);
-  color: var(--cor-scanner);
-  transition: color 0.3s;
-}
-
-.scanner--erro {
-  --cor-scanner: var(--erro);
-}
-
-/* O oval que acompanha a cabeça: presente, mas sem roubar a cena.
-   Sem `filter`: no WebKitGTK (Linux) o desenho é feito na CPU e um drop-shadow
-   redesenhado a cada quadro travava a tela. O brilho vem de um traço largo e
-   translúcido atrás (`--halo`), que custa quase nada. */
-.scanner__contorno {
-  fill: color-mix(in srgb, var(--cor-scanner) 5%, transparent);
-  stroke: color-mix(in srgb, var(--cor-scanner) 60%, transparent);
-  stroke-width: 2;
-}
-
-.scanner__halo {
-  fill: none;
-  stroke: color-mix(in srgb, var(--cor-scanner) 18%, transparent);
-  stroke-width: 7;
-}
-
-/* --- A varredura ------------------------------------------------------- */
-
-/* Paradas do gradiente da faixa de luz (stop-color, não fill). */
-.scanner__luz {
-  stop-color: var(--cor-scanner);
-}
-
-.scanner__luz--ponta {
-  stop-opacity: 0;
-}
-
-.scanner__luz--meio {
-  stop-opacity: 0.45;
-}
-
-/* Linha brilhante na frente da faixa: é ela que marca onde a leitura está.
-   O brilho é um traço largo translúcido atrás dela, não um filtro (ver acima). */
-.scanner__feixe {
-  stroke: var(--cor-scanner);
-  stroke-width: 2.5;
-}
-
-.scanner__feixe-halo {
-  stroke: color-mix(in srgb, var(--cor-scanner) 30%, transparent);
-  stroke-width: 9;
-}
-
-/* Desce lendo o rosto e volta subindo (alternate), sem piscar no recomeço. */
-.scanner__varredura {
-  animation: varrer 1.8s ease-in-out infinite alternate;
-}
-
-@keyframes varrer {
-  from {
-    transform: translateY(0);
-  }
-  to {
-    transform: translateY(var(--percurso));
-  }
-}
-
-/* Quem prefere menos movimento não leva a varredura piscando na cara. */
-@media (prefers-reduced-motion: reduce) {
-  .scanner__varredura {
-    animation: none;
-    opacity: 0.35;
-  }
 }
 
 /* --- Leituras laterais -------------------------------------------------- */

@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Runtime e modelo do MediaPipe (gerados por scripts/preparar-visao.mjs)
+public/visao/

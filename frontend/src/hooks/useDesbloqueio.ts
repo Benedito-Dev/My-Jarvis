@@ -9,7 +9,6 @@ const PAUSA_APOS_ERRO_MS = 1000;
 export type Desbloqueio = {
   avaliacao: Avaliacao | null;
   erro: string | null;
-  altura: number; // altura do quadro enviado (a largura é LARGURA_QUADRO)
 };
 
 const esperar = (ms: number) => new Promise((resolver) => setTimeout(resolver, ms));
@@ -25,7 +24,6 @@ export function useDesbloqueio(
   const [desbloqueio, setDesbloqueio] = useState<Desbloqueio>({
     avaliacao: null,
     erro: null,
-    altura: 360,
   });
 
   useEffect(() => {
@@ -45,7 +43,7 @@ export function useDesbloqueio(
         try {
           const avaliacao = await enviarQuadro(jpeg);
           if (!ativo) return;
-          setDesbloqueio({ avaliacao, erro: null, altura: canvas.height });
+          setDesbloqueio({ avaliacao, erro: null });
           if (avaliacao.estado === "desbloqueado") return;
           await esperar(PAUSA_ENTRE_QUADROS_MS);
         } catch (erro) {
