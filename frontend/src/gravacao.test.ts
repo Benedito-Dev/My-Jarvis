@@ -30,11 +30,11 @@ describe("estadoDoNucleo", () => {
     });
   });
 
-  it("guardada, mostra o arquivo como detalhe", () => {
+  it("guardada, volta ao azul e mostra o arquivo", () => {
     const nucleo = estadoDoNucleo({ estado: "guardada", arquivo: "2026-10-17_09-05-03.webm" });
 
     expect(nucleo.detalhe).toContain("2026-10-17_09-05-03.webm");
-    expect(nucleo.tom).toBe("ok");
+    expect(nucleo.tom).toBe("aviso"); // parou de ouvir: volta ao azul
   });
 
   it("erro, mostra a mensagem como detalhe", () => {

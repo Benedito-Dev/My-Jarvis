@@ -31,7 +31,8 @@ export function estadoDoNucleo(gravacao: EstadoGravacao): {
     case "enviando":
       return { titulo: "Um instante", detalhe: "Guardando a sua voz...", tom: "aviso" };
     case "guardada":
-      return { titulo: "Ouvi você", detalhe: `Gravação guardada: ${gravacao.arquivo}`, tom: "ok" };
+      // Azul de novo: verde é só enquanto está ouvindo.
+      return { titulo: "Ouvi você", detalhe: `Gravação guardada: ${gravacao.arquivo}`, tom: "aviso" };
     case "erro":
       return { titulo: "Não consegui ouvir", detalhe: gravacao.mensagem, tom: "erro" };
   }

@@ -3,6 +3,9 @@ import { enviarGravacao } from "../api";
 import { escolherFormato, type EstadoGravacao } from "../gravacao";
 import { nivelDoSinal } from "../nucleo";
 
+// Quanto tempo o "Ouvi você" fica na tela antes de voltar a "À sua disposição".
+const RECADO_MS = 3500;
+
 export type Gravacao = {
   gravacao: EstadoGravacao;
   /** Volume da voz agora, de 0 a 1. Ref, e não estado: muda a cada quadro. */
@@ -108,6 +111,14 @@ export function useGravacao(ligado: boolean): Gravacao {
       parar();
     };
   }, [ligado]);
+
+  // "Ouvi você" é um recado, não um estado: some sozinho e o Jarvis volta a
+  // ficar à disposição.
+  useEffect(() => {
+    if (gravacao.estado !== "guardada") return;
+    const temporizador = setTimeout(() => setGravacao({ estado: "parado" }), RECADO_MS);
+    return () => clearTimeout(temporizador);
+  }, [gravacao]);
 
   return { gravacao, nivel };
 }
