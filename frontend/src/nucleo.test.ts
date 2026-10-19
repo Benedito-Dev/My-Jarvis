@@ -34,8 +34,13 @@ describe("nivelDoSinal", () => {
     expect(nivelDoSinal(alto)).toBe(1);
   });
 
-  it("fala baixa fica no meio da escala", () => {
-    const baixo = Uint8Array.from({ length: 64 }, (_, i) => (i % 2 ? 148 : 108));
+  it("ruído de fundo fica em zero", () => {
+    const ruido = Uint8Array.from({ length: 64 }, (_, i) => (i % 2 ? 129 : 127));
+    expect(nivelDoSinal(ruido)).toBe(0);
+  });
+
+  it("fala baixa já fica no meio da escala", () => {
+    const baixo = Uint8Array.from({ length: 64 }, (_, i) => (i % 2 ? 134 : 122));
     const nivel = nivelDoSinal(baixo);
     expect(nivel).toBeGreaterThan(0.3);
     expect(nivel).toBeLessThan(1);

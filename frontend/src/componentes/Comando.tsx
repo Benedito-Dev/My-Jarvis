@@ -59,7 +59,7 @@ export function Comando({
 
       <section className="comando__centro">
         <div className="comando__nucleo">
-          <Nucleo nivel={nivel} tom={nucleo.tom} />
+          <Nucleo nivel={nivel} tom={nucleo.tom} ouvindo={gravando} />
         </div>
         <p className="comando__cumprimento">
           {cumprimento(agora)}, <strong>{usuario}</strong>.

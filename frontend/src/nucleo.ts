@@ -26,9 +26,11 @@ export function girar(ponto: Ponto3D, emY: number, emX: number): Ponto3D {
   return { x, y, z };
 }
 
-// O RMS de uma fala normal fica bem abaixo de 1; este ganho leva a fala para
-// perto do topo da escala sem estourar com qualquer ruído.
-const GANHO_VOZ = 4;
+// Abaixo disto é ruído de fundo do microfone, não voz.
+const PISO_DE_RUIDO = 0.008;
+// Ganho depois do piso. A raiz quadrada no fim abre a escala das falas baixas:
+// fala normal (RMS ~0,03-0,1) cai entre 0,4 e 0,9, em vez de quase zero.
+const GANHO_VOZ = 8;
 
 /**
  * Volume de 0 a 1 de um trecho de áudio no formato do `getByteTimeDomainData`
@@ -41,5 +43,6 @@ export function nivelDoSinal(amostras: Uint8Array): number {
     const desvio = (amostra - 128) / 128;
     soma += desvio * desvio;
   }
-  return Math.min(1, Math.sqrt(soma / amostras.length) * GANHO_VOZ);
+  const rms = Math.sqrt(soma / amostras.length);
+  return Math.min(1, Math.sqrt(Math.max(0, rms - PISO_DE_RUIDO) * GANHO_VOZ));
 }

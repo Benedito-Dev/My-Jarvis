@@ -123,6 +123,9 @@ function medirVolume(fluxo: MediaStream, nivel: { current: number }): () => void
   } catch {
     return () => {}; // sem Web Audio, o núcleo só não reage ao volume
   }
+  // O WebKit cria o contexto pausado quando não nasce de um clique: sem isto o
+  // analisador só mede silêncio e o núcleo fica parado.
+  if (contexto.state === "suspended") contexto.resume();
   const analisador = contexto.createAnalyser();
   analisador.fftSize = 512;
   contexto.createMediaStreamSource(fluxo).connect(analisador);
