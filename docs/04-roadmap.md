@@ -31,6 +31,7 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ pendente
 | ✅ | 5. Botão Bloquear | Clicou → volta para a tela de bloqueio |
 | ✅ | 6. Cadastrar pelo app | "+ Cadastrar rosto" captura 5 amostras, sem terminal |
 | ✅ | 7. Tela de bloqueio em HUD | Abertura animada, visor circular central e scanner no rosto ([decisão 0014](decisoes/0014-tela-de-bloqueio-em-hud.md)) |
+| 🔄 | 8. Desbloqueio fluido | Malha 3D do rosto em tempo real no app; reconhece só depois da abertura ([decisão 0015](decisoes/0015-malha-do-rosto-no-app.md)) |
 
 ## Fase 2.5: Rodar nas três máquinas
 

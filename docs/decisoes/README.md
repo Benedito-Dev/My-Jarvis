@@ -20,6 +20,7 @@ Cada decisão importante ganha **um arquivo** nesta pasta.
 | [0012](0012-multiplataforma.md) | Rodar nos três sistemas (macOS, Linux e Windows) | ✅ Aceita | 2026-10-16 |
 | [0013](0013-app-grava-o-audio.md) | O app grava o áudio, não o Python | ✅ Aceita | 2026-10-17 |
 | [0014](0014-tela-de-bloqueio-em-hud.md) | Tela de bloqueio em HUD: o rosto vai até o visor | ✅ Aceita | 2026-10-17 |
+| [0015](0015-malha-do-rosto-no-app.md) | Malha do rosto no app (MediaPipe), o backend continua decidindo | ✅ Aceita | 2026-10-19 |
 
 ## Como criar uma nova decisão
 
