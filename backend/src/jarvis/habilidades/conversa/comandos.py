@@ -20,6 +20,9 @@ MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho",
          "agosto", "setembro", "outubro", "novembro", "dezembro"]  # fmt: skip
 
 NAO_SEI = "Ainda não sei fazer isso."
+BLOQUEANDO = "Bloqueando. Até logo."
+# Respostas que não mudam: o servidor deixa a voz delas pronta ao subir.
+FRASES_FIXAS = [NAO_SEI, BLOQUEANDO]
 
 # Palavras que pedem para bloquear. Também vale uma palavra *parecida*: o
 # Whisper às vezes escreve "bloquia" ou "bokear" para um "bloquear" falado.
@@ -82,7 +85,7 @@ def responder(texto: str, agora: datetime | None = None) -> Resposta | None:
     momento = (agora or datetime.now(FUSO)).astimezone(FUSO)
 
     if pede_bloqueio(frase):
-        return Resposta(fala="Bloqueando. Até logo.", acao="bloquear")
+        return Resposta(fala=BLOQUEANDO, acao="bloquear")
     if re.search(r"\b(que dia|data|dia e hoje|dia de hoje|dia hoje)\b", frase):
         return Resposta(fala=falar_data(momento))
     if re.search(r"\bhoras?\b", frase):

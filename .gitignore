@@ -15,3 +15,6 @@ dados/
 backend/src/jarvis/habilidades/desbloqueio_facial/modelos/face_recognition_sface_*.onnx
 backend/src/jarvis/habilidades/conversa/modelos/
 *.parcial
+
+# Voz do Jarvis (Piper): baixada no primeiro uso
+backend/src/jarvis/nucleo/modelos/

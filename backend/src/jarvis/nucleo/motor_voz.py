@@ -1,17 +1,24 @@
 """Qual comando usar para falar em cada sistema operacional.
 
-O Jarvis roda no macOS, no Linux e (em breve) no Windows, e cada um tem o seu
-jeito de falar. Este módulo só monta o comando; quem decide *quando* falar é o
-`Locutor` (`nucleo/voz.py`).
+A voz principal é o Piper (`voz_piper.py`): a mesma nos três sistemas. Ele gera
+um .wav, e o que muda de sistema para sistema é só o programa que toca o
+arquivo. Sem Piper, cada sistema usa a voz que já tem (`say`, `spd-say`).
 
-Como são funções puras (texto → lista de argumentos), dá para testar o comando
-de qualquer sistema sem estar nele.
+Este módulo só monta comandos; quem decide *quando* falar é o `Locutor`
+(`nucleo/voz.py`). Como são funções puras, dá para testar o comando de
+qualquer sistema sem estar nele.
 """
 
 import os
+import shutil
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from jarvis.nucleo.voz_piper import VozPiper
 
 # Voz usada em cada sistema. Pode ser trocada por `JARVIS_VOZ`.
 # - macOS: vozes pt-BR instaladas aparecem em `say -v '?' | grep pt_BR`.
@@ -33,16 +40,20 @@ class MotorDeVoz:
       falar**. O `Locutor` depende disso para saber se ainda está falando.
     - `cancelar`: comando que interrompe a fala em andamento, quando matar o
       processo não basta. `None` quando matar o processo já resolve.
+    - `programa`: o executável que precisa existir na máquina para falar.
+    - `preparar(frases)`: deixa frases prontas antes (só o Piper usa).
     """
 
     nome: str
     falar: Callable[[str], list[str]]
+    programa: str
     cancelar: list[str] | None = None
+    preparar: Callable[[Iterable[str]], None] | None = None
 
 
 def _motor_macos(voz: str) -> MotorDeVoz:
     """O `say` já vem no macOS e dura o tempo da fala (decisão 0008)."""
-    return MotorDeVoz(nome="say", falar=lambda frase: ["say", "-v", voz, frase])
+    return MotorDeVoz(nome="say", programa="say", falar=lambda frase: ["say", "-v", voz, frase])
 
 
 def _motor_linux(idioma: str) -> MotorDeVoz:
@@ -57,18 +68,64 @@ def _motor_linux(idioma: str) -> MotorDeVoz:
     """
     return MotorDeVoz(
         nome="spd-say",
+        programa="spd-say",
         falar=lambda frase: ["spd-say", "-w", "-l", idioma, frase],
         cancelar=["spd-say", "-C"],
     )
 
 
-def escolher(plataforma: str = sys.platform) -> MotorDeVoz:
+# Tocadores de .wav no Linux, do mais comum ao menos: PulseAudio, ALSA, PipeWire.
+TOCADORES_LINUX = (["paplay"], ["aplay", "-q"], ["pw-play"])
+
+
+def comando_tocar(
+    plataforma: str, existe: Callable[[str], str | None] = shutil.which
+) -> Callable[[Path], list[str]]:
+    """O comando que toca um .wav e só termina quando o áudio acabar."""
+    if plataforma == "darwin":
+        return lambda arquivo: ["afplay", str(arquivo)]
+    if plataforma.startswith("linux"):
+        for tocador in TOCADORES_LINUX:
+            if existe(tocador[0]):
+                return lambda arquivo, tocador=tocador: [*tocador, str(arquivo)]
+        raise MotorIndisponivelError("Nenhum tocador de áudio (paplay, aplay, pw-play).")
+    if plataforma == "win32":
+        # O SoundPlayer do .NET já vem no Windows; PlaySync espera o áudio acabar.
+        return lambda arquivo: [
+            "powershell",
+            "-NoProfile",
+            "-Command",
+            f"(New-Object Media.SoundPlayer '{arquivo}').PlaySync()",
+        ]
+    raise MotorIndisponivelError(f"Não sei tocar áudio em '{plataforma}'.")
+
+
+def _motor_piper(
+    voz: "VozPiper", plataforma: str, existe: Callable[[str], str | None]
+) -> MotorDeVoz:
+    tocar = comando_tocar(plataforma, existe)
+    return MotorDeVoz(
+        nome="piper",
+        programa=tocar(Path("x.wav"))[0],
+        falar=lambda frase: tocar(voz.arquivo_da_frase(frase)),
+        preparar=voz.preparar,
+    )
+
+
+def escolher(
+    plataforma: str = sys.platform,
+    voz_piper: "VozPiper | None" = None,
+    existe: Callable[[str], str | None] = shutil.which,
+) -> MotorDeVoz:
     """Monta o motor de voz da plataforma (os valores de `sys.platform`).
 
-    Levanta `MotorIndisponivelError` em sistemas ainda não cobertos — hoje o
-    Windows. Quem chama deve tratar isso seguindo em frente calado: ficar sem
-    voz não pode impedir o Jarvis de funcionar.
+    Com `voz_piper`, é a voz Piper nos três sistemas. Sem ela, a voz do sistema;
+    aí levanta `MotorIndisponivelError` no Windows, que não tem uma pronta.
+    Quem chama deve tratar isso seguindo em frente calado: ficar sem voz não
+    pode impedir o Jarvis de funcionar.
     """
+    if voz_piper is not None:
+        return _motor_piper(voz_piper, plataforma, existe)
     if plataforma == "darwin":
         return _motor_macos(os.environ.get("JARVIS_VOZ", VOZ_MACOS))
     if plataforma.startswith("linux"):

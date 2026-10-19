@@ -2,8 +2,10 @@ import numpy as np
 import pytest
 
 from jarvis.api.sessao import Sessao
+from jarvis.habilidades.conversa.comandos import BLOQUEANDO
 from jarvis.habilidades.desbloqueio_facial import banco_rostos
 from jarvis.habilidades.desbloqueio_facial.desbloqueio import (
+    FRASES,
     Avaliacao,
     EstadoDesbloqueio,
     NenhumRostoCadastradoError,
@@ -126,3 +128,21 @@ def test_bloquear_ja_bloqueada_nao_quebra(pasta):
     sessao.bloquear()
 
     assert sessao.usuario is None
+
+
+def test_preparar_voz_inclui_boas_vindas_de_quem_esta_cadastrado(tmp_path):
+    class LocutorQuePrepara:
+        def __init__(self):
+            self.preparadas = []
+
+        def preparar(self, frases):
+            self.preparadas.extend(frases)
+
+    banco_rostos.salvar("benedito", [np.ones(128, dtype=np.float32)], tmp_path)
+    locutor = LocutorQuePrepara()
+
+    Sessao(tmp_path, locutor=locutor).preparar_voz()
+
+    assert "Bem-vindo, Benedito" in locutor.preparadas
+    assert BLOQUEANDO in locutor.preparadas
+    assert set(FRASES.values()) <= set(locutor.preparadas)

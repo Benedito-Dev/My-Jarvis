@@ -4,12 +4,14 @@
 Aqui ficam as regras de *quando* falar.
 """
 
+import os
 import shutil
 import subprocess
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 
 from jarvis.nucleo.motor_voz import MotorDeVoz, MotorIndisponivelError, escolher
+from jarvis.nucleo.voz_piper import VozPiper
 
 # Não repete a mesma frase antes deste intervalo (evita o Jarvis "papagaio").
 SEGUNDOS_ENTRE_REPETICOES = 6.0
@@ -68,10 +70,20 @@ class Locutor:
         if repetida and self._relogio() - self._ultima_vez < SEGUNDOS_ENTRE_REPETICOES:
             return False
 
-        self._processo = self._iniciar(self._motor.falar(frase))
+        try:
+            comando = self._motor.falar(frase)
+        except Exception as erro:  # ex.: sem internet para baixar o modelo do Piper
+            print(f"Não consegui preparar a fala ({erro}).")
+            return False
+        self._processo = self._iniciar(comando)
         self._ultima_frase = frase
         self._ultima_vez = self._relogio()
         return True
+
+    def preparar(self, frases: Iterable[str]) -> None:
+        """Deixa frases prontas antes, para saírem sem espera (só o Piper precisa)."""
+        if self._motor is not None and self._motor.preparar is not None:
+            self._motor.preparar(frases)
 
     def _falando(self) -> bool:
         return self._processo is not None and self._processo.poll() is None
@@ -92,12 +104,18 @@ class Locutor:
 def _motor_do_sistema() -> MotorDeVoz | None:
     """Motor desta máquina, ou None se ela ainda não sabe falar.
 
-    Também fica mudo se o comando do motor não estiver instalado (ex.: Linux sem
-    `spd-say`): ficar sem voz não pode derrubar um desbloqueio.
+    Primeiro a voz Piper (a mesma nos três sistemas); se não der para tocar
+    áudio, a voz do próprio sistema. Também fica mudo se o programa do motor
+    não estiver instalado (ex.: Linux sem `spd-say`): ficar sem voz não pode
+    derrubar um desbloqueio.
     """
-    try:
-        motor = escolher()
-    except MotorIndisponivelError:
+    if os.environ.get("JARVIS_MUDO"):  # ex.: nos testes, que não podem sair falando
         return None
-    programa = motor.falar("")[0]
-    return motor if shutil.which(programa) else None
+    for voz_piper in (VozPiper(), None):
+        try:
+            motor = escolher(voz_piper=voz_piper)
+        except MotorIndisponivelError:
+            continue
+        if shutil.which(motor.programa):
+            return motor
+    return None

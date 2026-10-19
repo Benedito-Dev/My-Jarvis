@@ -1,6 +1,6 @@
 # 0008 · `say` do macOS para o Jarvis falar
 
-- **Status:** ✅ Aceita
+- **Status:** 🔁 Substituída por [0017](0017-voz-piper-faber.md)
 - **Data:** 2026-10-16
 
 ## Contexto

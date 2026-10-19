@@ -10,6 +10,7 @@ dependencies = [
     "fastapi>=0.143.3",
     "faster-whisper>=1.2.1",
     "opencv-python>=5.0.0.93",
+    "piper-tts==1.8.0",
     "tzdata>=2026.4",
     "uvicorn>=0.54.0",
 ]

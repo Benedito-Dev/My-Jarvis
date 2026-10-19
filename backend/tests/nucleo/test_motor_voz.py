@@ -1,6 +1,8 @@
+from pathlib import Path
+
 import pytest
 
-from jarvis.nucleo.motor_voz import MotorIndisponivelError, escolher
+from jarvis.nucleo.motor_voz import MotorIndisponivelError, comando_tocar, escolher
 
 # A plataforma é sempre passada à mão: assim estes testes valem para os três
 # sistemas, rodando em qualquer máquina.
@@ -36,3 +38,49 @@ def test_a_voz_pode_ser_trocada_por_variavel_de_ambiente(monkeypatch):
 def test_sistema_sem_motor_avisa():
     with pytest.raises(MotorIndisponivelError):
         escolher("win32")
+
+
+# --- Voz Piper: a mesma nos três sistemas; só o tocador muda ------------------
+
+
+class VozPiperFalsa:
+    def arquivo_da_frase(self, frase):
+        return Path(f"/cache/{frase}.wav")
+
+    def preparar(self, frases):
+        pass
+
+
+@pytest.mark.parametrize(
+    ("plataforma", "comando"),
+    [
+        ("darwin", ["afplay", "/cache/Olá.wav"]),
+        ("linux", ["paplay", "/cache/Olá.wav"]),
+    ],
+)
+def test_com_piper_toca_o_audio_gerado(plataforma, comando):
+    motor = escolher(plataforma, voz_piper=VozPiperFalsa(), existe=lambda _: "/usr/bin/x")
+
+    assert motor.nome == "piper"
+    assert motor.falar("Olá") == comando
+
+
+def test_no_windows_o_piper_toca_pelo_powershell():
+    motor = escolher("win32", voz_piper=VozPiperFalsa())
+
+    comando = motor.falar("Olá")
+    assert comando[0] == "powershell"
+    assert "PlaySync" in comando[-1]
+
+
+def test_no_linux_usa_o_tocador_que_existir():
+    so_aplay = lambda programa: "/usr/bin/aplay" if programa == "aplay" else None  # noqa: E731
+
+    motor = escolher("linux", voz_piper=VozPiperFalsa(), existe=so_aplay)
+
+    assert motor.falar("Olá") == ["aplay", "-q", "/cache/Olá.wav"]
+
+
+def test_linux_sem_tocador_avisa():
+    with pytest.raises(MotorIndisponivelError):
+        comando_tocar("linux", existe=lambda _: None)

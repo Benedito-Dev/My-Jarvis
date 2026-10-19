@@ -12,6 +12,7 @@ from pathlib import Path
 
 import numpy as np
 
+from jarvis.habilidades.conversa import comandos
 from jarvis.habilidades.desbloqueio_facial import banco_rostos
 from jarvis.habilidades.desbloqueio_facial.desbloqueio import (
     FRASES,
@@ -96,6 +97,20 @@ class Sessao:
             self._desbloqueador = None
             self._falhas_pin = 0
             self._pin_bloqueado_ate = 0.0
+
+    def preparar_voz(self) -> None:
+        """Deixa prontas as falas que mais se repetem, para saírem sem espera.
+
+        Leva alguns segundos (e baixa a voz na primeira vez): chame em segundo plano.
+        """
+        nomes = banco_rostos.carregar_todos(self._pasta_rostos).keys()
+        self._locutor.preparar(
+            [
+                *FRASES.values(),
+                *(f"Bem-vindo, {nome.capitalize()}" for nome in nomes),
+                *comandos.FRASES_FIXAS,
+            ]
+        )
 
     def falar(self, frase: str) -> None:
         """Fala uma resposta do Jarvis, cortando o que ele estiver dizendo."""

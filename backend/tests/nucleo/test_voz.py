@@ -4,9 +4,12 @@ from jarvis.nucleo.voz import SEGUNDOS_ENTRE_REPETICOES, Locutor
 # Motor de mentira: estes testes são sobre as regras de *quando* falar, não
 # sobre o comando de cada sistema (isso é do test_motor_voz.py). Com o motor
 # injetado, a suíte passa igual no Mac, no Linux e no Windows.
-MOTOR_FALSO = MotorDeVoz(nome="falso", falar=lambda frase: ["falar", frase])
+MOTOR_FALSO = MotorDeVoz(nome="falso", programa="falar", falar=lambda frase: ["falar", frase])
 MOTOR_QUE_PRECISA_CANCELAR = MotorDeVoz(
-    nome="falso-com-cancelar", falar=lambda frase: ["falar", frase], cancelar=["calar"]
+    nome="falso-com-cancelar",
+    programa="falar",
+    falar=lambda frase: ["falar", frase],
+    cancelar=["calar"],
 )
 
 
@@ -107,6 +110,7 @@ def _nao_deve_ser_chamado(comando):
 
 def test_fica_mudo_se_o_programa_de_voz_nao_esta_instalado(monkeypatch):
     # Ex.: Linux sem spd-say. Antes, o primeiro "Bem-vindo" levantava FileNotFoundError.
+    monkeypatch.delenv("JARVIS_MUDO")  # aqui queremos o caminho de verdade
     monkeypatch.setattr("jarvis.nucleo.voz.shutil.which", lambda _programa: None)
 
     locutor = Locutor()

@@ -328,4 +328,7 @@ def rodar() -> None:
     # primeira fala não espera o Whisper (~3 s, ou o download no primeiro uso).
     threading.Thread(target=modelos, daemon=True).start()
     threading.Thread(target=TRANSCRITOR.carregar, daemon=True).start()
-    uvicorn.run(criar_app(), host=HOST, port=PORTA)
+    # E a voz: "Bem-vindo", "Aproxime seu rosto"... já geradas antes de precisar.
+    sessao = Sessao()
+    threading.Thread(target=sessao.preparar_voz, daemon=True).start()
+    uvicorn.run(criar_app(sessao=sessao), host=HOST, port=PORTA)

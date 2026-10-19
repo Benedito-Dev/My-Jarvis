@@ -43,7 +43,7 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ pendente
 | ✅ | 1. Voz por sistema | `motor_voz.py`: `say` no Mac, `spd-say` no Linux; testes passam nos 3 |
 | ✅ | 2. App nativo no Linux | Janela do J.A.R.V.I.S. abre no Linux e desbloqueia pelo rosto |
 | ⬜ | 3. App nativo no Windows | Motor de voz SAPI e WebView2 (a origem CORS do Windows já está liberada) |
-| ⬜ | 4. Mesma voz nos 3 | Piper TTS local (pt-BR de verdade, não o espeak-ng robótico) |
+| ✅ | 4. Mesma voz nos 3 | Piper TTS local com a voz "Faber", escolhida de ouvido ([decisão 0017](decisoes/0017-voz-piper-faber.md)) |
 
 ## Fase 3: Conversa
 
@@ -58,4 +58,3 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ pendente
 ## Depois (ideias, sem ordem)
 
 - 🖥️ Automações no Mac
-- 🗣️ Voz mais natural (voz Premium do Mac ou voz de IA)

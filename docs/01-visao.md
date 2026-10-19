@@ -34,5 +34,3 @@ Ideias futuras (nada prometido):
 
 - Segurança de nível bancário (uma foto pode enganar o desbloqueio, e isso é aceito na v1)
 - Versão web ou mobile
-- Mesma voz nos três sistemas (hoje cada um usa a voz que tem;
-  ver [decisão 0012](decisoes/0012-multiplataforma.md))
