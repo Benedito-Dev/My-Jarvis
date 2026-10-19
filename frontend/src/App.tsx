@@ -5,6 +5,7 @@ import { Comando } from "./componentes/Comando";
 import { TelaBloqueio } from "./componentes/TelaBloqueio";
 import { TelaCadastro } from "./componentes/TelaCadastro";
 import { TelaCadastroPin } from "./componentes/TelaCadastroPin";
+import { duracaoDaFala } from "./gravacao";
 import { useConexaoBackend } from "./hooks/useConexaoBackend";
 import { useGravacao } from "./hooks/useGravacao";
 import { useRelogio } from "./hooks/useRelogio";
@@ -101,6 +102,15 @@ function App() {
   // Segurar ESPAÇO grava a voz. Só depois de desbloquear: na tela de bloqueio o
   // espaço não deve fazer nada.
   const { gravacao, nivel } = useGravacao(!!usuario && conexao.estado === "conectado");
+
+  // "Jarvis, bloquear": o backend já bloqueou a sessão; o painel fecha depois
+  // de ele terminar de se despedir. Depende só da gravação, para não disparar
+  // de novo num desbloqueio seguinte.
+  useEffect(() => {
+    if (gravacao.estado !== "ouvida" || gravacao.acao !== "bloquear") return;
+    const temporizador = setTimeout(() => setUsuario(null), duracaoDaFala(gravacao.resposta ?? ""));
+    return () => clearTimeout(temporizador);
+  }, [gravacao]);
 
   // Cadastrar rosto pelo app, sem terminal. Cada máquina precisa do seu
   // próprio cadastro, porque dados/ não vai para o git (decisão 0012).

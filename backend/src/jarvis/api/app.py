@@ -20,7 +20,7 @@ from jarvis.api.sessao import (
     modelos,
 )
 from jarvis.habilidades import HABILIDADES, Situacao
-from jarvis.habilidades.conversa import gravacoes
+from jarvis.habilidades.conversa import comandos, gravacoes
 from jarvis.habilidades.conversa.gravacoes import TipoDeAudioInvalidoError
 from jarvis.habilidades.conversa.transcricao import TranscricaoIndisponivelError, Transcritor
 from jarvis.habilidades.desbloqueio_facial import banco_rostos
@@ -93,6 +93,10 @@ class GravacaoResposta(BaseModel):
     bytes: int
     # O que foi dito. Vazio quando não deu para entender nada.
     texto: str
+    # O que o Jarvis respondeu (e falou em voz alta). None se não houve fala.
+    resposta: str | None = None
+    # O que ele fez além de falar: hoje só "bloquear".
+    acao: str | None = None
 
 
 class AmostraResposta(BaseModel):
@@ -283,7 +287,20 @@ def criar_app(
         except TranscricaoIndisponivelError as erro:
             raise HTTPException(503, str(erro)) from erro
 
-        return GravacaoResposta(arquivo=caminho.name, bytes=len(audio), texto=texto)
+        resposta = comandos.responder(texto)
+        if resposta is None:
+            return GravacaoResposta(arquivo=caminho.name, bytes=len(audio), texto=texto)
+
+        sessao.falar(resposta.fala)
+        if resposta.acao == "bloquear":
+            sessao.bloquear()
+        return GravacaoResposta(
+            arquivo=caminho.name,
+            bytes=len(audio),
+            texto=texto,
+            resposta=resposta.fala,
+            acao=resposta.acao,
+        )
 
     @app.post("/desbloqueio/quadro")
     async def avaliar_quadro(request: Request) -> AvaliacaoResposta:

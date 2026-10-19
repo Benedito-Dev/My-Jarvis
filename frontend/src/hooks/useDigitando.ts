@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { trechoDigitado } from "../digitando";
 
-const MS_POR_LETRA = 28;
+export const MS_POR_LETRA = 28;
 
-/** Revela o texto como se o Jarvis estivesse digitando. Recomeça quando o texto muda. */
-export function useDigitando(texto: string): string {
+/**
+ * Revela o texto como se o Jarvis estivesse digitando. Recomeça quando o texto
+ * muda. `atraso` espera antes da primeira letra (para uma linha vir depois da outra).
+ */
+export function useDigitando(texto: string, atraso = 0): string {
   const [visivel, setVisivel] = useState("");
 
   useEffect(() => {
@@ -15,13 +18,13 @@ export function useDigitando(texto: string): string {
     const inicio = performance.now();
     let quadro = 0;
     const passo = (agora: number) => {
-      const trecho = trechoDigitado(texto, agora - inicio, MS_POR_LETRA);
+      const trecho = trechoDigitado(texto, agora - inicio - atraso, MS_POR_LETRA);
       setVisivel(trecho);
       if (trecho.length < texto.length) quadro = requestAnimationFrame(passo);
     };
     quadro = requestAnimationFrame(passo);
     return () => cancelAnimationFrame(quadro);
-  }, [texto]);
+  }, [texto, atraso]);
 
   return visivel;
 }

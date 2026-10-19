@@ -138,6 +138,10 @@ export type Gravacao = {
   bytes: number;
   /** O que foi dito (Whisper no backend). Vazio quando não deu para entender. */
   texto: string;
+  /** O que o Jarvis respondeu (e já falou em voz alta). Null se não houve fala. */
+  resposta: string | null;
+  /** O que ele fez além de falar: hoje só "bloquear". */
+  acao: string | null;
 };
 
 // Manda o áudio gravado no app para o backend guardar e transcrever.

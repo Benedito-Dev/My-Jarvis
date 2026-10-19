@@ -18,14 +18,20 @@ const CORES: Record<TomNucleo, string> = {
   pensando: "169, 112, 255",
 };
 
-/** Como a esfera se comporta: em repouso, ouvindo a voz ou pensando. */
-export type ModoNucleo = "calmo" | "ouvindo" | "pensando";
+/** Como a esfera se comporta: em repouso, ouvindo, pensando ou falando. */
+export type ModoNucleo = "calmo" | "ouvindo" | "pensando" | "falando";
 
 // "Energia" mínima de cada modo, antes de qualquer som. Ouvindo, a voz soma por
 // cima; pensando, a esfera pulsa sozinha entre o repouso e a fala.
 function energiaDoModo(modo: ModoNucleo, agora: number): number {
   if (modo === "ouvindo") return 0.18;
   if (modo === "pensando") return 0.42 + Math.sin(agora / 260) * 0.14;
+  if (modo === "falando") {
+    // Pulsos curtos, como sílabas, dentro de uma "frase" que sobe e desce.
+    const silaba = Math.abs(Math.sin(agora / 85));
+    const frase = 0.6 + 0.4 * Math.sin(agora / 380);
+    return 0.2 + silaba * frase * 0.55;
+  }
   return 0;
 }
 

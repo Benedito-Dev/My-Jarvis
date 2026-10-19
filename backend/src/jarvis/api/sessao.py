@@ -97,6 +97,10 @@ class Sessao:
             self._falhas_pin = 0
             self._pin_bloqueado_ate = 0.0
 
+    def falar(self, frase: str) -> None:
+        """Fala uma resposta do Jarvis, cortando o que ele estiver dizendo."""
+        self._locutor.falar(frase, interromper=True)
+
     def desbloquear_por_pin(self, identificador: str, pin: str, acesso_pin: AcessoPin) -> str:
         """Valida o acesso alternativo sem expor a lista de perfis."""
         with self._trava:

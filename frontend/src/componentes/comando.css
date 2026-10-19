@@ -529,6 +529,24 @@
   color: var(--texto);
 }
 
+/* A resposta do Jarvis, logo abaixo da sua frase. */
+.comando__resposta {
+  max-width: min(560px, 90%);
+  min-height: 1.5em;
+  margin: 10px 0 0;
+  font-size: 16px;
+  color: var(--destaque);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--destaque) 40%, transparent);
+}
+
+.comando__quem {
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  color: var(--texto-suave);
+  text-shadow: none;
+}
+
 .comando__cursor {
   display: inline-block;
   width: 0.5em;

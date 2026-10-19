@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { escolherFormato, estadoDoNucleo } from "./gravacao";
+import { duracaoDaFala, escolherFormato, estadoDoNucleo } from "./gravacao";
 
 describe("escolherFormato", () => {
   it("prefere o webm quando o sistema suporta (Linux)", () => {
@@ -38,7 +38,12 @@ describe("estadoDoNucleo", () => {
   });
 
   it("ouvida, volta ao azul e repete o que foi dito", () => {
-    const nucleo = estadoDoNucleo({ estado: "ouvida", texto: "que horas são" });
+    const nucleo = estadoDoNucleo({
+      estado: "ouvida",
+      texto: "que horas são",
+      resposta: null,
+      acao: null,
+    });
 
     expect(nucleo.titulo).toBe("Você disse");
     expect(nucleo.detalhe).toBe("“que horas são”");
@@ -46,7 +51,9 @@ describe("estadoDoNucleo", () => {
   });
 
   it("ouvida sem texto, avisa que não entendeu", () => {
-    expect(estadoDoNucleo({ estado: "ouvida", texto: "" }).titulo).toBe("Não entendi");
+    expect(estadoDoNucleo({ estado: "ouvida", texto: "", resposta: null, acao: null }).titulo).toBe(
+      "Não entendi",
+    );
   });
 
   it("erro, mostra a mensagem como detalhe", () => {
@@ -54,5 +61,19 @@ describe("estadoDoNucleo", () => {
       detalhe: "Sem microfone",
       tom: "erro",
     });
+  });
+});
+
+describe("duracaoDaFala", () => {
+  it("frase maior demora mais", () => {
+    expect(duracaoDaFala("São 13 horas e 57.")).toBeLessThan(
+      duracaoDaFala("Hoje é segunda-feira, 19 de outubro."),
+    );
+  });
+
+  it("uma frase curta dura uns segundos, não minutos", () => {
+    const ms = duracaoDaFala("São 13 horas e 57.");
+    expect(ms).toBeGreaterThan(1000);
+    expect(ms).toBeLessThan(3000);
   });
 });

@@ -75,7 +75,14 @@ export function useGravacao(ligado: boolean): Gravacao {
           // Transcrever já leva o seu tempo; o mínimo só evita o roxo piscar
           // quando a fala é curtinha.
           const [ouvida] = await Promise.all([enviarGravacao(audio), esperar(PENSANDO_MINIMO_MS)]);
-          if (ativo) setGravacao({ estado: "ouvida", texto: ouvida.texto });
+          if (ativo) {
+            setGravacao({
+              estado: "ouvida",
+              texto: ouvida.texto,
+              resposta: ouvida.resposta,
+              acao: ouvida.acao,
+            });
+          }
         } catch (erro) {
           if (ativo) setGravacao({ estado: "erro", mensagem: descreverErro(erro) });
         }

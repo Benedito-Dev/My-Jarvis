@@ -4,7 +4,7 @@ export type EstadoGravacao =
   | { estado: "parado" }
   | { estado: "gravando" }
   | { estado: "enviando" }
-  | { estado: "ouvida"; texto: string }
+  | { estado: "ouvida"; texto: string; resposta: string | null; acao: string | null }
   | { estado: "erro"; mensagem: string };
 
 // Formatos que o MediaRecorder pode entregar, do mais provável ao menos.
@@ -43,4 +43,17 @@ export function estadoDoNucleo(gravacao: EstadoGravacao): {
     case "erro":
       return { titulo: "Não consegui ouvir", detalhe: gravacao.mensagem, tom: "erro" };
   }
+}
+
+// A Luciana fala ~13 letras por segundo; mais um respiro para começar.
+const MS_POR_LETRA_FALADA = 75;
+const MS_PARA_COMECAR_A_FALAR = 300;
+
+/**
+ * Quanto tempo, mais ou menos, o Jarvis leva para falar a frase. O app não
+ * ouve a voz do backend, então estima pelo tamanho: serve para o núcleo
+ * "falar" junto, não para cronometrar nada.
+ */
+export function duracaoDaFala(frase: string): number {
+  return MS_PARA_COMECAR_A_FALAR + frase.length * MS_POR_LETRA_FALADA;
 }

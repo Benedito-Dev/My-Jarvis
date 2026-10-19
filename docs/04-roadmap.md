@@ -45,13 +45,13 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ pendente
 | ⬜ | 3. App nativo no Windows | Motor de voz SAPI e WebView2 (a origem CORS do Windows já está liberada) |
 | ⬜ | 4. Mesma voz nos 3 | Piper TTS local (pt-BR de verdade, não o espeak-ng robótico) |
 
-## Fase 3: Conversa (planejada)
+## Fase 3: Conversa
 
 | | Passo | Resultado visível |
 |---|---|---|
 | ✅ | 1. Ouvir | Segura ESPAÇO, fala, e o Jarvis grava a sua voz; o núcleo pulsa com o volume |
 | ✅ | 2. Transcrever | "Você disse: que horas são" (Whisper local, [decisão 0016](decisoes/0016-whisper-local-para-transcrever.md)) |
-| ⬜ | 3. Comandos simples | "Que horas são?" → "São 16 e 30" |
+| ✅ | 3. Comandos simples | "Que horas são?" → "São 14 horas e 3."; também data e "bloquear", e o núcleo "fala" junto |
 | ⬜ | 4. Cérebro de IA | Pergunta livre → resposta (Claude) |
 | ⬜ | 5. Bônus | Palavra de ativação "Jarvis" |
 

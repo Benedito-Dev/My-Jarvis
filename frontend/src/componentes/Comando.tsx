@@ -1,7 +1,7 @@
-import type { RefObject } from "react";
+import { type RefObject, useEffect, useState } from "react";
 import type { Habilidade } from "../api";
-import { type EstadoGravacao, estadoDoNucleo } from "../gravacao";
-import { useDigitando } from "../hooks/useDigitando";
+import { duracaoDaFala, type EstadoGravacao, estadoDoNucleo } from "../gravacao";
+import { MS_POR_LETRA, useDigitando } from "../hooks/useDigitando";
 import { cumprimento } from "../tempo";
 import { ModuloHabilidades, ModuloSistema, ModuloTempo } from "./ModulosComando";
 import { type ModoNucleo, Nucleo } from "./Nucleo";
@@ -50,7 +50,30 @@ export function Comando({
   const detalhe = useDigitando(nucleo.detalhe);
   const falaOuvida = gravacao.estado === "ouvida" && gravacao.texto !== "";
   const gravando = gravacao.estado === "gravando";
-  const modo: ModoNucleo = gravando ? "ouvindo" : gravacao.estado === "enviando" ? "pensando" : "calmo";
+
+  // A resposta do Jarvis entra digitando logo depois que a sua frase termina.
+  const resposta = gravacao.estado === "ouvida" ? gravacao.resposta : null;
+  const respostaVisivel = useDigitando(resposta ?? "", nucleo.detalhe.length * MS_POR_LETRA + 250);
+
+  // Enquanto ele fala a resposta, o núcleo "fala" junto.
+  const [falando, setFalando] = useState(false);
+  useEffect(() => {
+    if (gravacao.estado !== "ouvida" || !gravacao.resposta) return;
+    setFalando(true);
+    const temporizador = setTimeout(() => setFalando(false), duracaoDaFala(gravacao.resposta));
+    return () => {
+      clearTimeout(temporizador);
+      setFalando(false);
+    };
+  }, [gravacao]);
+
+  const modo: ModoNucleo = gravando
+    ? "ouvindo"
+    : gravacao.estado === "enviando"
+      ? "pensando"
+      : falando
+        ? "falando"
+        : "calmo";
 
   return (
     <main className={`comando comando--${nucleo.tom}`}>
@@ -80,8 +103,14 @@ export function Comando({
         </p>
         <p className={`comando__detalhe ${falaOuvida ? "comando__detalhe--fala" : ""}`}>
           {detalhe}
-          <span className="comando__cursor" aria-hidden="true" />
+          {!resposta && <span className="comando__cursor" aria-hidden="true" />}
         </p>
+        {resposta && (
+          <p className="comando__resposta">
+            <span className="comando__quem">{"J.A.R.V.I.S. ›"}</span> {respostaVisivel}
+            <span className="comando__cursor" aria-hidden="true" />
+          </p>
+        )}
       </section>
 
       <aside className="comando__coluna comando__coluna--direita">

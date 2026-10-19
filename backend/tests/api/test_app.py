@@ -207,9 +207,25 @@ class TranscritorSemModelo:
         raise TranscricaoIndisponivelError("Não consegui carregar o modelo de transcrição.")
 
 
-def cliente_de_gravacao(pasta, transcritor=None):
+class LocutorQueAnota:
+    """Não fala de verdade: só anota o que o Jarvis teria dito."""
+
+    def __init__(self):
+        self.frases = []
+
+    def falar(self, frase, interromper=False):
+        self.frases.append(frase)
+        return True
+
+
+def cliente_de_gravacao(pasta, transcritor=None, sessao=None):
+    sessao = sessao or Sessao(pasta / "rostos", locutor=LocutorQueAnota())
     return TestClient(
-        criar_app(pasta_gravacoes=pasta, transcritor=transcritor or TranscritorFalso())
+        criar_app(
+            pasta_gravacoes=pasta,
+            transcritor=transcritor or TranscritorFalso(),
+            sessao=sessao,
+        )
     )
 
 
@@ -235,6 +251,48 @@ def test_gravacao_volta_com_o_que_foi_dito(tmp_path):
 
     assert corpo["texto"] == "que horas são"
     assert transcritor.ouvidos == [tmp_path / corpo["arquivo"]]
+
+
+def test_pergunta_a_hora_e_o_jarvis_responde_em_voz(tmp_path):
+    locutor = LocutorQueAnota()
+    sessao = Sessao(tmp_path / "rostos", locutor=locutor)
+    cliente = cliente_de_gravacao(tmp_path, TranscritorFalso("Que horas são?"), sessao)
+
+    corpo = cliente.post("/conversa/gravacao", content=b"voz").json()
+
+    assert corpo["resposta"].startswith(("São", "É"))
+    assert corpo["acao"] is None
+    assert locutor.frases == [corpo["resposta"]]
+
+
+def test_pedir_para_bloquear_bloqueia_a_sessao(tmp_path):
+    sessao = Sessao(tmp_path / "rostos", locutor=LocutorQueAnota())
+    sessao._usuario = "benedito"  # como se já tivesse desbloqueado
+    cliente = cliente_de_gravacao(tmp_path, TranscritorFalso("Jarvis, bloquear"), sessao)
+
+    corpo = cliente.post("/conversa/gravacao", content=b"voz").json()
+
+    assert corpo["acao"] == "bloquear"
+    assert sessao.usuario is None
+
+
+def test_pedido_desconhecido_responde_que_ainda_nao_sabe(tmp_path):
+    cliente = cliente_de_gravacao(tmp_path, TranscritorFalso("abre o Spotify"))
+
+    corpo = cliente.post("/conversa/gravacao", content=b"voz").json()
+
+    assert corpo["resposta"] == "Ainda não sei fazer isso."
+
+
+def test_sem_fala_nao_responde_nada(tmp_path):
+    locutor = LocutorQueAnota()
+    sessao = Sessao(tmp_path / "rostos", locutor=locutor)
+    cliente = cliente_de_gravacao(tmp_path, TranscritorFalso(""), sessao)
+
+    corpo = cliente.post("/conversa/gravacao", content=b"voz").json()
+
+    assert corpo["resposta"] is None
+    assert locutor.frases == []
 
 
 def test_sem_modelo_de_transcricao_responde_503(tmp_path):

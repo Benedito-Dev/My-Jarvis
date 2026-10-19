@@ -34,7 +34,6 @@ HABILIDADES = [
     Habilidade(
         id="conversa",
         nome="Conversa",
-        descricao="Ouve e responde por voz",
-        situacao=Situacao.EM_BREVE,
+        descricao="Responde hora, data e bloquear por voz",
     ),
 ]
