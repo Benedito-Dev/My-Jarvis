@@ -16,6 +16,11 @@ from pathlib import Path
 MODELO = os.environ.get("JARVIS_WHISPER", "small")
 PASTA_MODELOS = Path(__file__).parent / "modelos"
 
+# Palavras que o Jarvis espera ouvir. Sem esta dica, um "bloquear" dito sozinho
+# saía "Bocchiar", "Burkia", "Bocinha"; com ela, 7 de 8 gravações reais acertaram,
+# sem fazer o Whisper "ouvir bloquear" em frases que não tinham a palavra.
+PALAVRAS_ESPERADAS = "Jarvis bloquear horas dia"
+
 
 class TranscricaoIndisponivelError(RuntimeError):
     """O modelo não pôde ser carregado (ex.: sem internet no primeiro uso)."""
@@ -57,9 +62,10 @@ class Transcritor:
         trechos, _info = self._modelo.transcribe(
             str(audio),
             language="pt",
+            hotwords=PALAVRAS_ESPERADAS,
+            beam_size=5,
             # Sem "tentar de novo mais criativo": com repetições na fala, isso
             # fazia uma frase de 5 s levar 11 s para sair.
-            beam_size=1,
             temperature=0.0,
             condition_on_previous_text=False,
             vad_filter=True,  # corta o silêncio antes e depois da fala

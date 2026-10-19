@@ -56,6 +56,17 @@ def test_entende_pedidos_de_bloquear(frase):
     assert resposta.acao == "bloquear"
 
 
+@pytest.mark.parametrize("ouvido", ["Bloquia.", "Bokear!", "B bloquear.", "bloqueio"])
+def test_aceita_bloquear_mal_transcrito(ouvido):
+    # Saídas reais do Whisper para um "bloquear" falado.
+    assert responder(ouvido, AGORA).acao == "bloquear"
+
+
+@pytest.mark.parametrize("frase", ["Que horas são?", "abre o Spotify", "bloco de notas", "Yeah."])
+def test_nao_bloqueia_sem_pedir(frase):
+    assert responder(frase, AGORA).acao is None
+
+
 def test_hora_vem_no_fuso_de_sao_paulo():
     # 15h em UTC é meio-dia em São Paulo, seja qual for o fuso da máquina.
     utc = datetime.fromisoformat("2026-10-19T15:00:00+00:00")

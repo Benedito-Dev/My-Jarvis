@@ -17,8 +17,13 @@ da máquina.** A rota `POST /conversa/gravacao` guarda o áudio e já devolve o
 - O modelo (~460 MB) é baixado no primeiro uso para
   `habilidades/conversa/modelos/` (fora do git) e carregado ao subir o servidor.
 - `JARVIS_WHISPER=base` troca por um modelo 3x menor numa máquina fraca.
-- Sem "tentar de novo" (`temperature=0`, `beam_size=1`): com fala repetida, as
-  novas tentativas faziam uma frase de 5 s levar 11 s.
+- Sem "tentar de novo" (`temperature=0`): com fala repetida, as novas
+  tentativas faziam uma frase de 5 s levar 11 s.
+- **Dica de palavras (`hotwords`)** com o que o Jarvis entende ("Jarvis
+  bloquear horas dia"). Um "bloquear" dito sozinho saía "Bocchiar", "Burkia" e
+  "Bocinha"; com a dica, 7 de 8 gravações reais acertaram, e nenhuma frase sem a
+  palavra passou a "ouvir bloquear". Os comandos ainda aceitam palavras parecidas
+  ("bloquia", "bokear") como segunda proteção.
 
 Testado com a voz Luciana dizendo "Jarvis, que horas são agora? E qual é a
 previsão do tempo para amanhã?": o `small` acertou tudo; o `base` escreveu
