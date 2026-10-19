@@ -5,6 +5,7 @@ fica sempre aqui no backend, nunca no app.
 """
 
 import threading
+import time
 from collections.abc import Callable
 from pathlib import Path
 
@@ -17,9 +18,24 @@ from jarvis.habilidades.desbloqueio_facial.desbloqueio import (
     Desbloqueador,
     EstadoDesbloqueio,
 )
+from jarvis.nucleo.acesso_pin import AcessoPin
 from jarvis.nucleo.voz import Locutor
 
 CriarDesbloqueador = Callable[[dict[str, np.ndarray]], Desbloqueador]
+MAXIMO_TENTATIVAS_PIN = 5
+TEMPO_BLOQUEIO_PIN_S = 30
+
+
+class PinTemporariamenteBloqueadoError(RuntimeError):
+    """O limite de tentativas do acesso alternativo foi atingido."""
+
+    def __init__(self, restante_s: int) -> None:
+        super().__init__("Muitas tentativas. Aguarde antes de tentar novamente.")
+        self.restante_s = restante_s
+
+
+class CredenciaisPinInvalidasError(RuntimeError):
+    """Identificador ou PIN não conferem, sem revelar qual dos dois falhou."""
 
 
 class Sessao:
@@ -37,6 +53,8 @@ class Sessao:
         self._trava = threading.Lock()
         self._usuario: str | None = None
         self._desbloqueador: Desbloqueador | None = None
+        self._falhas_pin = 0
+        self._pin_bloqueado_ate = 0.0
 
     @property
     def usuario(self) -> str | None:
@@ -53,6 +71,35 @@ class Sessao:
         with self._trava:
             self._usuario = None
             self._desbloqueador = None
+            self._falhas_pin = 0
+            self._pin_bloqueado_ate = 0.0
+
+    def desbloquear_por_pin(self, identificador: str, pin: str, acesso_pin: AcessoPin) -> str:
+        """Valida o acesso alternativo sem expor a lista de perfis."""
+        with self._trava:
+            if self._usuario is not None:
+                return self._usuario
+
+            agora = time.monotonic()
+            if agora < self._pin_bloqueado_ate:
+                restante = max(1, int(self._pin_bloqueado_ate - agora))
+                raise PinTemporariamenteBloqueadoError(restante)
+
+            usuario = acesso_pin.autenticar(identificador, pin)
+            if usuario is None:
+                self._falhas_pin += 1
+                if self._falhas_pin >= MAXIMO_TENTATIVAS_PIN:
+                    self._pin_bloqueado_ate = agora + TEMPO_BLOQUEIO_PIN_S
+                    self._falhas_pin = 0
+                    raise PinTemporariamenteBloqueadoError(TEMPO_BLOQUEIO_PIN_S)
+                raise CredenciaisPinInvalidasError
+
+            self._falhas_pin = 0
+            self._pin_bloqueado_ate = 0.0
+            self._usuario = usuario
+            self._desbloqueador = None
+            self._locutor.falar(f"Bem-vindo, {usuario.capitalize()}", interromper=True)
+            return usuario
 
     def avaliar_quadro(self, quadro_bgr: np.ndarray) -> Avaliacao:
         """Avalia um quadro vindo do app. Pode levantar NenhumRostoCadastradoError."""

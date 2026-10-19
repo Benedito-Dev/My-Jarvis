@@ -1,0 +1,25 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Jarvis Presence Prototype",
+  "version": "0.1.0",
+  "identifier": "dev.myjarvis.presenca",
+  "build": {
+    "beforeDevCommand": "echo Vite already running",
+    "devUrl": "http://localhost:1420/prototipo-presenca.html",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "J.A.R.V.I.S. · Presença",
+        "width": 1100,
+        "height": 720,
+        "minWidth": 800,
+        "minHeight": 560
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  }
+}

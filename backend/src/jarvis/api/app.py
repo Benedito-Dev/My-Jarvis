@@ -12,7 +12,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from jarvis.api.cadastros import Cadastros
-from jarvis.api.sessao import Sessao
+from jarvis.api.sessao import (
+    CredenciaisPinInvalidasError,
+    PinTemporariamenteBloqueadoError,
+    Sessao,
+)
 from jarvis.habilidades import HABILIDADES, Situacao
 from jarvis.habilidades.conversa import gravacoes
 from jarvis.habilidades.conversa.gravacoes import TipoDeAudioInvalidoError
@@ -22,6 +26,12 @@ from jarvis.habilidades.desbloqueio_facial.cadastro import EstadoCadastro
 from jarvis.habilidades.desbloqueio_facial.desbloqueio import (
     EstadoDesbloqueio,
     NenhumRostoCadastradoError,
+)
+from jarvis.nucleo.acesso_pin import (
+    AcessoPin,
+    IdentificadorEmUsoError,
+    IdentificadorInvalidoError,
+    PinInvalidoError,
 )
 from jarvis.nucleo.config import NOME_ASSISTENTE
 
@@ -63,6 +73,16 @@ class RostosResposta(BaseModel):
 
 class SessaoResposta(BaseModel):
     usuario: str | None  # None = bloqueado
+
+
+class LoginPinRequest(BaseModel):
+    identificador: str
+    pin: str
+
+
+class ConfigurarPinRequest(BaseModel):
+    identificador: str
+    pin: str
 
 
 class GravacaoResposta(BaseModel):
@@ -130,10 +150,12 @@ def _retangulos(rostos) -> list["RetanguloResposta"]:
 def criar_app(
     pasta_rostos: Path = banco_rostos.PASTA_ROSTOS,
     sessao: Sessao | None = None,
+    acesso_pin: AcessoPin | None = None,
     pasta_gravacoes: Path = gravacoes.PASTA_GRAVACOES,
     cadastros: Cadastros | None = None,
 ) -> FastAPI:
     sessao = sessao or Sessao(pasta_rostos)
+    acesso_pin = acesso_pin or AcessoPin()
     cadastros = cadastros or Cadastros(pasta_rostos)
     app = FastAPI(title="Jarvis", version=version("jarvis"))
     app.add_middleware(
@@ -157,7 +179,9 @@ def criar_app(
 
     @app.get("/rostos")
     def rostos() -> RostosResposta:
-        """Quem tem o rosto cadastrado (nomes prontos para exibir)."""
+        """Quem tem o rosto cadastrado, somente depois do desbloqueio."""
+        if sessao.usuario is None:
+            raise HTTPException(401, "Desbloqueie o Jarvis para consultar essa informação.")
         nomes = banco_rostos.listar_nomes(pasta_rostos)
         return RostosResposta(cadastrados=[nome.capitalize() for nome in nomes])
 
@@ -171,6 +195,39 @@ def criar_app(
         """Tranca o Jarvis de novo (botão Bloquear do app)."""
         sessao.bloquear()
         return SessaoResposta(usuario=None)
+
+    @app.post("/sessao/pin")
+    def desbloquear_por_pin(entrada: LoginPinRequest) -> SessaoResposta:
+        """Desbloqueia pelo identificador digitado e PIN, sem enumerar perfis."""
+        try:
+            usuario = sessao.desbloquear_por_pin(
+                entrada.identificador,
+                entrada.pin,
+                acesso_pin,
+            )
+        except PinTemporariamenteBloqueadoError as erro:
+            raise HTTPException(
+                429,
+                str(erro),
+                headers={"Retry-After": str(erro.restante_s)},
+            ) from erro
+        except CredenciaisPinInvalidasError as erro:
+            raise HTTPException(401, "Identificador ou PIN inválido.") from erro
+        return SessaoResposta(usuario=_exibir(usuario))
+
+    @app.post("/sessao/pin/configurar")
+    def configurar_pin(entrada: ConfigurarPinRequest) -> dict[str, bool]:
+        """Cadastra ou troca o acesso alternativo do usuário já autenticado."""
+        usuario = sessao.usuario
+        if usuario is None:
+            raise HTTPException(401, "Desbloqueie o Jarvis antes de configurar o PIN.")
+        try:
+            acesso_pin.configurar(entrada.identificador, usuario, entrada.pin)
+        except (IdentificadorInvalidoError, PinInvalidoError) as erro:
+            raise HTTPException(422, str(erro)) from erro
+        except IdentificadorEmUsoError as erro:
+            raise HTTPException(409, str(erro)) from erro
+        return {"configurado": True}
 
     @app.post("/cadastro/{nome}/amostra")
     async def cadastrar_amostra(nome: str, request: Request) -> AmostraResposta:

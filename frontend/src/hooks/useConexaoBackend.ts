@@ -24,11 +24,15 @@ export function useConexaoBackend(): Conexao {
 
     async function verificar() {
       try {
-        const [status, rostos, sessao] = await Promise.all([
+        const [status, sessao] = await Promise.all([
           buscarStatus(),
-          buscarRostos(),
           buscarSessao(),
         ]);
+        // Nomes de rostos são dados de sessão: não entram no cliente enquanto
+        // o Jarvis estiver bloqueado. Isso evita enumeração antes do login.
+        const rostos = sessao.usuario
+          ? await buscarRostos()
+          : { cadastrados: [] };
         if (ativo) setConexao({ estado: "conectado", status, rostos, sessao });
       } catch {
         if (ativo) setConexao({ estado: "desconectado" });

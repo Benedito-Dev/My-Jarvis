@@ -11,6 +11,7 @@ from jarvis.habilidades.desbloqueio_facial.cadastro import Cadastro as CadastroD
 from jarvis.habilidades.desbloqueio_facial.cadastro import EstadoCadastro, ResultadoAmostra
 from jarvis.habilidades.desbloqueio_facial.desbloqueio import Avaliacao, EstadoDesbloqueio
 from jarvis.habilidades.desbloqueio_facial.reconhecedor import Rosto
+from jarvis.nucleo.acesso_pin import AcessoPin
 from jarvis.nucleo.config import NOME_ASSISTENTE
 
 cliente = TestClient(criar_app())
@@ -43,13 +44,23 @@ def test_rostos_lista_os_cadastrados_com_nome_para_exibir(tmp_path):
     banco_rostos.salvar("benedito", [np.zeros(128)], pasta=tmp_path)
     banco_rostos.salvar("ana", [np.zeros(128)], pasta=tmp_path)
 
-    resposta = TestClient(criar_app(pasta_rostos=tmp_path)).get("/rostos")
+    acesso_pin = AcessoPin(tmp_path / "acesso_pin.json")
+    acesso_pin.configurar("benedito", "benedito", "123456")
+    cliente = TestClient(criar_app(pasta_rostos=tmp_path, acesso_pin=acesso_pin))
+    cliente.post("/sessao/pin", json={"identificador": "benedito", "pin": "123456"})
+
+    resposta = cliente.get("/rostos")
 
     assert resposta.json() == {"cadastrados": ["Ana", "Benedito"]}
 
 
 def test_rostos_sem_ninguem_cadastrado(tmp_path):
-    resposta = TestClient(criar_app(pasta_rostos=tmp_path / "vazia")).get("/rostos")
+    acesso_pin = AcessoPin(tmp_path / "acesso_pin.json")
+    acesso_pin.configurar("benedito", "benedito", "123456")
+    cliente = TestClient(criar_app(pasta_rostos=tmp_path / "vazia", acesso_pin=acesso_pin))
+    cliente.post("/sessao/pin", json={"identificador": "benedito", "pin": "123456"})
+
+    resposta = cliente.get("/rostos")
 
     assert resposta.json() == {"cadastrados": []}
 
@@ -281,13 +292,18 @@ def test_cadastro_de_ponta_a_ponta_salva_o_rosto(tmp_path):
             nome, pasta=tmp_path, necessarias=2, detector=Detector(), extrator=Extrator()
         )
     )
-    cliente = TestClient(criar_app(pasta_rostos=tmp_path, cadastros=cadastros))
+    acesso_pin = AcessoPin(tmp_path / "acesso_pin.json")
+    acesso_pin.configurar("benedito", "benedito", "123456")
+    cliente = TestClient(
+        criar_app(pasta_rostos=tmp_path, acesso_pin=acesso_pin, cadastros=cadastros)
+    )
 
     primeira = cliente.post("/cadastro/ana/amostra", content=jpeg()).json()
     segunda = cliente.post("/cadastro/ana/amostra", content=jpeg()).json()
 
     assert primeira["estado"] == "capturada"
     assert segunda["estado"] == "concluido"
+    cliente.post("/sessao/pin", json={"identificador": "benedito", "pin": "123456"})
     assert cliente.get("/rostos").json() == {"cadastrados": ["Ana"]}
 
 

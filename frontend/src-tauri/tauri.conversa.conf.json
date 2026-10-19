@@ -1,0 +1,23 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Jarvis Conversation Preview",
+  "version": "0.1.0",
+  "identifier": "dev.myjarvis.conversa",
+  "build": {
+    "beforeDevCommand": "echo Vite already running",
+    "devUrl": "http://localhost:1420/prototipo-conversa.html",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "J.A.R.V.I.S. · Conversa",
+        "width": 1100,
+        "height": 720,
+        "minWidth": 720,
+        "minHeight": 540
+      }
+    ],
+    "security": { "csp": null }
+  }
+}

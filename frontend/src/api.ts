@@ -78,6 +78,20 @@ export const buscarStatus = () => requisitar<Status>("/status");
 export const buscarRostos = () => requisitar<Rostos>("/rostos");
 export const buscarSessao = () => requisitar<Sessao>("/sessao");
 
+export const desbloquearPorPin = (identificador: string, pin: string) =>
+  requisitar<Sessao>("/sessao/pin", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ identificador, pin }),
+  });
+
+export const configurarPin = (identificador: string, pin: string) =>
+  requisitar<{ configurado: boolean }>("/sessao/pin/configurar", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ identificador, pin }),
+  });
+
 // Tranca o Jarvis de novo. Quem decide o estado é o backend, nunca o app:
 // enquanto a sessão lá estiver aberta, qualquer rosto entra sem ser avaliado.
 export const bloquearSessao = () =>

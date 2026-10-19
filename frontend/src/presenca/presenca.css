@@ -1,0 +1,240 @@
+:root {
+  color-scheme: dark;
+  font-family: "Segoe UI", Inter, system-ui, sans-serif;
+  background: #03070b;
+  color: #e5f1f5;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #presenca-root { min-width: 760px; min-height: 100%; margin: 0; }
+
+body.presenca-body { min-height: 100vh; overflow: hidden; background: #03070b; }
+
+button { font: inherit; }
+
+.presenca {
+  isolation: isolate;
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100vh;
+  padding: 0 46px 26px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(0, 174, 232, .09), transparent 29rem),
+    linear-gradient(180deg, #050b11 0%, #03070b 74%);
+}
+
+.presenca::before,
+.presenca::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.presenca::before {
+  inset: 0;
+  opacity: .24;
+  background-image:
+    linear-gradient(rgba(57, 142, 169, .10) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(57, 142, 169, .10) 1px, transparent 1px);
+  background-size: 88px 88px;
+  mask-image: linear-gradient(to bottom, transparent, #000 22%, #000 76%, transparent);
+}
+
+.presenca::after {
+  width: 48vw;
+  height: 48vw;
+  left: 26vw;
+  top: 29vh;
+  border: 1px solid rgba(50, 196, 239, .06);
+  border-radius: 50%;
+  box-shadow: 0 0 90px rgba(0, 164, 218, .04);
+}
+
+.presenca__atmosfera {
+  position: absolute;
+  z-index: -1;
+  width: 32rem;
+  height: 32rem;
+  top: 27%;
+  left: calc(50% - 16rem);
+  border-radius: 50%;
+  background: rgba(0, 157, 217, .05);
+  filter: blur(70px);
+  pointer-events: none;
+}
+
+.presenca__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 78px;
+  border-bottom: 1px solid rgba(112, 197, 222, .17);
+}
+
+.presenca__marca,
+.presenca__sessao,
+.presenca__rodape,
+.presenca__estado,
+.presenca__eyebrow,
+.presenca__data,
+.presenca__atalho {
+  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+}
+
+.presenca__marca {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  color: #d7e8ed;
+  font-size: 13px;
+  letter-spacing: .39em;
+}
+
+.presenca__marca-orbe,
+.presenca__sinal-ponto {
+  display: inline-block;
+  border-radius: 50%;
+}
+
+.presenca__marca-orbe {
+  width: 17px;
+  height: 17px;
+  border: 2px solid #29c9ff;
+  box-shadow: 0 0 0 5px rgba(38, 193, 240, .08), 0 0 17px rgba(38, 193, 240, .65);
+}
+
+.presenca__sessao {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  color: #8ca8b1;
+  font-size: 10px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.presenca__online { color: #5de29b; }
+.presenca__online i { display: inline-block; width: 6px; height: 6px; margin-right: 7px; border-radius: 50%; background: #4ce092; box-shadow: 0 0 10px #4ce092; }
+.presenca__divisor { width: 1px; height: 16px; background: rgba(134, 180, 193, .27); }
+
+.presenca__centro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 28px 0 20px;
+}
+
+.presenca__saudacao { width: min(100%, 720px); text-align: center; }
+
+.presenca__eyebrow {
+  margin: 0 0 15px;
+  color: #49c9f5;
+  font-size: 10px;
+  letter-spacing: .28em;
+  text-transform: uppercase;
+}
+
+.presenca h1 {
+  margin: 0;
+  color: #e4f0f3;
+  font-size: clamp(34px, 4vw, 57px);
+  font-weight: 300;
+  letter-spacing: -.045em;
+  line-height: 1.08;
+}
+
+.presenca h1 strong { color: #2cc8ff; font-weight: 400; }
+
+.presenca__subtitulo {
+  min-height: 28px;
+  margin: 17px 0 0;
+  color: #a1bac1;
+  font-size: 17px;
+  font-weight: 300;
+  letter-spacing: .015em;
+}
+
+.presenca__data {
+  margin: 10px 0 0;
+  color: #587680;
+  font-size: 10px;
+  letter-spacing: .18em;
+  text-transform: capitalize;
+}
+
+.presenca__nucleo {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 242px;
+  height: 242px;
+  margin: 25px 0 18px;
+}
+
+.presenca__orbita { position: absolute; border-radius: 50%; pointer-events: none; }
+.presenca__orbita--externa { inset: 7px; border: 1px solid rgba(50, 196, 239, .26); box-shadow: inset 0 0 32px rgba(0, 173, 228, .07), 0 0 30px rgba(0, 156, 212, .08); animation: orbita-respira 5s ease-in-out infinite; }
+.presenca__orbita--interna { inset: 30px; border: 1px dashed rgba(52, 198, 241, .32); animation: orbita-gira 26s linear infinite; }
+
+.presenca__nucleo-luz {
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  border: 1px solid rgba(106, 221, 255, .72);
+  border-radius: 50%;
+  background: radial-gradient(circle at 48% 43%, #c4f7ff 0%, #36c8f5 13%, #07344b 42%, #04131f 70%);
+  box-shadow: 0 0 0 8px rgba(38, 183, 227, .07), 0 0 38px rgba(0, 190, 247, .48), inset 0 0 20px rgba(117, 231, 255, .45);
+  animation: nucleo-respira 3.5s ease-in-out infinite;
+}
+
+.presenca__nucleo-luz span { color: #e8fbff; font-family: Georgia, serif; font-size: 42px; font-weight: 400; text-shadow: 0 0 13px #fff; }
+
+.presenca__onda { position: absolute; bottom: 16px; display: flex; align-items: center; gap: 3px; height: 35px; }
+.presenca__onda span { width: 2px; height: var(--altura); min-height: 4px; border-radius: 10px; background: #43d3ff; box-shadow: 0 0 7px rgba(48, 203, 255, .8); transition: height .35s ease; }
+.presenca--ouvindo .presenca__onda span { height: calc(var(--altura) + 20%); animation: onda-pulsa .72s ease-in-out var(--atraso) infinite alternate; }
+.presenca__estado { position: absolute; bottom: -16px; color: #5792a4; font-size: 8px; letter-spacing: .24em; text-transform: uppercase; }
+.presenca--ouvindo .presenca__estado { color: #55d8ff; }
+
+.presenca__controle { display: flex; justify-content: center; }
+.presenca__botao { display: inline-flex; align-items: center; gap: 14px; min-width: 300px; padding: 9px 13px 9px 9px; border: 1px solid rgba(66, 183, 219, .45); border-radius: 3px; color: #cce7ed; background: rgba(5, 20, 29, .6); cursor: pointer; transition: border-color .2s ease, background .2s ease, box-shadow .2s ease; }
+.presenca__botao:hover, .presenca__botao:focus-visible { border-color: #50d8ff; outline: none; background: rgba(10, 40, 54, .75); box-shadow: 0 0 24px rgba(0, 181, 240, .14); }
+.presenca--ouvindo .presenca__botao { border-color: #4fda9a; box-shadow: 0 0 22px rgba(64, 220, 143, .13); }
+.presenca__microfone { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid rgba(62, 202, 244, .65); border-radius: 50%; }
+.presenca__microfone span { position: relative; width: 7px; height: 13px; border: 1px solid #60d9fc; border-radius: 6px; }
+.presenca__microfone span::after { content: ""; position: absolute; left: 50%; bottom: -5px; width: 11px; height: 7px; border: 1px solid #60d9fc; border-top: 0; border-radius: 0 0 8px 8px; transform: translateX(-50%); }
+.presenca__botao-texto { display: grid; gap: 3px; text-align: left; }
+.presenca__botao-texto strong { color: #d8edf1; font-size: 12px; font-weight: 500; letter-spacing: .03em; }
+.presenca__botao-texto small { color: #6d929d; font-size: 10px; }
+.presenca__atalho { margin-left: auto; padding: 4px 6px; border: 1px solid rgba(118, 169, 182, .25); border-radius: 2px; color: #6c949e; font-size: 9px; letter-spacing: .05em; }
+
+.presenca__rodape { display: flex; align-items: center; justify-content: space-between; min-height: 50px; border-top: 1px solid rgba(112, 197, 222, .15); color: #597984; font-size: 9px; letter-spacing: .13em; text-transform: uppercase; }
+.presenca__sinal, .presenca__rodape-status { display: flex; align-items: center; gap: 9px; }
+.presenca__sinal-ponto { width: 6px; height: 6px; background: #5bdfa0; box-shadow: 0 0 10px #5bdfa0; }
+.presenca__rodape-status { gap: 24px; }
+.presenca__rodape-status span + span { padding-left: 24px; border-left: 1px solid rgba(118, 169, 182, .18); }
+.presenca__rodape-status b { color: #8baab2; font-weight: 400; }
+.presenca__hora { color: #c5e0e6; letter-spacing: .18em; }
+
+@keyframes nucleo-respira { 0%, 100% { transform: scale(.96); } 50% { transform: scale(1.04); } }
+@keyframes orbita-respira { 0%, 100% { transform: scale(.97); opacity: .72; } 50% { transform: scale(1.03); opacity: 1; } }
+@keyframes orbita-gira { to { transform: rotate(360deg); } }
+@keyframes onda-pulsa { to { transform: scaleY(.48); opacity: .6; } }
+
+@media (max-width: 900px) {
+  .presenca { padding-inline: 28px; }
+  .presenca__topo { min-height: 68px; }
+  .presenca__rodape-status { gap: 13px; }
+  .presenca__rodape-status span + span { padding-left: 13px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+}

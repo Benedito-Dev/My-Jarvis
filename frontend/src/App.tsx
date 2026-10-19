@@ -7,6 +7,7 @@ import { PainelVoz } from "./componentes/PainelVoz";
 import { Saudacao } from "./componentes/Saudacao";
 import { TelaBloqueio } from "./componentes/TelaBloqueio";
 import { TelaCadastro } from "./componentes/TelaCadastro";
+import { TelaCadastroPin } from "./componentes/TelaCadastroPin";
 import { useConexaoBackend } from "./hooks/useConexaoBackend";
 import { useGravacao } from "./hooks/useGravacao";
 import { useRelogio } from "./hooks/useRelogio";
@@ -67,6 +68,7 @@ function App() {
   // Cadastrar rosto pelo app, sem terminal. Cada máquina precisa do seu
   // próprio cadastro, porque dados/ não vai para o git (decisão 0012).
   const [cadastrando, setCadastrando] = useState(false);
+  const [configurandoPin, setConfigurandoPin] = useState(false);
 
   if (!usuario) {
     return (
@@ -109,6 +111,7 @@ function App() {
               versao={conexao.status.versao}
               cadastrados={conexao.rostos.cadastrados}
               onCadastrarRosto={() => setCadastrando(true)}
+              onConfigurarPin={() => setConfigurandoPin(true)}
             />
             <PainelVoz gravacao={gravacao} />
           </div>
@@ -122,6 +125,14 @@ function App() {
             // A lista de rostos vem do backend; o useConexaoBackend recarrega
             // sozinho a cada 3s, então não precisamos mexer nela aqui.
           }}
+        />
+      )}
+
+      {configurandoPin && usuario && (
+        <TelaCadastroPin
+          usuario={usuario}
+          onFechar={() => setConfigurandoPin(false)}
+          onConfigurado={() => setConfigurandoPin(false)}
         />
       )}
     </div>

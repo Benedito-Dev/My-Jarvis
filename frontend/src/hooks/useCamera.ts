@@ -7,15 +7,27 @@ import { useEffect, useState, type RefObject } from "react";
 const RESOLUCAO = { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" };
 
 export type EstadoCamera =
+  | { estado: "desativada" }
   | { estado: "iniciando" }
   | { estado: "ligada" }
   | { estado: "erro"; mensagem: string };
 
 // Liga a webcam e mostra no <video>. Desliga sozinha quando o componente sai da tela.
-export function useCamera(videoRef: RefObject<HTMLVideoElement | null>): EstadoCamera {
-  const [camera, setCamera] = useState<EstadoCamera>({ estado: "iniciando" });
+export function useCamera(
+  videoRef: RefObject<HTMLVideoElement | null>,
+  ligada = true,
+): EstadoCamera {
+  const [camera, setCamera] = useState<EstadoCamera>(() => ({
+    estado: ligada ? "iniciando" : "desativada",
+  }));
 
   useEffect(() => {
+    if (!ligada) {
+      setCamera({ estado: "desativada" });
+      return;
+    }
+
+    setCamera({ estado: "iniciando" });
     let fluxo: MediaStream | null = null;
     let ativo = true;
 
@@ -38,7 +50,7 @@ export function useCamera(videoRef: RefObject<HTMLVideoElement | null>): EstadoC
       ativo = false;
       fluxo?.getTracks().forEach((trilha) => trilha.stop());
     };
-  }, [videoRef]);
+  }, [videoRef, ligada]);
 
   return camera;
 }
