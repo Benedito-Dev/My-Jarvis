@@ -9,18 +9,40 @@ import { useCamera } from "../hooks/useCamera";
 import { useDesbloqueio } from "../hooks/useDesbloqueio";
 import { useRelogio } from "../hooks/useRelogio";
 
-const DURACAO_BOAS_VINDAS_MS = 2500;
+// Tempo para ver o pulso verde e ouvir o começo do "Bem-vindo" antes de abrir o painel.
+const DURACAO_BOAS_VINDAS_MS = 1500;
+
+/**
+ * Marca de onde o painel vai se abrir: o círculo do visor. O App lê estas
+ * variáveis CSS na animação de entrada. Sem visor (acesso por PIN), abre do centro.
+ */
+function marcarOrigemDaRevelacao(visor: HTMLElement | null) {
+  const raiz = document.documentElement.style;
+  if (!visor) {
+    raiz.setProperty("--revelar-x", "50%");
+    raiz.setProperty("--revelar-y", "50%");
+    raiz.setProperty("--revelar-r", "0px");
+    return;
+  }
+  const caixa = visor.getBoundingClientRect();
+  raiz.setProperty("--revelar-x", `${caixa.left + caixa.width / 2}px`);
+  raiz.setProperty("--revelar-y", `${caixa.top + caixa.height / 2}px`);
+  raiz.setProperty("--revelar-r", `${caixa.width / 2}px`);
+}
 
 type Props = {
   nomeAssistente: string;
   backendOnline: boolean;
   onDesbloqueado: (usuario: string) => void;
+  /** Já desbloqueou: a tela fica por baixo enquanto o painel se abre por cima. */
+  saindo: boolean;
 };
 
 type ModoAcesso = "facial" | "pin";
 
-export function TelaBloqueio({ nomeAssistente, backendOnline, onDesbloqueado }: Props) {
+export function TelaBloqueio({ nomeAssistente, backendOnline, onDesbloqueado, saindo }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const janelaRef = useRef<HTMLDivElement>(null);
   const agora = useRelogio();
   const [modo, setModo] = useState<ModoAcesso>("facial");
   const [abrindo, setAbrindo] = useState(true);
@@ -53,7 +75,10 @@ export function TelaBloqueio({ nomeAssistente, backendOnline, onDesbloqueado }: 
   const usuario = avaliacao?.estado === "desbloqueado" ? avaliacao.usuario : null;
   useEffect(() => {
     if (!usuario) return;
-    const temporizador = setTimeout(() => onDesbloqueado(usuario), DURACAO_BOAS_VINDAS_MS);
+    const temporizador = setTimeout(() => {
+      marcarOrigemDaRevelacao(janelaRef.current);
+      onDesbloqueado(usuario);
+    }, DURACAO_BOAS_VINDAS_MS);
     return () => clearTimeout(temporizador);
   }, [usuario, onDesbloqueado]);
 
@@ -109,7 +134,10 @@ export function TelaBloqueio({ nomeAssistente, backendOnline, onDesbloqueado }: 
     setPinErro(null);
     try {
       const sessao = await desbloquearPorPin(identificador, pin);
-      if (sessao.usuario) onDesbloqueado(sessao.usuario);
+      if (sessao.usuario) {
+        marcarOrigemDaRevelacao(null);
+        onDesbloqueado(sessao.usuario);
+      }
     } catch (erroPin) {
       setPinErro(erroPin instanceof Error ? erroPin.message : "Identificador ou PIN inválido.");
     } finally {
@@ -118,7 +146,11 @@ export function TelaBloqueio({ nomeAssistente, backendOnline, onDesbloqueado }: 
   }
 
   return (
-    <div className={`bloqueio bloqueio--${modo}${animandoPin ? " bloqueio--transicionando" : ""}`}>
+    <div
+      className={`bloqueio bloqueio--${modo}${animandoPin ? " bloqueio--transicionando" : ""}${
+        saindo ? " bloqueio--saindo" : ""
+      }`}
+    >
       {animandoPin && (
         <div className="pin-transicao" aria-hidden="true">
           <div className="pin-transicao__linha pin-transicao__linha--uma" />
@@ -137,7 +169,7 @@ export function TelaBloqueio({ nomeAssistente, backendOnline, onDesbloqueado }: 
       {modo === "facial" ? (
         <>
           <div className={`visor visor--${tom}`}>
-            <div className="visor__janela">
+            <div className="visor__janela" ref={janelaRef}>
               <video ref={videoRef} className="visor__video" autoPlay playsInline muted />
               <MalhaRosto
                 videoRef={videoRef}

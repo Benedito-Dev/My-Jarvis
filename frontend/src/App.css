@@ -1469,3 +1469,140 @@ body {
     transform: scaleY(0.5);
   }
 }
+
+/* --- Transição: o visor se abre e vira o painel ------------------------ */
+
+/* O painel nasce por cima da tela de bloqueio como um círculo do tamanho do
+   visor, no mesmo lugar dele, e cresce até cobrir a tela. A origem vem de
+   --revelar-x/y/r, marcadas pela TelaBloqueio no momento do desbloqueio. */
+.app--revelando {
+  position: relative;
+  z-index: 2;
+  background: radial-gradient(circle at 20% 0%, #0c1a26 0%, var(--fundo) 55%);
+  animation: revelar-painel 0.9s cubic-bezier(0.65, 0, 0.25, 1) backwards;
+}
+
+@keyframes revelar-painel {
+  from {
+    clip-path: circle(
+      var(--revelar-r, 0px) at var(--revelar-x, 50%) var(--revelar-y, 50%)
+    );
+  }
+  to {
+    clip-path: circle(150vmax at var(--revelar-x, 50%) var(--revelar-y, 50%));
+  }
+}
+
+/* A borda de luz que acompanha o círculo enquanto ele cresce. */
+.revelacao__anel {
+  position: fixed;
+  z-index: 3;
+  left: var(--revelar-x, 50%);
+  top: var(--revelar-y, 50%);
+  border-radius: 50%;
+  border: 2px solid var(--destaque);
+  box-shadow:
+    0 0 24px color-mix(in srgb, var(--destaque) 70%, transparent),
+    inset 0 0 24px color-mix(in srgb, var(--destaque) 40%, transparent);
+  pointer-events: none;
+  translate: -50% -50%;
+  animation: anel-revelacao 0.9s cubic-bezier(0.65, 0, 0.25, 1) forwards;
+}
+
+@keyframes anel-revelacao {
+  from {
+    width: calc(var(--revelar-r, 0px) * 2);
+    height: calc(var(--revelar-r, 0px) * 2);
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.8;
+  }
+  to {
+    width: 300vmax;
+    height: 300vmax;
+    opacity: 0;
+  }
+}
+
+/* O conteúdo do painel entra em cascata, logo atrás da borda do círculo. */
+.app--revelando .barra-topo,
+.app--revelando .saudacao,
+.app--revelando .painel {
+  animation: surgir 0.6s ease-out backwards;
+}
+
+.app--revelando .barra-topo {
+  animation-delay: 0.3s;
+}
+
+.app--revelando .saudacao {
+  animation-delay: 0.4s;
+}
+
+.app--revelando .painel:nth-child(1) {
+  animation-delay: 0.5s;
+}
+
+.app--revelando .painel:nth-child(2) {
+  animation-delay: 0.6s;
+}
+
+.app--revelando .painel:nth-child(3) {
+  animation-delay: 0.7s;
+}
+
+/* Por baixo, a tela de bloqueio se afasta: o visor avança para a câmera e as
+   leituras se abrem para os lados, como se o Jarvis atravessasse o visor. */
+.bloqueio--saindo {
+  z-index: 1;
+  pointer-events: none;
+}
+
+.bloqueio--saindo .visor {
+  transition: transform 0.9s cubic-bezier(0.65, 0, 0.25, 1);
+  transform: scale(1.25);
+}
+
+.bloqueio--saindo .leituras--esquerda,
+.bloqueio--saindo .leituras--direita,
+.bloqueio--saindo .bloqueio__topo,
+.bloqueio--saindo .bloqueio__rodape {
+  transition:
+    opacity 0.5s ease-in,
+    translate 0.6s ease-in;
+  opacity: 0;
+}
+
+.bloqueio--saindo .leituras--esquerda {
+  translate: -60px 0;
+}
+
+.bloqueio--saindo .leituras--direita {
+  translate: 60px 0;
+}
+
+.bloqueio--saindo .bloqueio__topo {
+  translate: 0 -30px;
+}
+
+.bloqueio--saindo .bloqueio__rodape {
+  translate: 0 30px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app--revelando,
+  .app--revelando .barra-topo,
+  .app--revelando .saudacao,
+  .app--revelando .painel {
+    animation: none;
+  }
+
+  .bloqueio--saindo .visor {
+    transform: none;
+  }
+
+  .revelacao__anel {
+    display: none;
+  }
+}

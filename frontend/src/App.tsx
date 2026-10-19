@@ -16,12 +16,15 @@ import "./App.css";
 // Usado só enquanto o backend não responde; o nome de verdade vem de /status.
 const NOME_RESERVA = "J.A.R.V.I.S.";
 
+// Quanto tempo a tela de bloqueio fica por baixo enquanto o painel se abre por cima.
+// Igual à animação `revelar-painel` do App.css.
+const DURACAO_REVELACAO_MS = 900;
+
 function App() {
   const conexao = useConexaoBackend();
   const agora = useRelogio();
 
-  const nomeAssistente =
-    conexao.estado === "conectado" ? conexao.status.nome : NOME_RESERVA;
+  const nomeAssistente = conexao.estado === "conectado" ? conexao.status.nome : NOME_RESERVA;
 
   useEffect(() => {
     document.title = nomeAssistente;
@@ -36,8 +39,23 @@ function App() {
   useEffect(() => {
     if (conexao.estado !== "conectado" || sessaoInicialLida.current) return;
     sessaoInicialLida.current = true;
-    if (conexao.sessao.usuario) setUsuario(conexao.sessao.usuario);
+    if (conexao.sessao.usuario) {
+      setUsuario(conexao.sessao.usuario);
+      setBloqueioMontado(false); // já abriu desbloqueado: não há transição a mostrar
+    }
   }, [conexao]);
+
+  // A tela de bloqueio sai devagar: depois de desbloquear ela continua montada
+  // por baixo, enquanto o painel se abre a partir do visor.
+  const [bloqueioMontado, setBloqueioMontado] = useState(true);
+  useEffect(() => {
+    if (!usuario) {
+      setBloqueioMontado(true);
+      return;
+    }
+    const temporizador = setTimeout(() => setBloqueioMontado(false), DURACAO_REVELACAO_MS);
+    return () => clearTimeout(temporizador);
+  }, [usuario]);
 
   // Bloquear é decisão do backend. Só voltamos para a tela de bloqueio depois que
   // ele confirma: se trancássemos só aqui, a tela reabriria no primeiro quadro,
@@ -70,72 +88,80 @@ function App() {
   const [cadastrando, setCadastrando] = useState(false);
   const [configurandoPin, setConfigurandoPin] = useState(false);
 
-  if (!usuario) {
-    return (
-      <TelaBloqueio
-        nomeAssistente={nomeAssistente}
-        backendOnline={conexao.estado === "conectado"}
-        onDesbloqueado={aoDesbloquear}
-      />
-    );
-  }
-
+  // A tela de bloqueio fica sempre na mesma posição da árvore: se mudasse de
+  // lugar, o React a recriaria no meio da transição (câmera e abertura de novo).
   return (
-    <div className="app">
-      <BarraTopo
-        conexao={conexao}
-        nomeAssistente={nomeAssistente}
-        onBloquear={aoBloquear}
-        bloqueando={bloqueio.emAndamento}
-      />
-      <main className="conteudo">
-        <Saudacao agora={agora} nome={usuario} />
+    <>
+      {usuario && (
+        <div className="app app--revelando">
+          <BarraTopo
+            conexao={conexao}
+            nomeAssistente={nomeAssistente}
+            onBloquear={aoBloquear}
+            bloqueando={bloqueio.emAndamento}
+          />
+          <main className="conteudo">
+            <Saudacao agora={agora} nome={usuario} />
 
-        {bloqueio.erro && (
-          <div className="aviso" role="alert">
-            <strong>Não consegui bloquear.</strong> {bloqueio.erro}
-          </div>
-        )}
+            {bloqueio.erro && (
+              <div className="aviso" role="alert">
+                <strong>Não consegui bloquear.</strong> {bloqueio.erro}
+              </div>
+            )}
 
-        {conexao.estado === "desconectado" && (
-          <div className="aviso" role="alert">
-            <strong>Backend desconectado.</strong> Rode no terminal:{" "}
-            <code>cd backend && uv run python -m jarvis servidor</code>
-          </div>
-        )}
+            {conexao.estado === "desconectado" && (
+              <div className="aviso" role="alert">
+                <strong>Backend desconectado.</strong> Rode no terminal:{" "}
+                <code>cd backend && uv run python -m jarvis servidor</code>
+              </div>
+            )}
 
-        {conexao.estado === "conectado" && (
-          <div className="paineis">
-            <PainelHabilidades habilidades={conexao.status.habilidades} />
-            <PainelSistema
-              versao={conexao.status.versao}
-              cadastrados={conexao.rostos.cadastrados}
-              onCadastrarRosto={() => setCadastrando(true)}
-              onConfigurarPin={() => setConfigurandoPin(true)}
+            {conexao.estado === "conectado" && (
+              <div className="paineis">
+                <PainelHabilidades habilidades={conexao.status.habilidades} />
+                <PainelSistema
+                  versao={conexao.status.versao}
+                  cadastrados={conexao.rostos.cadastrados}
+                  onCadastrarRosto={() => setCadastrando(true)}
+                  onConfigurarPin={() => setConfigurandoPin(true)}
+                />
+                <PainelVoz gravacao={gravacao} />
+              </div>
+            )}
+          </main>
+
+          {cadastrando && (
+            <TelaCadastro
+              onFechar={() => setCadastrando(false)}
+              onCadastrado={() => {
+                // A lista de rostos vem do backend; o useConexaoBackend recarrega
+                // sozinho a cada 3s, então não precisamos mexer nela aqui.
+              }}
             />
-            <PainelVoz gravacao={gravacao} />
-          </div>
-        )}
-      </main>
+          )}
 
-      {cadastrando && (
-        <TelaCadastro
-          onFechar={() => setCadastrando(false)}
-          onCadastrado={() => {
-            // A lista de rostos vem do backend; o useConexaoBackend recarrega
-            // sozinho a cada 3s, então não precisamos mexer nela aqui.
-          }}
-        />
+          {configurandoPin && usuario && (
+            <TelaCadastroPin
+              usuario={usuario}
+              onFechar={() => setConfigurandoPin(false)}
+              onConfigurado={() => setConfigurandoPin(false)}
+            />
+          )}
+        </div>
       )}
 
-      {configurandoPin && usuario && (
-        <TelaCadastroPin
-          usuario={usuario}
-          onFechar={() => setConfigurandoPin(false)}
-          onConfigurado={() => setConfigurandoPin(false)}
+      {/* A borda de luz do círculo que abre o painel (só durante a transição). */}
+      {usuario && bloqueioMontado && <div className="revelacao__anel" aria-hidden="true" />}
+
+      {(!usuario || bloqueioMontado) && (
+        <TelaBloqueio
+          nomeAssistente={nomeAssistente}
+          backendOnline={conexao.estado === "conectado"}
+          onDesbloqueado={aoDesbloquear}
+          saindo={!!usuario}
         />
       )}
-    </div>
+    </>
   );
 }
 
