@@ -22,6 +22,7 @@ from jarvis.api.sessao import (
 from jarvis.habilidades import HABILIDADES, Situacao
 from jarvis.habilidades.conversa import gravacoes
 from jarvis.habilidades.conversa.gravacoes import TipoDeAudioInvalidoError
+from jarvis.habilidades.conversa.transcricao import TranscricaoIndisponivelError, Transcritor
 from jarvis.habilidades.desbloqueio_facial import banco_rostos
 from jarvis.habilidades.desbloqueio_facial.banco_rostos import NomeInvalidoError
 from jarvis.habilidades.desbloqueio_facial.cadastro import EstadoCadastro
@@ -90,6 +91,8 @@ class ConfigurarPinRequest(BaseModel):
 class GravacaoResposta(BaseModel):
     arquivo: str
     bytes: int
+    # O que foi dito. Vazio quando não deu para entender nada.
+    texto: str
 
 
 class AmostraResposta(BaseModel):
@@ -149,16 +152,22 @@ def _retangulos(rostos) -> list["RetanguloResposta"]:
     ]
 
 
+# Um só Whisper para o servidor inteiro: carregar leva segundos e ocupa ~500 MB.
+TRANSCRITOR = Transcritor()
+
+
 def criar_app(
     pasta_rostos: Path = banco_rostos.PASTA_ROSTOS,
     sessao: Sessao | None = None,
     acesso_pin: AcessoPin | None = None,
     pasta_gravacoes: Path = gravacoes.PASTA_GRAVACOES,
+    transcritor: Transcritor | None = None,
     cadastros: Cadastros | None = None,
 ) -> FastAPI:
     sessao = sessao or Sessao(pasta_rostos)
     acesso_pin = acesso_pin or AcessoPin()
     cadastros = cadastros or Cadastros(pasta_rostos)
+    transcritor = transcritor or TRANSCRITOR
     app = FastAPI(title="Jarvis", version=version("jarvis"))
     app.add_middleware(
         CORSMiddleware,
@@ -255,7 +264,7 @@ def criar_app(
 
     @app.post("/conversa/gravacao")
     async def guardar_gravacao(request: Request) -> GravacaoResposta:
-        """Recebe o áudio gravado no app e guarda em dados/gravacoes/."""
+        """Recebe o áudio gravado no app, guarda em dados/gravacoes/ e diz o que foi dito."""
         audio = await request.body()
         if not audio:
             raise HTTPException(400, "A gravação chegou vazia.")
@@ -268,7 +277,13 @@ def criar_app(
         except TipoDeAudioInvalidoError as erro:
             raise HTTPException(415, str(erro)) from erro
 
-        return GravacaoResposta(arquivo=caminho.name, bytes=len(audio))
+        try:
+            # Transcrever é trabalho pesado de CPU: roda fora do laço principal.
+            texto = await run_in_threadpool(transcritor.transcrever, caminho)
+        except TranscricaoIndisponivelError as erro:
+            raise HTTPException(503, str(erro)) from erro
+
+        return GravacaoResposta(arquivo=caminho.name, bytes=len(audio), texto=texto)
 
     @app.post("/desbloqueio/quadro")
     async def avaliar_quadro(request: Request) -> AvaliacaoResposta:
@@ -292,6 +307,8 @@ def criar_app(
 
 def rodar() -> None:
     """Sobe o servidor e fica rodando até Ctrl+C."""
-    # Já deixa os modelos de visão carregados: o primeiro desbloqueio não espera 2 s.
+    # Já deixa os modelos carregados: o primeiro desbloqueio não espera 2 s e a
+    # primeira fala não espera o Whisper (~3 s, ou o download no primeiro uso).
     threading.Thread(target=modelos, daemon=True).start()
+    threading.Thread(target=TRANSCRITOR.carregar, daemon=True).start()
     uvicorn.run(criar_app(), host=HOST, port=PORTA)

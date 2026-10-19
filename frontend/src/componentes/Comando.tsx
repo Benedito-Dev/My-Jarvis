@@ -1,6 +1,7 @@
 import type { RefObject } from "react";
 import type { Habilidade } from "../api";
 import { type EstadoGravacao, estadoDoNucleo } from "../gravacao";
+import { useDigitando } from "../hooks/useDigitando";
 import { cumprimento } from "../tempo";
 import { ModuloHabilidades, ModuloSistema, ModuloTempo } from "./ModulosComando";
 import { type ModoNucleo, Nucleo } from "./Nucleo";
@@ -45,6 +46,9 @@ export function Comando({
   onConfigurarPin,
 }: Props) {
   const nucleo = estadoDoNucleo(gravacao);
+  // O detalhe aparece digitando: no "Você disse", é a sua frase sendo escrita.
+  const detalhe = useDigitando(nucleo.detalhe);
+  const falaOuvida = gravacao.estado === "ouvida" && gravacao.texto !== "";
   const gravando = gravacao.estado === "gravando";
   const modo: ModoNucleo = gravando ? "ouvindo" : gravacao.estado === "enviando" ? "pensando" : "calmo";
 
@@ -74,7 +78,10 @@ export function Comando({
         <p className="comando__estado" role="status">
           {nucleo.titulo}
         </p>
-        <p className="comando__detalhe">{nucleo.detalhe}</p>
+        <p className={`comando__detalhe ${falaOuvida ? "comando__detalhe--fala" : ""}`}>
+          {detalhe}
+          <span className="comando__cursor" aria-hidden="true" />
+        </p>
       </section>
 
       <aside className="comando__coluna comando__coluna--direita">

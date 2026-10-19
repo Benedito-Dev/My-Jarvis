@@ -6,6 +6,7 @@ from jarvis.api import criar_app
 from jarvis.api.cadastros import Cadastros
 from jarvis.api.sessao import Sessao
 from jarvis.habilidades import HABILIDADES
+from jarvis.habilidades.conversa.transcricao import TranscricaoIndisponivelError
 from jarvis.habilidades.desbloqueio_facial import banco_rostos
 from jarvis.habilidades.desbloqueio_facial.cadastro import Cadastro as CadastroDeVerdade
 from jarvis.habilidades.desbloqueio_facial.cadastro import EstadoCadastro, ResultadoAmostra
@@ -189,8 +190,31 @@ def test_app_instalado_pode_chamar_a_api_nos_tres_sistemas():
 # --- Gravar a voz -----------------------------------------------------------------
 
 
+class TranscritorFalso:
+    """Responde sempre a mesma frase: os testes não carregam o Whisper de verdade."""
+
+    def __init__(self, texto="que horas são"):
+        self.texto = texto
+        self.ouvidos = []
+
+    def transcrever(self, audio):
+        self.ouvidos.append(audio)
+        return self.texto
+
+
+class TranscritorSemModelo:
+    def transcrever(self, _audio):
+        raise TranscricaoIndisponivelError("Não consegui carregar o modelo de transcrição.")
+
+
+def cliente_de_gravacao(pasta, transcritor=None):
+    return TestClient(
+        criar_app(pasta_gravacoes=pasta, transcritor=transcritor or TranscritorFalso())
+    )
+
+
 def test_gravacao_e_guardada(tmp_path):
-    cliente = TestClient(criar_app(pasta_gravacoes=tmp_path))
+    cliente = cliente_de_gravacao(tmp_path)
 
     resposta = cliente.post(
         "/conversa/gravacao", content=b"isto seria um webm", headers={"Content-Type": "audio/webm"}
@@ -203,14 +227,33 @@ def test_gravacao_e_guardada(tmp_path):
     assert (tmp_path / corpo["arquivo"]).read_bytes() == b"isto seria um webm"
 
 
+def test_gravacao_volta_com_o_que_foi_dito(tmp_path):
+    transcritor = TranscritorFalso("que horas são")
+    cliente = cliente_de_gravacao(tmp_path, transcritor)
+
+    corpo = cliente.post("/conversa/gravacao", content=b"voz").json()
+
+    assert corpo["texto"] == "que horas são"
+    assert transcritor.ouvidos == [tmp_path / corpo["arquivo"]]
+
+
+def test_sem_modelo_de_transcricao_responde_503(tmp_path):
+    cliente = cliente_de_gravacao(tmp_path, TranscritorSemModelo())
+
+    resposta = cliente.post("/conversa/gravacao", content=b"voz")
+
+    assert resposta.status_code == 503
+    assert "transcrição" in resposta.json()["detail"]
+
+
 def test_gravacao_vazia_e_recusada(tmp_path):
-    cliente = TestClient(criar_app(pasta_gravacoes=tmp_path))
+    cliente = cliente_de_gravacao(tmp_path)
 
     assert cliente.post("/conversa/gravacao", content=b"").status_code == 400
 
 
 def test_gravacao_grande_demais_e_recusada(tmp_path):
-    cliente = TestClient(criar_app(pasta_gravacoes=tmp_path))
+    cliente = cliente_de_gravacao(tmp_path)
 
     resposta = cliente.post("/conversa/gravacao", content=b"0" * (11 * 1024 * 1024))
 
@@ -218,7 +261,7 @@ def test_gravacao_grande_demais_e_recusada(tmp_path):
 
 
 def test_gravacao_de_tipo_desconhecido_e_recusada(tmp_path):
-    cliente = TestClient(criar_app(pasta_gravacoes=tmp_path))
+    cliente = cliente_de_gravacao(tmp_path)
 
     resposta = cliente.post(
         "/conversa/gravacao", content=b"dados", headers={"Content-Type": "text/html"}

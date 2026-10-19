@@ -4,7 +4,7 @@ export type EstadoGravacao =
   | { estado: "parado" }
   | { estado: "gravando" }
   | { estado: "enviando" }
-  | { estado: "guardada"; arquivo: string }
+  | { estado: "ouvida"; texto: string }
   | { estado: "erro"; mensagem: string };
 
 // Formatos que o MediaRecorder pode entregar, do mais provável ao menos.
@@ -32,11 +32,14 @@ export function estadoDoNucleo(gravacao: EstadoGravacao): {
     case "gravando":
       return { titulo: "Estou ouvindo", detalhe: "Solte ESPAÇO quando terminar", tom: "ok" };
     case "enviando":
-      // Hoje ele só guarda o áudio; com a Fase 3, aqui ele transcreve e pensa na resposta.
-      return { titulo: "Pensando", detalhe: "Processando o que você disse...", tom: "pensando" };
-    case "guardada":
+      // O backend está transcrevendo (Whisper); depois, também pensará na resposta.
+      return { titulo: "Pensando", detalhe: "Entendendo o que você disse...", tom: "pensando" };
+    case "ouvida":
       // Azul de novo: verde é só enquanto está ouvindo.
-      return { titulo: "Ouvi você", detalhe: `Gravação guardada: ${gravacao.arquivo}`, tom: "aviso" };
+      if (!gravacao.texto) {
+        return { titulo: "Não entendi", detalhe: "Fale um pouco mais perto do microfone", tom: "aviso" };
+      }
+      return { titulo: "Você disse", detalhe: `“${gravacao.texto}”`, tom: "aviso" };
     case "erro":
       return { titulo: "Não consegui ouvir", detalhe: gravacao.mensagem, tom: "erro" };
   }

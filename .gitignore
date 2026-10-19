@@ -13,4 +13,5 @@ dados/
 
 # Modelos grandes de IA: baixados automaticamente no primeiro uso
 backend/src/jarvis/habilidades/desbloqueio_facial/modelos/face_recognition_sface_*.onnx
+backend/src/jarvis/habilidades/conversa/modelos/
 *.parcial

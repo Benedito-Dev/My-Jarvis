@@ -37,11 +37,16 @@ describe("estadoDoNucleo", () => {
     });
   });
 
-  it("guardada, volta ao azul e mostra o arquivo", () => {
-    const nucleo = estadoDoNucleo({ estado: "guardada", arquivo: "2026-10-17_09-05-03.webm" });
+  it("ouvida, volta ao azul e repete o que foi dito", () => {
+    const nucleo = estadoDoNucleo({ estado: "ouvida", texto: "que horas são" });
 
-    expect(nucleo.detalhe).toContain("2026-10-17_09-05-03.webm");
+    expect(nucleo.titulo).toBe("Você disse");
+    expect(nucleo.detalhe).toBe("“que horas são”");
     expect(nucleo.tom).toBe("aviso"); // parou de ouvir: volta ao azul
+  });
+
+  it("ouvida sem texto, avisa que não entendeu", () => {
+    expect(estadoDoNucleo({ estado: "ouvida", texto: "" }).titulo).toBe("Não entendi");
   });
 
   it("erro, mostra a mensagem como detalhe", () => {

@@ -129,9 +129,11 @@ export const cancelarCadastro = (nome: string) =>
 export type Gravacao = {
   arquivo: string;
   bytes: number;
+  /** O que foi dito (Whisper no backend). Vazio quando não deu para entender. */
+  texto: string;
 };
 
-// Manda o áudio gravado no app para o backend guardar.
+// Manda o áudio gravado no app para o backend guardar e transcrever.
 export const enviarGravacao = (audio: Blob) =>
   requisitar<Gravacao>("/conversa/gravacao", {
     method: "POST",

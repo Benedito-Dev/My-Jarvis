@@ -5,7 +5,10 @@ description = "Assistente pessoal de desktop que ganha habilidades aos poucos"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    # O faster-whisper 1.2 abre o áudio com um parâmetro que o av 14+ removeu.
+    "av<14",
     "fastapi>=0.143.3",
+    "faster-whisper>=1.2.1",
     "opencv-python>=5.0.0.93",
     "uvicorn>=0.54.0",
 ]
