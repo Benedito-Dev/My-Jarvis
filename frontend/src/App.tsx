@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { bloquearSessao } from "./api";
 import { BarraTopo } from "./componentes/BarraTopo";
-import { PainelHabilidades } from "./componentes/PainelHabilidades";
-import { PainelSistema } from "./componentes/PainelSistema";
-import { PainelVoz } from "./componentes/PainelVoz";
-import { Saudacao } from "./componentes/Saudacao";
+import { Comando } from "./componentes/Comando";
 import { TelaBloqueio } from "./componentes/TelaBloqueio";
 import { TelaCadastro } from "./componentes/TelaCadastro";
 import { TelaCadastroPin } from "./componentes/TelaCadastroPin";
@@ -81,7 +78,7 @@ function App() {
 
   // Segurar ESPAÇO grava a voz. Só depois de desbloquear: na tela de bloqueio o
   // espaço não deve fazer nada.
-  const gravacao = useGravacao(!!usuario && conexao.estado === "conectado");
+  const { gravacao, nivel } = useGravacao(!!usuario && conexao.estado === "conectado");
 
   // Cadastrar rosto pelo app, sem terminal. Cada máquina precisa do seu
   // próprio cadastro, porque dados/ não vai para o git (decisão 0012).
@@ -100,35 +97,32 @@ function App() {
             onBloquear={aoBloquear}
             bloqueando={bloqueio.emAndamento}
           />
-          <main className="conteudo">
-            <Saudacao agora={agora} nome={usuario} />
+          {bloqueio.erro && (
+            <div className="aviso" role="alert">
+              <strong>Não consegui bloquear.</strong> {bloqueio.erro}
+            </div>
+          )}
 
-            {bloqueio.erro && (
-              <div className="aviso" role="alert">
-                <strong>Não consegui bloquear.</strong> {bloqueio.erro}
-              </div>
-            )}
+          {conexao.estado === "desconectado" && (
+            <div className="aviso" role="alert">
+              <strong>Backend desconectado.</strong> Rode no terminal:{" "}
+              <code>cd backend && uv run python -m jarvis servidor</code>
+            </div>
+          )}
 
-            {conexao.estado === "desconectado" && (
-              <div className="aviso" role="alert">
-                <strong>Backend desconectado.</strong> Rode no terminal:{" "}
-                <code>cd backend && uv run python -m jarvis servidor</code>
-              </div>
-            )}
-
-            {conexao.estado === "conectado" && (
-              <div className="paineis">
-                <PainelHabilidades habilidades={conexao.status.habilidades} />
-                <PainelSistema
-                  versao={conexao.status.versao}
-                  cadastrados={conexao.rostos.cadastrados}
-                  onCadastrarRosto={() => setCadastrando(true)}
-                  onConfigurarPin={() => setConfigurandoPin(true)}
-                />
-                <PainelVoz gravacao={gravacao} />
-              </div>
-            )}
-          </main>
+          {conexao.estado === "conectado" && (
+            <Comando
+              usuario={usuario}
+              agora={agora}
+              versao={conexao.status.versao}
+              cadastrados={conexao.rostos.cadastrados}
+              habilidades={conexao.status.habilidades}
+              gravacao={gravacao}
+              nivel={nivel}
+              onCadastrarRosto={() => setCadastrando(true)}
+              onConfigurarPin={() => setConfigurandoPin(true)}
+            />
+          )}
 
           {cadastrando && (
             <TelaCadastro

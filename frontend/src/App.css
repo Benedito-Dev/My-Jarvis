@@ -28,18 +28,16 @@ body {
 /* ---------- Estrutura ---------- */
 
 .app {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
-}
-
-.conteudo {
-  flex: 1;
-  width: 100%;
-  padding: 48px 32px;
-  display: flex;
-  flex-direction: column;
-  gap: 40px;
+  overflow-y: auto;
+  /* Mesmo fundo de HUD da tela de bloqueio: o painel continua o mesmo mundo. */
+  background:
+    radial-gradient(circle at 50% 45%, rgba(79, 158, 255, 0.12), transparent 50%),
+    repeating-linear-gradient(90deg, rgba(79, 158, 255, 0.04) 0 1px, transparent 1px 48px),
+    repeating-linear-gradient(0deg, rgba(79, 158, 255, 0.04) 0 1px, transparent 1px 48px),
+    #02050a;
 }
 
 /* ---------- Barra do topo ---------- */
@@ -125,126 +123,6 @@ body {
 .botao:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-}
-
-/* ---------- Saudação ---------- */
-
-.saudacao__titulo {
-  margin: 0;
-  font-size: 44px;
-  font-weight: 300;
-}
-
-.saudacao__nome {
-  color: var(--destaque);
-}
-
-.saudacao__data {
-  margin: 12px 0 0;
-  color: var(--texto-suave);
-  font-size: 18px;
-}
-
-.saudacao__hora {
-  margin: 4px 0 0;
-  font-size: 64px;
-  font-weight: 200;
-  font-variant-numeric: tabular-nums;
-}
-
-/* ---------- Painéis ---------- */
-
-.paineis {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
-}
-
-.painel {
-  padding: 20px 24px;
-  border: 1px solid var(--borda);
-  border-radius: 12px;
-  background: var(--painel);
-}
-
-.painel__titulo {
-  margin: 0 0 16px;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: var(--texto-suave);
-}
-
-.painel__acoes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.lista {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.item {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-}
-
-.item strong {
-  font-weight: 500;
-}
-
-.item p {
-  margin: 2px 0 0;
-  font-size: 13px;
-  color: var(--texto-suave);
-}
-
-.item__icone {
-  width: 16px;
-  color: var(--ok);
-  font-weight: 700;
-}
-
-.item--em_breve {
-  opacity: 0.55;
-}
-
-.item--em_breve .item__icone {
-  color: var(--texto-suave);
-}
-
-.selo {
-  margin-left: 8px;
-  padding: 1px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--borda);
-  font-size: 11px;
-  color: var(--texto-suave);
-}
-
-.dados {
-  margin: 0;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 10px 20px;
-  font-size: 14px;
-}
-
-.dados dt {
-  color: var(--texto-suave);
-}
-
-.dados dd {
-  margin: 0;
 }
 
 /* ---------- Aviso ---------- */
@@ -1176,63 +1054,9 @@ body {
 }
 
 @media (max-width: 640px) {
-  .conteudo {
-    padding: 32px 16px;
-  }
-
   .barra-topo {
     padding: 12px 16px;
   }
-
-  .saudacao__titulo {
-    font-size: 32px;
-  }
-
-  .saudacao__hora {
-    font-size: 48px;
-  }
-}
-
-/* --- Painel de voz (segurar ESPAÇO grava) ------------------------------- */
-
-.voz {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.voz__ponto {
-  width: 10px;
-  height: 10px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: var(--texto-suave);
-  transition: background 0.2s;
-}
-
-.voz__ponto--gravando {
-  background: var(--erro);
-  animation: pulsar-voz 1.1s ease-in-out infinite;
-}
-
-@keyframes pulsar-voz {
-  50% {
-    opacity: 0.25;
-  }
-}
-
-.voz__mensagem {
-  margin: 0;
-  font-size: 14px;
-  color: var(--texto-suave);
-}
-
-.voz__mensagem--ok {
-  color: var(--ok);
-}
-
-.voz__mensagem--erro {
-  color: var(--erro);
 }
 
 /* --- Cadastrar rosto pelo app ------------------------------------------ */
@@ -1478,7 +1302,6 @@ body {
 .app--revelando {
   position: relative;
   z-index: 2;
-  background: radial-gradient(circle at 20% 0%, #0c1a26 0%, var(--fundo) 55%);
   animation: revelar-painel 0.9s cubic-bezier(0.65, 0, 0.25, 1) backwards;
 }
 
@@ -1527,8 +1350,9 @@ body {
 
 /* O conteúdo do painel entra em cascata, logo atrás da borda do círculo. */
 .app--revelando .barra-topo,
-.app--revelando .saudacao,
-.app--revelando .painel {
+.app--revelando .comando__coluna,
+.app--revelando .comando__centro,
+.app--revelando .comando__conversa {
   animation: surgir 0.6s ease-out backwards;
 }
 
@@ -1536,20 +1360,28 @@ body {
   animation-delay: 0.3s;
 }
 
-.app--revelando .saudacao {
-  animation-delay: 0.4s;
+.app--revelando .comando__centro {
+  animation: surgir-nucleo 0.8s 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
 }
 
-.app--revelando .painel:nth-child(1) {
+.app--revelando .comando__coluna--esquerda {
   animation-delay: 0.5s;
 }
 
-.app--revelando .painel:nth-child(2) {
+.app--revelando .comando__coluna--direita {
   animation-delay: 0.6s;
 }
 
-.app--revelando .painel:nth-child(3) {
+.app--revelando .comando__conversa {
   animation-delay: 0.7s;
+}
+
+/* O núcleo nasce do tamanho do visor que acabou de se abrir. */
+@keyframes surgir-nucleo {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
 }
 
 /* Por baixo, a tela de bloqueio se afasta: o visor avança para a câmera e as
@@ -1593,8 +1425,9 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .app--revelando,
   .app--revelando .barra-topo,
-  .app--revelando .saudacao,
-  .app--revelando .painel {
+  .app--revelando .comando__coluna,
+  .app--revelando .comando__centro,
+  .app--revelando .comando__conversa {
     animation: none;
   }
 
@@ -1605,4 +1438,34 @@ body {
   .revelacao__anel {
     display: none;
   }
+}
+
+/* Avisos (bloqueio falhou, backend fora) ficam logo abaixo da barra do topo. */
+.app > .aviso {
+  margin: 12px 40px 0;
+}
+
+/* No painel, a barra do topo fala a mesma língua do HUD. */
+.barra-topo .botao,
+.barra-topo .indicador {
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  font-size: 11px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+
+.barra-topo .botao {
+  padding: 8px 16px;
+  color: var(--destaque);
+  background: color-mix(in srgb, var(--destaque) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--destaque) 35%, transparent);
+  border-radius: 2px;
+  transition:
+    background 0.2s,
+    box-shadow 0.2s;
+}
+
+.barra-topo .botao:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--destaque) 16%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--destaque) 35%, transparent);
 }

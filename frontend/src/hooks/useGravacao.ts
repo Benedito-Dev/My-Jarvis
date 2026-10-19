@@ -1,6 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { type RefObject, useEffect, useRef, useState } from "react";
 import { enviarGravacao } from "../api";
 import { escolherFormato, type EstadoGravacao } from "../gravacao";
+import { nivelDoSinal } from "../nucleo";
+
+export type Gravacao = {
+  gravacao: EstadoGravacao;
+  /** Volume da voz agora, de 0 a 1. Ref, e não estado: muda a cada quadro. */
+  nivel: RefObject<number>;
+};
 
 /**
  * Grava a voz enquanto a barra de espaço fica segurada e manda ao backend ao soltar.
@@ -8,10 +15,11 @@ import { escolherFormato, type EstadoGravacao } from "../gravacao";
  * O microfone é ligado no momento de falar e desligado ao soltar a tecla: o app
  * nunca fica escutando sozinho.
  */
-export function useGravacao(ligado: boolean): EstadoGravacao {
+export function useGravacao(ligado: boolean): Gravacao {
   const [gravacao, setGravacao] = useState<EstadoGravacao>({ estado: "parado" });
   const gravador = useRef<MediaRecorder | null>(null);
   const segurando = useRef(false);
+  const nivel = useRef(0);
 
   useEffect(() => {
     if (!ligado) return;
@@ -42,12 +50,14 @@ export function useGravacao(ligado: boolean): EstadoGravacao {
         return;
       }
 
+      const pararMedidor = medirVolume(fluxo, nivel);
       const pedacos: Blob[] = [];
       const gravandoAgora = new MediaRecorder(fluxo, { mimeType: formato });
       gravandoAgora.ondataavailable = (evento) => {
         if (evento.data.size > 0) pedacos.push(evento.data);
       };
       gravandoAgora.onstop = async () => {
+        pararMedidor();
         fluxo.getTracks().forEach((t) => t.stop()); // desliga o microfone
         gravador.current = null;
         const audio = new Blob(pedacos, { type: formato });
@@ -99,7 +109,38 @@ export function useGravacao(ligado: boolean): EstadoGravacao {
     };
   }, [ligado]);
 
-  return gravacao;
+  return { gravacao, nivel };
+}
+
+/**
+ * Mede o volume do microfone a cada quadro e guarda em `nivel`, para o núcleo
+ * do painel reagir à voz. Devolve a função que para de medir.
+ */
+function medirVolume(fluxo: MediaStream, nivel: { current: number }): () => void {
+  let contexto: AudioContext;
+  try {
+    contexto = new AudioContext();
+  } catch {
+    return () => {}; // sem Web Audio, o núcleo só não reage ao volume
+  }
+  const analisador = contexto.createAnalyser();
+  analisador.fftSize = 512;
+  contexto.createMediaStreamSource(fluxo).connect(analisador);
+  const amostras = new Uint8Array(analisador.fftSize);
+
+  let quadro = 0;
+  const medir = () => {
+    analisador.getByteTimeDomainData(amostras);
+    nivel.current = nivelDoSinal(amostras);
+    quadro = requestAnimationFrame(medir);
+  };
+  medir();
+
+  return () => {
+    cancelAnimationFrame(quadro);
+    nivel.current = 0;
+    contexto.close();
+  };
 }
 
 function digitando(alvo: EventTarget | null): boolean {

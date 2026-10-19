@@ -17,18 +17,22 @@ export function escolherFormato(suportado: (tipo: string) => boolean): string | 
   return FORMATOS.find((formato) => suportado(formato)) ?? null;
 }
 
-/** Texto e cor para cada momento da gravação. */
-export function aparencia(gravacao: EstadoGravacao): { mensagem: string; tom: Tom } {
+/** O que o núcleo do painel diz em cada momento: um título curto e um detalhe. */
+export function estadoDoNucleo(gravacao: EstadoGravacao): {
+  titulo: string;
+  detalhe: string;
+  tom: Tom;
+} {
   switch (gravacao.estado) {
     case "parado":
-      return { mensagem: "Segure ESPAÇO para falar", tom: "aviso" };
+      return { titulo: "À sua disposição", detalhe: "Segure ESPAÇO para falar", tom: "aviso" };
     case "gravando":
-      return { mensagem: "Gravando... solte para guardar", tom: "ok" };
+      return { titulo: "Estou ouvindo", detalhe: "Solte ESPAÇO quando terminar", tom: "ok" };
     case "enviando":
-      return { mensagem: "Guardando...", tom: "aviso" };
+      return { titulo: "Um instante", detalhe: "Guardando a sua voz...", tom: "aviso" };
     case "guardada":
-      return { mensagem: `Guardado em ${gravacao.arquivo}`, tom: "ok" };
+      return { titulo: "Ouvi você", detalhe: `Gravação guardada: ${gravacao.arquivo}`, tom: "ok" };
     case "erro":
-      return { mensagem: gravacao.mensagem, tom: "erro" };
+      return { titulo: "Não consegui ouvir", detalhe: gravacao.mensagem, tom: "erro" };
   }
 }

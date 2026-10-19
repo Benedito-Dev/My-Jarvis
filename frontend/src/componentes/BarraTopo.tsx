@@ -25,7 +25,7 @@ export function BarraTopo({ conexao, nomeAssistente, onBloquear, bloqueando }: P
           disabled={bloqueando || indisponivel}
           title={indisponivel ? "Backend desconectado" : "Voltar para a tela de bloqueio"}
         >
-          🔒 {bloqueando ? "Bloqueando..." : "Bloquear"}
+          {bloqueando ? "Bloqueando..." : "Bloquear"}
         </button>
       </div>
     </header>

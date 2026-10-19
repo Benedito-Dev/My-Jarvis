@@ -1,0 +1,288 @@
+/* Central de comando (Comando.tsx): o painel depois do desbloqueio.
+   Mesma linguagem da tela de bloqueio: grade fina, fonte mono, azul e brilho. */
+
+.comando {
+  --cor-comando: var(--destaque);
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) 1fr minmax(180px, 240px);
+  grid-template-rows: 1fr auto;
+  gap: 16px 32px;
+  padding: 16px 40px 28px;
+  min-height: 0;
+}
+
+.comando--ok {
+  --cor-comando: var(--ok);
+}
+
+.comando--erro {
+  --cor-comando: var(--erro);
+}
+
+/* --- Colunas laterais --------------------------------------------------- */
+
+.comando__coluna {
+  align-self: center;
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: color-mix(in srgb, var(--destaque) 85%, white);
+}
+
+.comando__coluna--esquerda {
+  border-left: 1px solid color-mix(in srgb, var(--destaque) 35%, transparent);
+  padding-left: 14px;
+}
+
+.comando__coluna--direita {
+  border-right: 1px solid color-mix(in srgb, var(--destaque) 35%, transparent);
+  padding-right: 14px;
+  text-align: right;
+}
+
+.comando__titulo {
+  margin: 0 0 14px;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.comando__leitura {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 10px;
+}
+
+.comando__leitura-rotulo {
+  color: var(--texto-suave);
+}
+
+.comando__leitura-valor--ok {
+  color: var(--ok);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--ok) 60%, transparent);
+}
+
+.comando__acoes {
+  display: flex;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.comando__acao {
+  flex: 1;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--destaque);
+  background: color-mix(in srgb, var(--destaque) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--destaque) 35%, transparent);
+  border-radius: 2px;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    box-shadow 0.2s;
+}
+
+.comando__acao:hover,
+.comando__acao:focus-visible {
+  background: color-mix(in srgb, var(--destaque) 16%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--destaque) 35%, transparent);
+  outline: none;
+}
+
+.comando__relogio {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 300;
+  letter-spacing: 0.12em;
+  color: var(--destaque);
+  text-shadow: 0 0 16px color-mix(in srgb, var(--destaque) 50%, transparent);
+}
+
+.comando__data {
+  margin: 4px 0 32px;
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.comando__habilidades {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.habilidade {
+  display: grid;
+  grid-template-columns: 1fr auto 8px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  direction: ltr;
+}
+
+.habilidade__nome {
+  grid-column: 1;
+  grid-row: 1;
+  text-align: right;
+  color: var(--texto);
+}
+
+.habilidade__situacao {
+  grid-column: 2;
+  grid-row: 1;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--ok);
+}
+
+.habilidade__marca {
+  grid-column: 3;
+  grid-row: 1;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 8px var(--ok);
+}
+
+.habilidade--em_breve .habilidade__nome,
+.habilidade--em_breve .habilidade__situacao {
+  color: var(--texto-suave);
+}
+
+.habilidade--em_breve .habilidade__marca {
+  background: transparent;
+  border: 1px solid var(--texto-suave);
+  box-shadow: none;
+}
+
+/* --- Centro: o núcleo -------------------------------------------------- */
+
+.comando__centro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  text-align: center;
+}
+
+.comando__nucleo {
+  width: min(52vh, 100%);
+  aspect-ratio: 1;
+}
+
+.nucleo {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.comando__cumprimento {
+  margin: 4px 0 0;
+  font-size: 22px;
+  font-weight: 300;
+  color: var(--texto);
+}
+
+.comando__cumprimento strong {
+  font-weight: 400;
+  color: var(--destaque);
+}
+
+.comando__estado {
+  margin: 10px 0 0;
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  font-size: 13px;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--cor-comando);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--cor-comando) 55%, transparent);
+  transition: color 0.3s;
+}
+
+.comando__detalhe {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+/* --- Faixa de voz -------------------------------------------------------- */
+
+.comando__conversa {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 18px;
+  border-top: 1px solid color-mix(in srgb, var(--destaque) 25%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--destaque) 12%, transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--cor-comando) 6%, transparent),
+    transparent
+  );
+}
+
+.comando__rotulo {
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  font-size: 11px;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.onda-voz {
+  flex: 1;
+  height: 36px;
+  min-width: 0;
+}
+
+.comando__tecla {
+  padding: 5px 12px;
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  color: var(--texto-suave);
+  border: 1px solid color-mix(in srgb, var(--destaque) 30%, transparent);
+  border-bottom-width: 3px;
+  border-radius: 4px;
+  transition:
+    transform 0.1s,
+    color 0.2s,
+    border-color 0.2s;
+}
+
+.comando__tecla--apertada {
+  transform: translateY(2px);
+  border-bottom-width: 1px;
+  color: var(--ok);
+  border-color: var(--ok);
+}
+
+/* Janela estreita: as colunas descem para baixo do núcleo. */
+@media (max-width: 900px) {
+  .comando {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto auto;
+    padding: 12px 20px 20px;
+  }
+
+  .comando__centro {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .comando__nucleo {
+    width: min(42vh, 80vw);
+  }
+}

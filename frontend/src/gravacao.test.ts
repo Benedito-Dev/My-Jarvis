@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aparencia, escolherFormato } from "./gravacao";
+import { escolherFormato, estadoDoNucleo } from "./gravacao";
 
 describe("escolherFormato", () => {
   it("prefere o webm quando o sistema suporta (Linux)", () => {
@@ -15,28 +15,31 @@ describe("escolherFormato", () => {
   });
 });
 
-describe("aparencia", () => {
-  it("convida a falar quando está parado", () => {
-    expect(aparencia({ estado: "parado" })).toEqual({
-      mensagem: "Segure ESPAÇO para falar",
+describe("estadoDoNucleo", () => {
+  it("parado, convida a falar", () => {
+    expect(estadoDoNucleo({ estado: "parado" })).toMatchObject({
+      titulo: "À sua disposição",
       tom: "aviso",
     });
   });
 
-  it("avisa que está gravando", () => {
-    expect(aparencia({ estado: "gravando" }).tom).toBe("ok");
+  it("gravando, fica verde e diz que está ouvindo", () => {
+    expect(estadoDoNucleo({ estado: "gravando" })).toMatchObject({
+      titulo: "Estou ouvindo",
+      tom: "ok",
+    });
   });
 
-  it("mostra o arquivo depois de guardar", () => {
-    const visual = aparencia({ estado: "guardada", arquivo: "2026-10-17_09-05-03.webm" });
+  it("guardada, mostra o arquivo como detalhe", () => {
+    const nucleo = estadoDoNucleo({ estado: "guardada", arquivo: "2026-10-17_09-05-03.webm" });
 
-    expect(visual.mensagem).toContain("2026-10-17_09-05-03.webm");
-    expect(visual.tom).toBe("ok");
+    expect(nucleo.detalhe).toContain("2026-10-17_09-05-03.webm");
+    expect(nucleo.tom).toBe("ok");
   });
 
-  it("mostra o erro como erro", () => {
-    expect(aparencia({ estado: "erro", mensagem: "Sem microfone" })).toEqual({
-      mensagem: "Sem microfone",
+  it("erro, mostra a mensagem como detalhe", () => {
+    expect(estadoDoNucleo({ estado: "erro", mensagem: "Sem microfone" })).toMatchObject({
+      detalhe: "Sem microfone",
       tom: "erro",
     });
   });
