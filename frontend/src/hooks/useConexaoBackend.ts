@@ -21,6 +21,8 @@ export type Conexao =
       sessao: Sessao;
       /** Quanto o backend levou para responder, em ms, das mais antigas às mais novas. */
       latencias: number[];
+      /** Quando (Date.now) foi feita a pergunta que trouxe esta resposta. */
+      perguntadoEm: number;
     }
   | { estado: "desconectado" };
 
@@ -33,6 +35,7 @@ export function useConexaoBackend(): Conexao {
 
     async function verificar() {
       try {
+        const perguntadoEm = Date.now();
         const inicio = performance.now();
         const [status, sessao] = await Promise.all([
           buscarStatus(),
@@ -44,7 +47,9 @@ export function useConexaoBackend(): Conexao {
         const rostos = sessao.usuario
           ? await buscarRostos()
           : { cadastrados: [] };
-        if (ativo) setConexao({ estado: "conectado", status, rostos, sessao, latencias });
+        if (ativo) {
+          setConexao({ estado: "conectado", status, rostos, sessao, latencias, perguntadoEm });
+        }
       } catch {
         if (ativo) setConexao({ estado: "desconectado" });
       }

@@ -30,7 +30,12 @@ function App() {
   // Quem desbloqueou. Vem da tela de bloqueio (depois do "Bem-vindo") ou, se o app
   // abrir com a sessão do backend já desbloqueada, da primeira resposta do backend.
   const [usuario, setUsuario] = useState<string | null>(null);
-  const aoDesbloquear = useCallback((nome: string) => setUsuario(nome), []);
+  // Quando o app desbloqueou (Date.now): respostas perguntadas antes disso são velhas.
+  const desbloqueouEm = useRef(0);
+  const aoDesbloquear = useCallback((nome: string) => {
+    desbloqueouEm.current = Date.now();
+    setUsuario(nome);
+  }, []);
 
   // Desde quando a sessão está aberta: o painel mostra o tempo de sessão.
   const [desbloqueadoEm, setDesbloqueadoEm] = useState(() => new Date());
@@ -43,10 +48,21 @@ function App() {
     if (conexao.estado !== "conectado" || sessaoInicialLida.current) return;
     sessaoInicialLida.current = true;
     if (conexao.sessao.usuario) {
+      desbloqueouEm.current = Date.now();
       setUsuario(conexao.sessao.usuario);
       setBloqueioMontado(false); // já abriu desbloqueado: não há transição a mostrar
     }
   }, [conexao]);
+
+  // Quem manda na sessão é o backend. Se ele diz que está bloqueado (reiniciou,
+  // ou alguém bloqueou por outro caminho), o painel fecha. Só vale resposta
+  // perguntada depois do desbloqueio: uma mais velha ainda diria "bloqueado".
+  useEffect(() => {
+    if (!usuario || conexao.estado !== "conectado") return;
+    if (conexao.sessao.usuario === null && conexao.perguntadoEm > desbloqueouEm.current) {
+      setUsuario(null);
+    }
+  }, [conexao, usuario]);
 
   // A tela de bloqueio sai devagar: depois de desbloquear ela continua montada
   // por baixo, enquanto o painel se abre a partir do visor.

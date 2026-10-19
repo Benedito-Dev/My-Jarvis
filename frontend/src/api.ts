@@ -1,7 +1,10 @@
 // Ponte com o backend Python (jarvis servidor), que roda só nesta máquina.
 export const URL_BACKEND = "http://127.0.0.1:8765";
 
+// Quanto o app espera o backend responder. Curto, para perceber logo se ele caiu.
 const TEMPO_LIMITE_MS = 2000;
+// Transcrever a voz é trabalho pesado: numa máquina ocupada leva vários segundos.
+const TEMPO_LIMITE_TRANSCRICAO_MS = 60_000;
 
 export type Habilidade = {
   id: string;
@@ -61,10 +64,14 @@ export type Avaliacao = {
   rostos: Retangulo[];
 };
 
-async function requisitar<T>(caminho: string, opcoes: RequestInit = {}): Promise<T> {
+async function requisitar<T>(
+  caminho: string,
+  opcoes: RequestInit = {},
+  tempoLimite = TEMPO_LIMITE_MS,
+): Promise<T> {
   const resposta = await fetch(`${URL_BACKEND}${caminho}`, {
     ...opcoes,
-    signal: AbortSignal.timeout(TEMPO_LIMITE_MS),
+    signal: AbortSignal.timeout(tempoLimite),
   });
   if (!resposta.ok) {
     // O FastAPI devolve o motivo do erro em { detail: "..." }
@@ -135,11 +142,15 @@ export type Gravacao = {
 
 // Manda o áudio gravado no app para o backend guardar e transcrever.
 export const enviarGravacao = (audio: Blob) =>
-  requisitar<Gravacao>("/conversa/gravacao", {
-    method: "POST",
-    headers: { "Content-Type": audio.type || "audio/webm" },
-    body: audio,
-  });
+  requisitar<Gravacao>(
+    "/conversa/gravacao",
+    {
+      method: "POST",
+      headers: { "Content-Type": audio.type || "audio/webm" },
+      body: audio,
+    },
+    TEMPO_LIMITE_TRANSCRICAO_MS,
+  );
 
 export const enviarQuadro = (jpeg: Blob) =>
   requisitar<Avaliacao>("/desbloqueio/quadro", {
