@@ -31,6 +31,12 @@ function App() {
   // abrir com a sessão do backend já desbloqueada, da primeira resposta do backend.
   const [usuario, setUsuario] = useState<string | null>(null);
   const aoDesbloquear = useCallback((nome: string) => setUsuario(nome), []);
+
+  // Desde quando a sessão está aberta: o painel mostra o tempo de sessão.
+  const [desbloqueadoEm, setDesbloqueadoEm] = useState(() => new Date());
+  useEffect(() => {
+    if (usuario) setDesbloqueadoEm(new Date());
+  }, [usuario]);
   const sessaoInicialLida = useRef(false);
 
   useEffect(() => {
@@ -114,6 +120,8 @@ function App() {
             <Comando
               usuario={usuario}
               agora={agora}
+              desbloqueadoEm={desbloqueadoEm}
+              latencias={conexao.latencias}
               versao={conexao.status.versao}
               cadastrados={conexao.rostos.cadastrados}
               habilidades={conexao.status.habilidades}

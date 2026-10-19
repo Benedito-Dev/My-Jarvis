@@ -1,7 +1,8 @@
 import type { RefObject } from "react";
 import type { Habilidade } from "../api";
 import { type EstadoGravacao, estadoDoNucleo } from "../gravacao";
-import { cumprimento, formatarData, formatarHoraCompleta } from "../tempo";
+import { cumprimento } from "../tempo";
+import { ModuloHabilidades, ModuloSistema, ModuloTempo } from "./ModulosComando";
 import { type ModoNucleo, Nucleo } from "./Nucleo";
 import { OndaVoz } from "./OndaVoz";
 import "./comando.css";
@@ -19,6 +20,8 @@ const CORES = {
 type Props = {
   usuario: string;
   agora: Date;
+  desbloqueadoEm: Date;
+  latencias: number[];
   versao: string;
   cadastrados: string[];
   habilidades: Habilidade[];
@@ -31,6 +34,8 @@ type Props = {
 export function Comando({
   usuario,
   agora,
+  desbloqueadoEm,
+  latencias,
   versao,
   cadastrados,
   habilidades,
@@ -46,21 +51,17 @@ export function Comando({
   return (
     <main className={`comando comando--${nucleo.tom}`}>
       <aside className="comando__coluna comando__coluna--esquerda">
-        <h2 className="comando__titulo">Sistema</h2>
-        <Leitura rotulo="Backend" valor="ONLINE" ok />
-        <Leitura rotulo="Operador" valor={usuario.toUpperCase()} />
-        <Leitura rotulo="Rostos" valor={String(cadastrados.length).padStart(2, "0")} />
-        <Leitura rotulo="Microfone" valor={gravando ? "OUVINDO" : "LIVRE"} ok={gravando || undefined} />
-        <Leitura rotulo="Versão" valor={versao} />
-
-        <div className="comando__acoes">
-          <button className="comando__acao" type="button" onClick={onCadastrarRosto}>
-            <span aria-hidden="true">＋</span> Rosto
-          </button>
-          <button className="comando__acao" type="button" onClick={onConfigurarPin}>
-            <span aria-hidden="true">＋</span> PIN
-          </button>
-        </div>
+        <ModuloSistema
+          usuario={usuario}
+          agora={agora}
+          desbloqueadoEm={desbloqueadoEm}
+          latencias={latencias}
+          rostos={cadastrados.length}
+          ouvindo={gravando}
+          versao={versao}
+          onCadastrarRosto={onCadastrarRosto}
+          onConfigurarPin={onConfigurarPin}
+        />
       </aside>
 
       <section className="comando__centro">
@@ -77,21 +78,8 @@ export function Comando({
       </section>
 
       <aside className="comando__coluna comando__coluna--direita">
-        <p className="comando__relogio">{formatarHoraCompleta(agora)}</p>
-        <p className="comando__data">{formatarData(agora)}</p>
-
-        <h2 className="comando__titulo">Habilidades</h2>
-        <ul className="comando__habilidades">
-          {habilidades.map((habilidade) => (
-            <li key={habilidade.id} className={`habilidade habilidade--${habilidade.situacao}`}>
-              <span className="habilidade__marca" aria-hidden="true" />
-              <span className="habilidade__nome">{habilidade.nome}</span>
-              <span className="habilidade__situacao">
-                {habilidade.situacao === "pronta" ? "ATIVA" : "EM BREVE"}
-              </span>
-            </li>
-          ))}
-        </ul>
+        <ModuloTempo agora={agora} />
+        <ModuloHabilidades habilidades={habilidades} />
       </aside>
 
       <footer className="comando__conversa">
@@ -100,16 +88,5 @@ export function Comando({
         <kbd className={`comando__tecla ${gravando ? "comando__tecla--apertada" : ""}`}>ESPAÇO</kbd>
       </footer>
     </main>
-  );
-}
-
-function Leitura({ rotulo, valor, ok }: { rotulo: string; valor: string; ok?: boolean }) {
-  return (
-    <p className="comando__leitura">
-      <span className="comando__leitura-rotulo">{rotulo}</span>
-      <span className={`comando__leitura-valor ${ok ? "comando__leitura-valor--ok" : ""}`}>
-        {valor}
-      </span>
-    </p>
   );
 }
