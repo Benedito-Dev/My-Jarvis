@@ -61,6 +61,6 @@ def test_pin_pode_ser_configurado_somente_depois_do_login(tmp_path):
 
     assert configurado.status_code == 200
     cliente.post("/sessao/bloquear")
-    assert cliente.post(
-        "/sessao/pin", json={"identificador": "novo", "pin": "654321"}
-    ).json() == {"usuario": "Benedito"}
+    assert cliente.post("/sessao/pin", json={"identificador": "novo", "pin": "654321"}).json() == {
+        "usuario": "Benedito"
+    }

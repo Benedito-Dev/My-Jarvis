@@ -79,8 +79,7 @@ class AcessoPin:
 
     def configurado_para(self, usuario: str) -> bool:
         return any(
-            registro.get("usuario") == usuario
-            for registro in self._ler()["credenciais"].values()
+            registro.get("usuario") == usuario for registro in self._ler()["credenciais"].values()
         )
 
     def _ler(self) -> dict[str, object]:
@@ -108,9 +107,7 @@ class AcessoPin:
 def normalizar_identificador(identificador: str) -> str:
     valor = identificador.strip().casefold()
     if not PADRAO_IDENTIFICADOR.fullmatch(valor):
-        raise IdentificadorInvalidoError(
-            "Use um identificador com 3 a 64 caracteres, sem espaços."
-        )
+        raise IdentificadorInvalidoError("Use um identificador com 3 a 64 caracteres, sem espaços.")
     return valor
 
 

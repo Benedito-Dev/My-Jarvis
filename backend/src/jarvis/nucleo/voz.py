@@ -4,6 +4,7 @@
 Aqui ficam as regras de *quando* falar.
 """
 
+import shutil
 import subprocess
 import time
 from collections.abc import Callable
@@ -89,8 +90,14 @@ class Locutor:
 
 
 def _motor_do_sistema() -> MotorDeVoz | None:
-    """Motor desta máquina, ou None se ela ainda não sabe falar."""
+    """Motor desta máquina, ou None se ela ainda não sabe falar.
+
+    Também fica mudo se o comando do motor não estiver instalado (ex.: Linux sem
+    `spd-say`): ficar sem voz não pode derrubar um desbloqueio.
+    """
     try:
-        return escolher()
+        motor = escolher()
     except MotorIndisponivelError:
         return None
+    programa = motor.falar("")[0]
+    return motor if shutil.which(programa) else None

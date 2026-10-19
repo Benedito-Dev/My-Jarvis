@@ -103,3 +103,13 @@ def test_sem_motor_fica_mudo_mas_nao_quebra():
 
 def _nao_deve_ser_chamado(comando):
     raise AssertionError(f"Locutor mudo não deveria rodar nada, mas rodou {comando}")
+
+
+def test_fica_mudo_se_o_programa_de_voz_nao_esta_instalado(monkeypatch):
+    # Ex.: Linux sem spd-say. Antes, o primeiro "Bem-vindo" levantava FileNotFoundError.
+    monkeypatch.setattr("jarvis.nucleo.voz.shutil.which", lambda _programa: None)
+
+    locutor = Locutor()
+
+    assert locutor.muda
+    assert not locutor.falar("Bem-vindo")
