@@ -1,5 +1,6 @@
 """Servidor FastAPI que o app (frontend) consulta."""
 
+import threading
 from importlib.metadata import version
 from pathlib import Path
 
@@ -16,6 +17,7 @@ from jarvis.api.sessao import (
     CredenciaisPinInvalidasError,
     PinTemporariamenteBloqueadoError,
     Sessao,
+    modelos,
 )
 from jarvis.habilidades import HABILIDADES, Situacao
 from jarvis.habilidades.conversa import gravacoes
@@ -290,4 +292,6 @@ def criar_app(
 
 def rodar() -> None:
     """Sobe o servidor e fica rodando até Ctrl+C."""
+    # Já deixa os modelos de visão carregados: o primeiro desbloqueio não espera 2 s.
+    threading.Thread(target=modelos, daemon=True).start()
     uvicorn.run(criar_app(), host=HOST, port=PORTA)

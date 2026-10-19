@@ -124,7 +124,7 @@ def test_rosto_perto_ou_longe():
 
 
 def test_confirma_so_depois_de_n_quadros_seguidos():
-    confirmador = ConfirmadorDeDesbloqueio(quadros_necessarios=3)
+    confirmador = ConfirmadorDeDesbloqueio(quadros_necessarios=3, segundos_necessarios=0)
 
     assert confirmador.registrar("ana") is None
     assert confirmador.registrar("ana") is None
@@ -133,7 +133,7 @@ def test_confirma_so_depois_de_n_quadros_seguidos():
 
 
 def test_quadro_sem_reconhecimento_zera_a_contagem():
-    confirmador = ConfirmadorDeDesbloqueio(quadros_necessarios=2)
+    confirmador = ConfirmadorDeDesbloqueio(quadros_necessarios=2, segundos_necessarios=0)
 
     confirmador.registrar("ana")
     confirmador.registrar(None)
@@ -143,12 +143,27 @@ def test_quadro_sem_reconhecimento_zera_a_contagem():
 
 
 def test_trocar_de_pessoa_recomeca_a_contagem():
-    confirmador = ConfirmadorDeDesbloqueio(quadros_necessarios=2)
+    confirmador = ConfirmadorDeDesbloqueio(quadros_necessarios=2, segundos_necessarios=0)
 
     confirmador.registrar("ana")
 
     assert confirmador.registrar("bia") is None
     assert confirmador.registrar("bia") == "bia"
+
+
+def test_quadros_rapidos_nao_confirmam_antes_do_tempo():
+    agora = [0.0]
+    confirmador = ConfirmadorDeDesbloqueio(
+        quadros_necessarios=2, segundos_necessarios=1.0, relogio=lambda: agora[0]
+    )
+
+    confirmador.registrar("ana")
+    agora[0] = 0.25
+    assert confirmador.registrar("ana") is None  # quadros bastam, tempo não
+    assert confirmador.progresso == pytest.approx(0.25)
+
+    agora[0] = 1.0
+    assert confirmador.registrar("ana") == "ana"
 
 
 # --- Pontos do rosto (olhos, nariz, boca) -----------------------------------------

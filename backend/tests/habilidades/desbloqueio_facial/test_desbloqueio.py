@@ -38,7 +38,7 @@ def criar(rostos, assinatura=ASSINATURA_BENEDITO, quadros=2):
         CADASTRADOS,
         detector=DetectorFalso(rostos),
         extrator=ExtratorFalso(assinatura),
-        confirmador=ConfirmadorDeDesbloqueio(quadros_necessarios=quadros),
+        confirmador=ConfirmadorDeDesbloqueio(quadros_necessarios=quadros, segundos_necessarios=0),
     )
 
 

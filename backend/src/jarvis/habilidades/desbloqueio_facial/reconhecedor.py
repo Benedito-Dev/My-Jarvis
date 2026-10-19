@@ -1,5 +1,7 @@
 """Lógica: encontra rostos e gera suas assinaturas. Não sabe que existe câmera ou tela."""
 
+import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -153,6 +155,11 @@ LARGURA_MINIMA_ROSTO = 0.15
 # Evita que um único quadro "sortudo" abra o Jarvis.
 QUADROS_PARA_CONFIRMAR = 5
 
+# E por quanto tempo, no mínimo. Só contar quadros não basta: o app manda ~20
+# por segundo, e 5 quadros davam 0,25 s, rápido demais para a pessoa ver o
+# scanner trabalhar. O tempo vale igual em máquina rápida ou lenta.
+SEGUNDOS_PARA_CONFIRMAR = 1.2
+
 
 @dataclass(frozen=True)
 class Identificacao:
@@ -191,23 +198,39 @@ def esta_perto(rosto: Rosto, largura_quadro: int, minimo: float = LARGURA_MINIMA
 
 
 class ConfirmadorDeDesbloqueio:
-    """Só confirma quando a mesma pessoa é reconhecida em N quadros seguidos."""
+    """Só confirma quando a mesma pessoa é reconhecida em N quadros seguidos,
+    durante pelo menos `segundos_necessarios`."""
 
-    def __init__(self, quadros_necessarios: int = QUADROS_PARA_CONFIRMAR) -> None:
+    def __init__(
+        self,
+        quadros_necessarios: int = QUADROS_PARA_CONFIRMAR,
+        segundos_necessarios: float = SEGUNDOS_PARA_CONFIRMAR,
+        relogio: Callable[[], float] = time.monotonic,
+    ) -> None:
         self._necessarios = quadros_necessarios
+        self._segundos = segundos_necessarios
+        self._relogio = relogio
         self._nome: str | None = None
         self._seguidos = 0
+        self._desde = 0.0
 
     def registrar(self, nome: str | None) -> str | None:
         """Registra quem foi visto neste quadro. Retorna o nome quando confirmar."""
         if nome is None or nome != self._nome:
             self._nome = nome
             self._seguidos = 0 if nome is None else 1
+            self._desde = self._relogio()
         else:
             self._seguidos += 1
-        return self._nome if self._seguidos >= self._necessarios else None
+        return self._nome if self.progresso >= 1.0 else None
 
     @property
     def progresso(self) -> float:
-        """De 0 a 1: quanto falta para confirmar."""
-        return min(self._seguidos / self._necessarios, 1.0)
+        """De 0 a 1: quanto falta para confirmar (o que estiver mais atrasado, quadros ou tempo)."""
+        if self._nome is None:
+            return 0.0
+        por_quadros = self._seguidos / self._necessarios
+        if self._segundos <= 0:
+            return min(por_quadros, 1.0)
+        por_tempo = (self._relogio() - self._desde) / self._segundos
+        return min(por_quadros, por_tempo, 1.0)

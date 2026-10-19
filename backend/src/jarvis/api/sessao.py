@@ -4,6 +4,7 @@ O app manda quadros da câmera; a sessão avalia cada um e decide. A decisão
 fica sempre aqui no backend, nunca no app.
 """
 
+import functools
 import threading
 import time
 from collections.abc import Callable
@@ -18,12 +19,34 @@ from jarvis.habilidades.desbloqueio_facial.desbloqueio import (
     Desbloqueador,
     EstadoDesbloqueio,
 )
+from jarvis.habilidades.desbloqueio_facial.reconhecedor import (
+    DetectorDeRostos,
+    ExtratorDeAssinaturas,
+)
 from jarvis.nucleo.acesso_pin import AcessoPin
 from jarvis.nucleo.voz import Locutor
 
 CriarDesbloqueador = Callable[[dict[str, np.ndarray]], Desbloqueador]
 MAXIMO_TENTATIVAS_PIN = 5
 TEMPO_BLOQUEIO_PIN_S = 30
+
+
+@functools.cache
+def modelos() -> tuple[DetectorDeRostos, ExtratorDeAssinaturas]:
+    """Carrega os modelos de visão uma vez só (leva ~2 s).
+
+    Bloquear descarta o desbloqueador para zerar a contagem, mas os modelos não
+    mudam: recarregá-los a cada bloqueio atrasava o primeiro quadro em 2 s.
+    """
+    return DetectorDeRostos(), ExtratorDeAssinaturas()
+
+
+def desbloqueador_com_modelos_prontos(cadastrados: dict[str, np.ndarray]) -> Desbloqueador:
+    if not cadastrados:
+        # Levanta NenhumRostoCadastradoError sem gastar 2 s carregando modelos.
+        return Desbloqueador(cadastrados)
+    detector, extrator = modelos()
+    return Desbloqueador(cadastrados, detector=detector, extrator=extrator)
 
 
 class PinTemporariamenteBloqueadoError(RuntimeError):
@@ -45,7 +68,7 @@ class Sessao:
         self,
         pasta_rostos: Path = banco_rostos.PASTA_ROSTOS,
         locutor: Locutor | None = None,
-        criar_desbloqueador: CriarDesbloqueador = Desbloqueador,
+        criar_desbloqueador: CriarDesbloqueador = desbloqueador_com_modelos_prontos,
     ) -> None:
         self._pasta_rostos = pasta_rostos
         self._locutor = locutor or Locutor()
