@@ -30,6 +30,13 @@ describe("estadoDoNucleo", () => {
     });
   });
 
+  it("enviando, fica roxo e diz que está pensando", () => {
+    expect(estadoDoNucleo({ estado: "enviando" })).toMatchObject({
+      titulo: "Pensando",
+      tom: "pensando",
+    });
+  });
+
   it("guardada, volta ao azul e mostra o arquivo", () => {
     const nucleo = estadoDoNucleo({ estado: "guardada", arquivo: "2026-10-17_09-05-03.webm" });
 

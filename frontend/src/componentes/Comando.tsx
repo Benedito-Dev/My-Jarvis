@@ -2,14 +2,19 @@ import type { RefObject } from "react";
 import type { Habilidade } from "../api";
 import { type EstadoGravacao, estadoDoNucleo } from "../gravacao";
 import { cumprimento, formatarData, formatarHoraCompleta } from "../tempo";
-import { Nucleo } from "./Nucleo";
+import { type ModoNucleo, Nucleo } from "./Nucleo";
 import { OndaVoz } from "./OndaVoz";
 import "./comando.css";
 
 // A central de comando: o painel depois do desbloqueio. O núcleo no centro é o
 // Jarvis; as colunas dos lados mostram só dados reais, cada um com seu rótulo.
 
-const CORES = { aviso: "57, 197, 255", ok: "61, 220, 132", erro: "255, 90, 95" };
+const CORES = {
+  aviso: "57, 197, 255",
+  ok: "61, 220, 132",
+  erro: "255, 90, 95",
+  pensando: "169, 112, 255",
+};
 
 type Props = {
   usuario: string;
@@ -36,6 +41,7 @@ export function Comando({
 }: Props) {
   const nucleo = estadoDoNucleo(gravacao);
   const gravando = gravacao.estado === "gravando";
+  const modo: ModoNucleo = gravando ? "ouvindo" : gravacao.estado === "enviando" ? "pensando" : "calmo";
 
   return (
     <main className={`comando comando--${nucleo.tom}`}>
@@ -59,7 +65,7 @@ export function Comando({
 
       <section className="comando__centro">
         <div className="comando__nucleo">
-          <Nucleo nivel={nivel} tom={nucleo.tom} ouvindo={gravando} />
+          <Nucleo nivel={nivel} tom={nucleo.tom} modo={modo} />
         </div>
         <p className="comando__cumprimento">
           {cumprimento(agora)}, <strong>{usuario}</strong>.

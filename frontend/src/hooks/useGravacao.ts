@@ -3,6 +3,8 @@ import { enviarGravacao } from "../api";
 import { escolherFormato, type EstadoGravacao } from "../gravacao";
 import { nivelDoSinal } from "../nucleo";
 
+// Tempo mínimo do estado "pensando" (roxo) depois de soltar o ESPAÇO.
+const PENSANDO_MINIMO_MS = 1200;
 // Quanto tempo o "Ouvi você" fica na tela antes de voltar a "À sua disposição".
 const RECADO_MS = 3500;
 
@@ -70,7 +72,9 @@ export function useGravacao(ligado: boolean): Gravacao {
         }
         setGravacao({ estado: "enviando" });
         try {
-          const guardada = await enviarGravacao(audio);
+          // O "pensando" fica pelo menos um pouco na tela: guardar leva milissegundos
+          // e o roxo só piscaria. Com transcrição e IA, o tempo real já passa disso.
+          const [guardada] = await Promise.all([enviarGravacao(audio), esperar(PENSANDO_MINIMO_MS)]);
           if (ativo) setGravacao({ estado: "guardada", arquivo: guardada.arquivo });
         } catch (erro) {
           if (ativo) setGravacao({ estado: "erro", mensagem: descreverErro(erro) });
@@ -156,6 +160,8 @@ function medirVolume(fluxo: MediaStream, nivel: { current: number }): () => void
     contexto.close();
   };
 }
+
+const esperar = (ms: number) => new Promise((resolver) => setTimeout(resolver, ms));
 
 function digitando(alvo: EventTarget | null): boolean {
   const elemento = alvo as HTMLElement | null;

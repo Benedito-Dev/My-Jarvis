@@ -1,5 +1,5 @@
 import { type RefObject, useEffect, useRef } from "react";
-import type { Tom } from "../desbloqueio";
+import type { TomNucleo } from "../gravacao";
 import { girar, pontosNaEsfera } from "../nucleo";
 
 // O núcleo do painel: uma esfera de partículas girando, cercada de anéis.
@@ -11,28 +11,36 @@ const ESFERA = pontosNaEsfera(520);
 const FASES = ESFERA.map((_, i) => (i * 2.399) % (Math.PI * 2));
 const RISCOS = 72;
 
-const CORES: Record<Tom, string> = {
+const CORES: Record<TomNucleo, string> = {
   aviso: "57, 197, 255",
   ok: "61, 220, 132",
   erro: "255, 90, 95",
+  pensando: "169, 112, 255",
 };
+
+/** Como a esfera se comporta: em repouso, ouvindo a voz ou pensando. */
+export type ModoNucleo = "calmo" | "ouvindo" | "pensando";
+
+// "Energia" mínima de cada modo, antes de qualquer som. Ouvindo, a voz soma por
+// cima; pensando, a esfera pulsa sozinha entre o repouso e a fala.
+function energiaDoModo(modo: ModoNucleo, agora: number): number {
+  if (modo === "ouvindo") return 0.18;
+  if (modo === "pensando") return 0.42 + Math.sin(agora / 260) * 0.14;
+  return 0;
+}
 
 type Props = {
   nivel: RefObject<number>;
-  tom: Tom;
-  /** Segurando ESPAÇO: a esfera fica agitada mesmo nas pausas da fala. */
-  ouvindo: boolean;
+  tom: TomNucleo;
+  modo: ModoNucleo;
 };
 
-// Quanto de "energia" a esfera tem só por estar ouvindo, antes de qualquer som.
-const ENERGIA_OUVINDO = 0.18;
-
-export function Nucleo({ nivel, tom, ouvindo }: Props) {
+export function Nucleo({ nivel, tom, modo }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const tomRef = useRef(tom);
   tomRef.current = tom;
-  const ouvindoRef = useRef(ouvindo);
-  ouvindoRef.current = ouvindo;
+  const modoRef = useRef(modo);
+  modoRef.current = modo;
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -55,7 +63,7 @@ export function Nucleo({ nivel, tom, ouvindo }: Props) {
     function passo(agora: number) {
       const intervalo = anterior ? Math.min(agora - anterior, 50) : 16;
       anterior = agora;
-      const alvo = Math.max(nivel.current ?? 0, ouvindoRef.current ? ENERGIA_OUVINDO : 0);
+      const alvo = Math.max(nivel.current ?? 0, energiaDoModo(modoRef.current, agora));
       energia += (alvo - energia) * (alvo > energia ? 0.45 : 0.1);
       // Parada, uma volta a cada ~26 s; falando alto, umas 6 vezes mais rápido.
       if (!calmo) giro += intervalo * (0.00024 + energia * 0.0014);

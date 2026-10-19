@@ -17,11 +17,14 @@ export function escolherFormato(suportado: (tipo: string) => boolean): string | 
   return FORMATOS.find((formato) => suportado(formato)) ?? null;
 }
 
+/** As cores do núcleo: as da tela de bloqueio, mais o roxo de quando está pensando. */
+export type TomNucleo = Tom | "pensando";
+
 /** O que o núcleo do painel diz em cada momento: um título curto e um detalhe. */
 export function estadoDoNucleo(gravacao: EstadoGravacao): {
   titulo: string;
   detalhe: string;
-  tom: Tom;
+  tom: TomNucleo;
 } {
   switch (gravacao.estado) {
     case "parado":
@@ -29,7 +32,8 @@ export function estadoDoNucleo(gravacao: EstadoGravacao): {
     case "gravando":
       return { titulo: "Estou ouvindo", detalhe: "Solte ESPAÇO quando terminar", tom: "ok" };
     case "enviando":
-      return { titulo: "Um instante", detalhe: "Guardando a sua voz...", tom: "aviso" };
+      // Hoje ele só guarda o áudio; com a Fase 3, aqui ele transcreve e pensa na resposta.
+      return { titulo: "Pensando", detalhe: "Processando o que você disse...", tom: "pensando" };
     case "guardada":
       // Azul de novo: verde é só enquanto está ouvindo.
       return { titulo: "Ouvi você", detalhe: `Gravação guardada: ${gravacao.arquivo}`, tom: "aviso" };

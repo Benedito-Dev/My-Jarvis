@@ -20,6 +20,10 @@
   --cor-comando: var(--erro);
 }
 
+.comando--pensando {
+  --cor-comando: var(--pensando);
+}
+
 /* --- Colunas laterais --------------------------------------------------- */
 
 .comando__coluna {
