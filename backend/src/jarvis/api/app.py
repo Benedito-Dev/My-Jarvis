@@ -23,6 +23,7 @@ from jarvis.habilidades import HABILIDADES, Situacao
 from jarvis.habilidades.conversa import comandos, ferramentas, gravacoes
 from jarvis.habilidades.conversa.cerebro import MODELO as MODELO_IA
 from jarvis.habilidades.conversa.cerebro import Cerebro, CerebroIndisponivelError, criar_cerebro
+from jarvis.habilidades.conversa.comandos import as_horas
 from jarvis.habilidades.conversa.gravacoes import TipoDeAudioInvalidoError
 from jarvis.habilidades.conversa.memoria import Memoria
 from jarvis.habilidades.conversa.transcricao import TranscricaoIndisponivelError, Transcritor
@@ -41,7 +42,7 @@ from jarvis.nucleo.acesso_pin import (
     IdentificadorInvalidoError,
     PinInvalidoError,
 )
-from jarvis.nucleo.caminhos import PASTA_BACKEND
+from jarvis.nucleo.caminhos import PASTA_BACKEND, PASTA_DADOS
 from jarvis.nucleo.config import NOME_ASSISTENTE, carregar_segredos
 
 # Só a própria máquina acessa: o Jarvis não fica exposto na rede.
@@ -173,6 +174,9 @@ def _retangulos(rostos) -> list["RetanguloResposta"]:
         for r in rostos
     ]
 
+
+# Onde os lembretes ficam salvos entre um reinício e outro (fora do git).
+ARQUIVO_LEMBRETES = PASTA_DADOS / "lembretes.json"
 
 # Quando a IA não responde (sem internet, sem crédito...).
 SEM_CEREBRO = "Não consegui pensar nisso agora. Tente de novo em instantes."
@@ -415,4 +419,20 @@ def rodar() -> None:
     # E a voz: "Bem-vindo", "Aproxime seu rosto"... já geradas antes de precisar.
     sessao = Sessao()
     threading.Thread(target=sessao.preparar_voz, daemon=True).start()
-    uvicorn.run(criar_app(sessao=sessao, cerebro=cerebro), host=HOST, port=PORTA)
+    # Lembretes salvos em disco: voltam ao reiniciar, e os que venceram com o
+    # Jarvis desligado são avisados assim que ele liga.
+    agenda = Agenda(
+        avisar=lambda lem: sessao.falar(f"Lembrete: {lem.texto}."), arquivo=ARQUIVO_LEMBRETES
+    )
+    atrasados = agenda.restaurar(avisar_atrasado=lambda _lembrete: None)
+    if atrasados:
+        sessao.falar(aviso_de_atrasados(atrasados))
+    uvicorn.run(criar_app(sessao=sessao, cerebro=cerebro, agenda=agenda), host=HOST, port=PORTA)
+
+
+def aviso_de_atrasados(atrasados: list[Lembrete]) -> str:
+    """Uma frase só para todos (falas seguidas se cortariam): "Enquanto eu estava desligado..."."""
+    itens = "; ".join(f"{as_horas(lem.quando)}, {lem.texto}" for lem in atrasados)
+    if len(atrasados) == 1:
+        return f"Enquanto eu estava desligado, venceu 1 lembrete: {itens}."
+    return f"Enquanto eu estava desligado, venceram {len(atrasados)} lembretes: {itens}."

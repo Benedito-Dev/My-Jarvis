@@ -1,12 +1,16 @@
+from datetime import datetime
+
 import cv2
 import numpy as np
 from fastapi.testclient import TestClient
 
 from jarvis.api import criar_app
+from jarvis.api.app import aviso_de_atrasados
 from jarvis.api.cadastros import Cadastros
 from jarvis.api.sessao import Sessao
 from jarvis.habilidades import HABILIDADES
 from jarvis.habilidades.conversa.cerebro import CerebroIndisponivelError, RespostaDaIA
+from jarvis.habilidades.conversa.comandos import FUSO
 from jarvis.habilidades.conversa.memoria import Memoria
 from jarvis.habilidades.conversa.transcricao import TranscricaoIndisponivelError
 from jarvis.habilidades.desbloqueio_facial import banco_rostos
@@ -14,7 +18,7 @@ from jarvis.habilidades.desbloqueio_facial.cadastro import Cadastro as CadastroD
 from jarvis.habilidades.desbloqueio_facial.cadastro import EstadoCadastro, ResultadoAmostra
 from jarvis.habilidades.desbloqueio_facial.desbloqueio import Avaliacao, EstadoDesbloqueio
 from jarvis.habilidades.desbloqueio_facial.reconhecedor import Rosto
-from jarvis.habilidades.lembretes.agenda import Agenda
+from jarvis.habilidades.lembretes.agenda import Agenda, Lembrete
 from jarvis.nucleo.acesso_pin import AcessoPin
 from jarvis.nucleo.config import NOME_ASSISTENTE
 
@@ -601,3 +605,13 @@ def test_quadro_devolve_os_pontos_do_rosto(tmp_path):
         "boca_esquerda",
     ]
     assert (pontos[2]["x"], pontos[2]["y"]) == (200, 140)
+
+
+def test_aviso_de_lembretes_atrasados_numa_frase_so():
+    um = Lembrete(1, "tirar o bolo", datetime(2026, 10, 20, 10, 20, tzinfo=FUSO))
+    dois = Lembrete(2, "ligar pro João", datetime(2026, 10, 20, 11, 0, tzinfo=FUSO))
+
+    assert aviso_de_atrasados([um]) == (
+        "Enquanto eu estava desligado, venceu 1 lembrete: às 10 e 20, tirar o bolo."
+    )
+    assert "venceram 2 lembretes" in aviso_de_atrasados([um, dois])
