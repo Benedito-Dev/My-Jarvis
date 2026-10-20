@@ -1,10 +1,24 @@
 import type { Tom } from "./desbloqueio";
 
+/** Um evento do fluxo da conversa, como o backend manda (uma linha NDJSON cada). */
+export type EventoConversa =
+  | { tipo: "ouvido"; texto: string; arquivo: string }
+  | { tipo: "trecho"; texto: string }
+  | { tipo: "fim"; acao: string | null };
+
 export type EstadoGravacao =
   | { estado: "parado" }
   | { estado: "gravando" }
   | { estado: "enviando" }
-  | { estado: "ouvida"; texto: string; resposta: string | null; acao: string | null }
+  | {
+      estado: "ouvida";
+      texto: string;
+      /** A resposta do Jarvis, crescendo frase a frase enquanto ele fala. */
+      resposta: string;
+      acao: string | null;
+      /** O backend mandou o "fim": a resposta está completa. */
+      terminou: boolean;
+    }
   | { estado: "erro"; mensagem: string };
 
 // Formatos que o MediaRecorder pode entregar, do mais provável ao menos.
@@ -39,7 +53,12 @@ export function estadoDoNucleo(gravacao: EstadoGravacao): {
       if (!gravacao.texto) {
         return { titulo: "Não entendi", detalhe: "Fale um pouco mais perto do microfone", tom: "aviso" };
       }
-      return { titulo: "Você disse", detalhe: `“${gravacao.texto}”`, tom: "aviso" };
+      // Já sabe o que foi dito, mas a resposta ainda não começou: segue pensando (roxo).
+      return {
+        titulo: "Você disse",
+        detalhe: `“${gravacao.texto}”`,
+        tom: gravacao.resposta || gravacao.terminou ? "aviso" : "pensando",
+      };
     case "erro":
       return { titulo: "Não consegui ouvir", detalhe: gravacao.mensagem, tom: "erro" };
   }
@@ -57,4 +76,21 @@ const MS_PARA_COMECAR_A_FALAR = 300;
  */
 export function duracaoDaFala(frase: string): number {
   return MS_PARA_COMECAR_A_FALAR + frase.length * MS_POR_LETRA_FALADA;
+}
+
+/** Aplica um evento do fluxo ao estado da conversa (lógica pura, testável). */
+export function aplicarEvento(atual: EstadoGravacao, evento: EventoConversa): EstadoGravacao {
+  switch (evento.tipo) {
+    case "ouvido":
+      return { estado: "ouvida", texto: evento.texto, resposta: "", acao: null, terminou: false };
+    case "trecho":
+      if (atual.estado !== "ouvida") return atual;
+      return {
+        ...atual,
+        resposta: atual.resposta ? `${atual.resposta} ${evento.texto}` : evento.texto,
+      };
+    case "fim":
+      if (atual.estado !== "ouvida") return atual;
+      return { ...atual, acao: evento.acao, terminou: true };
+  }
 }

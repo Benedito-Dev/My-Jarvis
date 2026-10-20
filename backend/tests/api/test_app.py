@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 
 import cv2
@@ -9,7 +10,12 @@ from jarvis.api.app import aviso_de_atrasados
 from jarvis.api.cadastros import Cadastros
 from jarvis.api.sessao import Sessao
 from jarvis.habilidades import HABILIDADES
-from jarvis.habilidades.conversa.cerebro import CerebroIndisponivelError, RespostaDaIA
+from jarvis.habilidades.conversa.cerebro import (
+    CerebroIndisponivelError,
+    Fim,
+    Frase,
+    RespostaDaIA,
+)
 from jarvis.habilidades.conversa.comandos import FUSO
 from jarvis.habilidades.conversa.memoria import Memoria
 from jarvis.habilidades.conversa.transcricao import TranscricaoIndisponivelError
@@ -224,6 +230,28 @@ class LocutorQueAnota:
         self.frases.append(frase)
         return True
 
+    def enfileirar(self, frase):
+        self.frases.append(frase)
+
+    def calar(self):
+        pass
+
+
+def ler_conversa(resposta):
+    """Lê o fluxo NDJSON da conversa num dicionário só, para os testes."""
+    eventos = [json.loads(linha) for linha in resposta.text.splitlines() if linha]
+    ouvido = next(e for e in eventos if e["tipo"] == "ouvido")
+    trechos = [e["texto"] for e in eventos if e["tipo"] == "trecho"]
+    fim = eventos[-1]
+    assert fim["tipo"] == "fim"  # o fluxo sempre termina com "fim"
+    return {
+        "texto": ouvido["texto"],
+        "arquivo": ouvido["arquivo"],
+        "resposta": " ".join(trechos) if trechos else None,
+        "acao": fim["acao"],
+        "eventos": [e["tipo"] for e in eventos],
+    }
+
 
 class CerebroFalso:
     def __init__(self, fala="Um omelete resolve.", erro=None):
@@ -233,19 +261,18 @@ class CerebroFalso:
         self.historicos = []
         self.ferramentas = []
 
-    def responder(self, pergunta, usuario, historico=(), ferramentas=()):
+    def responder_em_fluxo(self, pergunta, usuario, historico=(), ferramentas=()):
         self.perguntas.append((pergunta, usuario))
         self.historicos.append(list(historico))
         self.ferramentas = list(ferramentas)
         if self.erro:
             raise self.erro
-        return RespostaDaIA(
-            fala=self.fala,
-            troca=[
-                {"role": "user", "content": pergunta},
-                {"role": "assistant", "content": self.fala},
-            ],
-        )
+        yield Frase(self.fala)
+        troca = [
+            {"role": "user", "content": pergunta},
+            {"role": "assistant", "content": self.fala},
+        ]
+        yield Fim(RespostaDaIA(fala=self.fala, troca=troca))
 
 
 def cliente_de_gravacao(pasta, transcritor=None, sessao=None, cerebro=None):
@@ -274,8 +301,7 @@ def test_gravacao_e_guardada(tmp_path):
     )
 
     assert resposta.status_code == 200
-    corpo = resposta.json()
-    assert corpo["bytes"] == len(b"isto seria um webm")
+    corpo = ler_conversa(resposta)
     assert corpo["arquivo"].endswith(".webm")
     assert (tmp_path / corpo["arquivo"]).read_bytes() == b"isto seria um webm"
 
@@ -284,7 +310,7 @@ def test_gravacao_volta_com_o_que_foi_dito(tmp_path):
     transcritor = TranscritorFalso("que horas são")
     cliente = cliente_de_gravacao(tmp_path, transcritor)
 
-    corpo = cliente.post("/conversa/gravacao", content=b"voz").json()
+    corpo = ler_conversa(cliente.post("/conversa/gravacao", content=b"voz"))
 
     assert corpo["texto"] == "que horas são"
     assert transcritor.ouvidos == [tmp_path / corpo["arquivo"]]
@@ -295,7 +321,7 @@ def test_pergunta_a_hora_e_o_jarvis_responde_em_voz(tmp_path):
     sessao = Sessao(tmp_path / "rostos", locutor=locutor)
     cliente = cliente_de_gravacao(tmp_path, TranscritorFalso("Que horas são?"), sessao)
 
-    corpo = cliente.post("/conversa/gravacao", content=b"voz").json()
+    corpo = ler_conversa(cliente.post("/conversa/gravacao", content=b"voz"))
 
     assert corpo["resposta"].startswith(("São", "É"))
     assert corpo["acao"] is None
@@ -307,7 +333,7 @@ def test_pedir_para_bloquear_bloqueia_a_sessao(tmp_path):
     sessao._usuario = "benedito"  # como se já tivesse desbloqueado
     cliente = cliente_de_gravacao(tmp_path, TranscritorFalso("Jarvis, bloquear"), sessao)
 
-    corpo = cliente.post("/conversa/gravacao", content=b"voz").json()
+    corpo = ler_conversa(cliente.post("/conversa/gravacao", content=b"voz"))
 
     assert corpo["acao"] == "bloquear"
     assert sessao.usuario is None
@@ -316,7 +342,7 @@ def test_pedir_para_bloquear_bloqueia_a_sessao(tmp_path):
 def test_pedido_desconhecido_responde_que_ainda_nao_sabe(tmp_path):
     cliente = cliente_de_gravacao(tmp_path, TranscritorFalso("abre o Spotify"))
 
-    corpo = cliente.post("/conversa/gravacao", content=b"voz").json()
+    corpo = ler_conversa(cliente.post("/conversa/gravacao", content=b"voz"))
 
     assert corpo["resposta"] == "Ainda não sei fazer isso."
 
@@ -328,7 +354,7 @@ def test_pergunta_livre_vai_para_o_cerebro_e_e_falada(tmp_path):
         tmp_path, TranscritorFalso("ideia de jantar?"), sessao_aberta(tmp_path, locutor), cerebro
     )
 
-    corpo = cliente.post("/conversa/gravacao", content=b"voz").json()
+    corpo = ler_conversa(cliente.post("/conversa/gravacao", content=b"voz"))
 
     assert corpo["resposta"] == "Um omelete resolve."
     assert cerebro.perguntas == [("ideia de jantar?", "Benedito")]
@@ -350,7 +376,7 @@ def test_com_o_jarvis_bloqueado_a_ia_nao_e_usada(tmp_path):
     cerebro = CerebroFalso()
     cliente = cliente_de_gravacao(tmp_path, TranscritorFalso("ideia de jantar?"), cerebro=cerebro)
 
-    corpo = cliente.post("/conversa/gravacao", content=b"voz").json()
+    corpo = ler_conversa(cliente.post("/conversa/gravacao", content=b"voz"))
 
     assert cerebro.perguntas == []
     assert corpo["resposta"] == "Ainda não sei fazer isso."
@@ -362,7 +388,7 @@ def test_ia_fora_do_ar_avisa_em_voz(tmp_path):
         tmp_path, TranscritorFalso("ideia de jantar?"), sessao_aberta(tmp_path), cerebro
     )
 
-    corpo = cliente.post("/conversa/gravacao", content=b"voz").json()
+    corpo = ler_conversa(cliente.post("/conversa/gravacao", content=b"voz"))
 
     assert corpo["resposta"].startswith("Não consegui pensar nisso agora")
 
@@ -431,7 +457,7 @@ def test_sem_fala_nao_responde_nada(tmp_path):
     sessao = Sessao(tmp_path / "rostos", locutor=locutor)
     cliente = cliente_de_gravacao(tmp_path, TranscritorFalso(""), sessao)
 
-    corpo = cliente.post("/conversa/gravacao", content=b"voz").json()
+    corpo = ler_conversa(cliente.post("/conversa/gravacao", content=b"voz"))
 
     assert corpo["resposta"] is None
     assert locutor.frases == []
@@ -615,3 +641,27 @@ def test_aviso_de_lembretes_atrasados_numa_frase_so():
         "Enquanto eu estava desligado, venceu 1 lembrete: às 10 e 20, tirar o bolo."
     )
     assert "venceram 2 lembretes" in aviso_de_atrasados([um, dois])
+
+
+def test_conversa_chega_em_fluxo_na_ordem_certa(tmp_path):
+    cliente = cliente_de_gravacao(
+        tmp_path, TranscritorFalso("ideia de jantar?"), sessao_aberta(tmp_path), CerebroFalso()
+    )
+
+    corpo = ler_conversa(cliente.post("/conversa/gravacao", content=b"voz"))
+
+    assert corpo["eventos"] == ["ouvido", "trecho", "fim"]
+
+
+def test_cerebro_sem_resposta_diz_que_nao_sabe(tmp_path):
+    class CerebroCalado(CerebroFalso):
+        def responder_em_fluxo(self, *a, **k):
+            yield Fim(RespostaDaIA(fala="", troca=[]))
+
+    cliente = cliente_de_gravacao(
+        tmp_path, TranscritorFalso("hm?"), sessao_aberta(tmp_path), CerebroCalado()
+    )
+
+    assert ler_conversa(cliente.post("/conversa/gravacao", content=b"voz"))["resposta"] == (
+        "Ainda não sei fazer isso."
+    )

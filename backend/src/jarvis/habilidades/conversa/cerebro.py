@@ -10,13 +10,14 @@ import os
 import re
 import urllib.error
 import urllib.request
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
 from jarvis.habilidades.conversa import ferramentas as mod_ferramentas
 from jarvis.habilidades.conversa.comandos import FUSO, falar_data, falar_hora
 from jarvis.habilidades.conversa.ferramentas import Ferramenta
+from jarvis.habilidades.conversa.frases import fatiar
 
 URL = "https://openrouter.ai/api/v1/chat/completions"
 # O DeepSeek mais barato do OpenRouter em out/2026 (~US$ 0,00003 por pergunta).
@@ -42,8 +43,8 @@ Se precisar de algo que você não tem (clima, notícias, abrir apps), \
 diga com honestidade que ainda não tem acesso a isso.
 Agora: {hora} {data}"""
 
-# Manda o corpo do pedido e devolve a resposta (JSON) do OpenRouter.
-Enviar = Callable[[dict, str], dict]
+# Manda o corpo do pedido e entrega, em fluxo, os pedaços da resposta do OpenRouter.
+Enviar = Callable[[dict, str], Iterator[dict]]
 
 
 @dataclass(frozen=True)
@@ -64,21 +65,42 @@ def limpar_para_falar(texto: str) -> str:
     return re.sub(r"\s+", " ", sem_marcas).strip()
 
 
-def _enviar_http(corpo: dict, chave: str) -> dict:
+def _enviar_http(corpo: dict, chave: str) -> Iterator[dict]:
+    """Pede a resposta em fluxo (stream) e entrega cada pedaço que chega."""
     pedido = urllib.request.Request(
         URL,
-        data=json.dumps(corpo).encode(),
+        data=json.dumps({**corpo, "stream": True}).encode(),
         headers={"Authorization": f"Bearer {chave}", "Content-Type": "application/json"},
     )
     try:
         with urllib.request.urlopen(pedido, timeout=TEMPO_LIMITE_S) as resposta:
-            return json.load(resposta)
+            for linha in resposta:
+                # Formato SSE: "data: {...}"; ": ..." são comentários de "ainda pensando".
+                linha = linha.decode("utf-8").strip()
+                if not linha.startswith("data:"):
+                    continue
+                dados = linha.removeprefix("data:").strip()
+                if dados == "[DONE]":
+                    return
+                yield json.loads(dados)
     except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as erro:
         raise CerebroIndisponivelError(f"A IA não respondeu ({erro}).") from erro
 
 
+@dataclass(frozen=True)
+class Frase:
+    """Um pedaço da resposta, pronto para falar (e mostrar) enquanto o resto chega."""
+
+    texto: str
+
+
+@dataclass(frozen=True)
+class Fim:
+    resposta: RespostaDaIA
+
+
 class Cerebro:
-    """Pergunta livre → resposta curta, pronta para ser falada."""
+    """Pergunta livre → resposta curta, pronta para ser falada, frase a frase."""
 
     def __init__(self, chave: str, modelo: str = MODELO, enviar: Enviar = _enviar_http) -> None:
         self._chave = chave
@@ -93,7 +115,24 @@ class Cerebro:
         historico: Sequence[dict] = (),
         ferramentas: Sequence[Ferramenta] = (),
     ) -> RespostaDaIA:
-        """Responde `pergunta`, lembrando do `historico` e podendo usar `ferramentas`."""
+        """A resposta inteira de uma vez (por cima do fluxo)."""
+        for evento in self.responder_em_fluxo(pergunta, usuario, agora, historico, ferramentas):
+            if isinstance(evento, Fim):
+                return evento.resposta
+        raise CerebroIndisponivelError("A IA terminou sem resposta.")
+
+    def responder_em_fluxo(
+        self,
+        pergunta: str,
+        usuario: str,
+        agora: datetime | None = None,
+        historico: Sequence[dict] = (),
+        ferramentas: Sequence[Ferramenta] = (),
+    ) -> Iterator[Frase | Fim]:
+        """Responde `pergunta` aos pedaços: cada `Frase` sai assim que fecha, e no
+        fim vem um `Fim` com a resposta inteira (e a troca, para a memória).
+        Lembra do `historico` e pode usar `ferramentas`.
+        """
         momento = (agora or datetime.now(FUSO)).astimezone(FUSO)
         mensagens = [
             {
@@ -106,39 +145,61 @@ class Cerebro:
             {"role": "user", "content": pergunta},
         ]
         inicio_da_troca = len(mensagens) - 1
+        falado: list[str] = []
 
-        def concluir(fala: str) -> RespostaDaIA:
+        def concluir() -> Fim:
+            fala = " ".join(falado)
             final = {"role": "assistant", "content": fala}
-            return RespostaDaIA(fala=fala, troca=[*mensagens[inicio_da_troca:], final])
+            return Fim(RespostaDaIA(fala=fala, troca=[*mensagens[inicio_da_troca:], final]))
 
         for _ in range(MAXIMO_DE_RODADAS):
-            mensagem = self._perguntar(mensagens, ferramentas)
-            chamadas = mensagem.get("tool_calls") or []
-            if not chamadas:
-                return concluir(limpar_para_falar(mensagem.get("content") or ""))
+            pendente = ""
+            chamadas: dict[int, dict] = {}
+            for pedaco in self._enviar(self._corpo(mensagens, ferramentas), self._chave):
+                if "error" in pedaco:
+                    motivo = pedaco["error"].get("message", "erro desconhecido")
+                    raise CerebroIndisponivelError(f"A IA não respondeu ({motivo}).")
+                delta = (pedaco.get("choices") or [{}])[0].get("delta") or {}
+                pendente += delta.get("content") or ""
+                prontas, pendente = fatiar(pendente)
+                for frase in prontas:
+                    falado.append(limpar_para_falar(frase))
+                    yield Frase(falado[-1])
+                for parte in delta.get("tool_calls") or []:
+                    _juntar_chamada(chamadas, parte)
 
+            if pendente.strip():  # o fim do texto não termina com ". "
+                falado.append(limpar_para_falar(pendente))
+                yield Frase(falado[-1])
+            if not chamadas:
+                yield concluir()
+                return
+
+            lista = [chamadas[i] for i in sorted(chamadas)]
             resultados = [
                 (
                     chamada,
                     mod_ferramentas.executar(
-                        ferramentas,
-                        chamada["function"]["name"],
-                        chamada["function"].get("arguments", ""),
+                        ferramentas, chamada["function"]["name"], chamada["function"]["arguments"]
                     ),
                 )
-                for chamada in chamadas
+                for chamada in lista
             ]
-            mensagens.append({"role": "assistant", "content": None, "tool_calls": chamadas})
+            mensagens.append({"role": "assistant", "content": None, "tool_calls": lista})
             mensagens += [
                 {"role": "tool", "tool_call_id": chamada["id"], "content": resultado.para_ia}
                 for chamada, resultado in resultados
             ]
             # Toda ferramenta já trouxe a sua confirmação: fala direto, sem outra viagem à IA.
             if all(resultado.fala for _, resultado in resultados):
-                return concluir(" ".join(resultado.fala for _, resultado in resultados))
+                for _, resultado in resultados:
+                    falado.append(resultado.fala)
+                    yield Frase(resultado.fala)
+                yield concluir()
+                return
         raise CerebroIndisponivelError("A IA ficou usando ferramentas sem responder.")
 
-    def _perguntar(self, mensagens: list[dict], ferramentas: Sequence[Ferramenta]) -> dict:
+    def _corpo(self, mensagens: list[dict], ferramentas: Sequence[Ferramenta]) -> dict:
         corpo = {
             "model": self._modelo,
             "max_tokens": MAXIMO_DE_PALAVRAS,
@@ -148,12 +209,20 @@ class Cerebro:
         }
         if ferramentas:
             corpo["tools"] = mod_ferramentas.no_formato_da_ia(ferramentas)
-        resposta = self._enviar(corpo, self._chave)
-        try:
-            return resposta["choices"][0]["message"]
-        except (KeyError, IndexError, TypeError) as erro:
-            motivo = resposta.get("error", {}).get("message", "resposta sem texto")
-            raise CerebroIndisponivelError(f"A IA não respondeu ({motivo}).") from erro
+        return corpo
+
+
+def _juntar_chamada(chamadas: dict[int, dict], parte: dict) -> None:
+    """No fluxo, uma chamada de ferramenta chega picada: o nome numa parte, os
+    argumentos em várias. Junta tudo pelo índice da chamada."""
+    chamada = chamadas.setdefault(
+        parte.get("index", 0),
+        {"id": "", "type": "function", "function": {"name": "", "arguments": ""}},
+    )
+    chamada["id"] = parte.get("id") or chamada["id"]
+    funcao = parte.get("function") or {}
+    chamada["function"]["name"] += funcao.get("name") or ""
+    chamada["function"]["arguments"] += funcao.get("arguments") or ""
 
 
 def criar_cerebro() -> Cerebro | None:

@@ -1,6 +1,8 @@
 """Servidor FastAPI que o app (frontend) consulta."""
 
+import json
 import threading
+from collections.abc import Iterator
 from importlib.metadata import version
 from pathlib import Path
 
@@ -10,6 +12,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from jarvis.api.cadastros import Cadastros
@@ -22,7 +25,12 @@ from jarvis.api.sessao import (
 from jarvis.habilidades import HABILIDADES, Situacao
 from jarvis.habilidades.conversa import comandos, ferramentas, gravacoes
 from jarvis.habilidades.conversa.cerebro import MODELO as MODELO_IA
-from jarvis.habilidades.conversa.cerebro import Cerebro, CerebroIndisponivelError, criar_cerebro
+from jarvis.habilidades.conversa.cerebro import (
+    Cerebro,
+    CerebroIndisponivelError,
+    Frase,
+    criar_cerebro,
+)
 from jarvis.habilidades.conversa.comandos import as_horas
 from jarvis.habilidades.conversa.gravacoes import TipoDeAudioInvalidoError
 from jarvis.habilidades.conversa.memoria import Memoria
@@ -101,17 +109,6 @@ class LembreteResposta(BaseModel):
     quando: str  # ISO 8601, no fuso de São Paulo
 
 
-class GravacaoResposta(BaseModel):
-    arquivo: str
-    bytes: int
-    # O que foi dito. Vazio quando não deu para entender nada.
-    texto: str
-    # O que o Jarvis respondeu (e falou em voz alta). None se não houve fala.
-    resposta: str | None = None
-    # O que ele fez além de falar: hoje só "bloquear".
-    acao: str | None = None
-
-
 class AmostraResposta(BaseModel):
     estado: EstadoCadastro
     capturadas: int
@@ -154,6 +151,11 @@ async def _imagem_do_corpo(request: Request) -> "np.ndarray":
     if quadro is None:
         raise HTTPException(400, "O corpo precisa ser uma imagem JPEG ou PNG.")
     return quadro
+
+
+def _linha(**campos) -> str:
+    """Uma linha do fluxo de eventos da conversa (NDJSON)."""
+    return json.dumps(campos, ensure_ascii=False) + "\n"
 
 
 def _lembrete(lembrete: Lembrete) -> "LembreteResposta":
@@ -326,8 +328,16 @@ def criar_app(
         return {"havia": cadastros.cancelar(nome)}
 
     @app.post("/conversa/gravacao")
-    async def guardar_gravacao(request: Request) -> GravacaoResposta:
-        """Recebe o áudio gravado no app, guarda em dados/gravacoes/ e diz o que foi dito."""
+    async def guardar_gravacao(request: Request) -> StreamingResponse:
+        """Recebe o áudio gravado no app, guarda em dados/gravacoes/ e responde EM FLUXO.
+
+        Uma linha JSON por evento (NDJSON), enviada assim que acontece:
+        - {"tipo": "ouvido", "texto", "arquivo"}: o que foi dito (logo após transcrever);
+        - {"tipo": "trecho", "texto"}: um pedaço da resposta, que já está sendo falado;
+        - {"tipo": "fim", "acao"}: acabou ("bloquear" se for o caso).
+        Assim o app mostra "Você disse..." e o Jarvis começa a falar antes de a IA
+        terminar a resposta inteira.
+        """
         audio = await request.body()
         if not audio:
             raise HTTPException(400, "A gravação chegou vazia.")
@@ -346,44 +356,54 @@ def criar_app(
         except TranscricaoIndisponivelError as erro:
             raise HTTPException(503, str(erro)) from erro
 
-        resposta = comandos.responder(texto)
-        if resposta is None:
-            return GravacaoResposta(arquivo=caminho.name, bytes=len(audio), texto=texto)
+        # Gerador comum (não async): o Starlette o roda numa thread, então as
+        # esperas pela IA e pela voz não travam o servidor.
+        def eventos() -> Iterator[str]:
+            yield _linha(tipo="ouvido", texto=texto, arquivo=caminho.name)
+            resposta = comandos.responder(texto)
+            if resposta is None:
+                yield _linha(tipo="fim", acao=None)
+                return
 
-        # Não é um comando conhecido: pergunta à IA. Só com a sessão aberta, para
-        # ninguém gastar o crédito (nem ler respostas) com o Jarvis bloqueado.
-        usuario = sessao.usuario
-        troca_da_ia = None
-        if not resposta.entendeu and cerebro is not None and usuario is not None:
+            # Não é um comando conhecido: pergunta à IA. Só com a sessão aberta, para
+            # ninguém gastar o crédito (nem ler respostas) com o Jarvis bloqueado.
+            usuario = sessao.usuario
+            if not resposta.entendeu and cerebro is not None and usuario is not None:
+                yield from _responder_com_a_ia(usuario)
+                yield _linha(tipo="fim", acao=None)
+                return
+
+            sessao.falar(resposta.fala)
+            yield _linha(tipo="trecho", texto=resposta.fala)
+            if resposta.acao == "bloquear":
+                trancar()
+            else:
+                memoria.lembrar(texto, resposta.fala)
+            yield _linha(tipo="fim", acao=resposta.acao)
+
+        def _responder_com_a_ia(usuario: str) -> Iterator[str]:
+            sessao.calar()  # resposta nova: corta o que ele ainda estivesse falando
+            falou = False
             try:
-                da_ia = await run_in_threadpool(
-                    lambda: cerebro.responder(
-                        texto,
-                        usuario.capitalize(),
-                        historico=memoria.recentes(),
-                        ferramentas=maos,
-                    )
-                )
-                resposta = comandos.Resposta(fala=da_ia.fala or comandos.NAO_SEI)
-                troca_da_ia = da_ia.troca
+                for evento in cerebro.responder_em_fluxo(
+                    texto, usuario.capitalize(), historico=memoria.recentes(), ferramentas=maos
+                ):
+                    if isinstance(evento, Frase):
+                        sessao.falar_em_sequencia(evento.texto)
+                        falou = True
+                        yield _linha(tipo="trecho", texto=evento.texto)
+                    else:
+                        memoria.lembrar_troca(evento.resposta.troca)  # com as ferramentas
             except CerebroIndisponivelError as erro:
-                print(erro)
-                resposta = comandos.Resposta(fala=SEM_CEREBRO, entendeu=False)
+                print(erro, flush=True)
+                sessao.falar_em_sequencia(SEM_CEREBRO)
+                yield _linha(tipo="trecho", texto=SEM_CEREBRO)
+                return
+            if not falou:
+                sessao.falar_em_sequencia(comandos.NAO_SEI)
+                yield _linha(tipo="trecho", texto=comandos.NAO_SEI)
 
-        sessao.falar(resposta.fala)
-        if resposta.acao == "bloquear":
-            trancar()
-        elif troca_da_ia:
-            memoria.lembrar_troca(troca_da_ia)  # com as ferramentas usadas
-        else:
-            memoria.lembrar(texto, resposta.fala)
-        return GravacaoResposta(
-            arquivo=caminho.name,
-            bytes=len(audio),
-            texto=texto,
-            resposta=resposta.fala,
-            acao=resposta.acao,
-        )
+        return StreamingResponse(eventos(), media_type="application/x-ndjson")
 
     @app.post("/desbloqueio/quadro")
     async def avaliar_quadro(request: Request) -> AvaliacaoResposta:

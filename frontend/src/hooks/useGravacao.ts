@@ -1,10 +1,13 @@
 import { type RefObject, useEffect, useRef, useState } from "react";
-import { enviarGravacao } from "../api";
-import { duracaoDaFala, escolherFormato, type EstadoGravacao } from "../gravacao";
+import { conversar } from "../api";
+import {
+  aplicarEvento,
+  duracaoDaFala,
+  escolherFormato,
+  type EstadoGravacao,
+} from "../gravacao";
 import { nivelDoSinal } from "../nucleo";
 
-// Tempo mínimo do estado "pensando" (roxo) depois de soltar o ESPAÇO.
-const PENSANDO_MINIMO_MS = 600;
 // Quanto tempo o "Você disse" fica na tela antes de voltar a "À sua disposição".
 const RECADO_MS = 6000;
 
@@ -72,17 +75,11 @@ export function useGravacao(ligado: boolean): Gravacao {
         }
         setGravacao({ estado: "enviando" });
         try {
-          // Transcrever já leva o seu tempo; o mínimo só evita o roxo piscar
-          // quando a fala é curtinha.
-          const [ouvida] = await Promise.all([enviarGravacao(audio), esperar(PENSANDO_MINIMO_MS)]);
-          if (ativo) {
-            setGravacao({
-              estado: "ouvida",
-              texto: ouvida.texto,
-              resposta: ouvida.resposta,
-              acao: ouvida.acao,
-            });
-          }
+          // Cada evento entra assim que chega: "Você disse..." aparece logo após
+          // transcrever, e a resposta cresce frase a frase enquanto ele fala.
+          await conversar(audio, (evento) => {
+            if (ativo) setGravacao((atual) => aplicarEvento(atual, evento));
+          });
         } catch (erro) {
           if (ativo) setGravacao({ estado: "erro", mensagem: descreverErro(erro) });
         }
@@ -126,7 +123,7 @@ export function useGravacao(ligado: boolean): Gravacao {
   // "Você disse" é um recado, não um estado: some sozinho e o Jarvis volta a
   // ficar à disposição.
   useEffect(() => {
-    if (gravacao.estado !== "ouvida") return;
+    if (gravacao.estado !== "ouvida" || !gravacao.terminou) return;
     // Resposta longa da IA: o recado fica até ela terminar de falar, e mais um pouco.
     const tempo = Math.max(RECADO_MS, duracaoDaFala(gravacao.resposta ?? "") + 2500);
     const temporizador = setTimeout(() => setGravacao({ estado: "parado" }), tempo);
@@ -169,8 +166,6 @@ function medirVolume(fluxo: MediaStream, nivel: { current: number }): () => void
     contexto.close();
   };
 }
-
-const esperar = (ms: number) => new Promise((resolver) => setTimeout(resolver, ms));
 
 function digitando(alvo: EventTarget | null): boolean {
   const elemento = alvo as HTMLElement | null;

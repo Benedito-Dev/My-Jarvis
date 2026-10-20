@@ -5,6 +5,8 @@ import pytest
 from jarvis.habilidades.conversa.cerebro import (
     Cerebro,
     CerebroIndisponivelError,
+    Fim,
+    Frase,
     criar_cerebro,
     limpar_para_falar,
 )
@@ -14,6 +16,27 @@ from jarvis.habilidades.conversa.ferramentas import Ferramenta, Resultado
 AGORA = datetime(2026, 10, 20, 9, 30, tzinfo=FUSO)
 
 
+def em_pedacos(resposta):
+    """Simula o fluxo (stream) do OpenRouter: o texto chega picado, de 6 em 6
+    letras, e cada chamada de ferramenta chega com o nome numa parte e os
+    argumentos em outras. Erros chegam como estão."""
+    if "error" in resposta:
+        yield resposta
+        return
+    mensagem = resposta["choices"][0]["message"]
+    texto = mensagem.get("content") or ""
+    for i in range(0, len(texto), 6):
+        yield {"choices": [{"delta": {"content": texto[i : i + 6]}}]}
+    for indice, chamada in enumerate(mensagem.get("tool_calls") or []):
+        nome = chamada["function"]["name"]
+        argumentos = chamada["function"]["arguments"]
+        inicio = {"index": indice, "id": chamada["id"], "function": {"name": nome}}
+        yield {"choices": [{"delta": {"tool_calls": [inicio]}}]}
+        for j in range(0, len(argumentos), 4):
+            parte = {"index": indice, "function": {"arguments": argumentos[j : j + 4]}}
+            yield {"choices": [{"delta": {"tool_calls": [parte]}}]}
+
+
 class OpenRouterFalso:
     def __init__(self, resposta):
         self.resposta = resposta
@@ -21,7 +44,7 @@ class OpenRouterFalso:
 
     def enviar(self, corpo, chave):
         self.pedidos.append((corpo, chave))
-        return self.resposta
+        return em_pedacos(self.resposta)
 
 
 def resposta_com(texto):
@@ -85,7 +108,7 @@ class OpenRouterRoteirizado:
 
     def enviar(self, corpo, _chave):
         self.pedidos.append(corpo)
-        return {"choices": [{"message": self.roteiro.pop(0)}]}
+        return em_pedacos({"choices": [{"message": self.roteiro.pop(0)}]})
 
 
 def chamada_de(nome, argumentos):
@@ -181,3 +204,42 @@ def test_troca_sem_ferramenta_e_pergunta_e_resposta():
         {"role": "user", "content": "2+2?"},
         {"role": "assistant", "content": "Quatro."},
     ]
+
+
+# --- Em fluxo: o Jarvis começa a falar antes da IA terminar ----------------------
+
+
+def test_cada_frase_sai_assim_que_fecha():
+    texto = "Claro, senhor, um omelete resolve o jantar. Fica pronto em cinco minutos, no máximo."
+    falso = OpenRouterFalso(resposta_com(texto))
+
+    eventos = list(Cerebro("k", enviar=falso.enviar).responder_em_fluxo("jantar?", "B", AGORA))
+
+    frases = [e.texto for e in eventos if isinstance(e, Frase)]
+    assert frases == [
+        "Claro, senhor, um omelete resolve o jantar.",
+        "Fica pronto em cinco minutos, no máximo.",
+    ]
+    assert isinstance(eventos[-1], Fim)
+    assert eventos[-1].resposta.fala == texto
+
+
+def test_ferramenta_picada_no_fluxo_e_montada_inteira():
+    ferramenta, usadas = ferramenta_de_teste(fala="Certo.")
+    falso = OpenRouterRoteirizado(chamada_de("acao", '{"daqui_a_minutos": 20, "texto": "x"}'))
+
+    list(
+        Cerebro("k", enviar=falso.enviar).responder_em_fluxo(
+            "me lembra", "B", AGORA, ferramentas=[ferramenta]
+        )
+    )
+
+    assert usadas == [{"daqui_a_minutos": 20, "texto": "x"}]
+
+
+def test_pede_a_resposta_sem_raciocinio():
+    falso = OpenRouterFalso(resposta_com("ok"))
+
+    Cerebro("k", enviar=falso.enviar).responder("oi", "B", AGORA)
+
+    assert falso.pedidos[0][0]["reasoning"] == {"enabled": False}

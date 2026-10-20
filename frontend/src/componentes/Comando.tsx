@@ -1,4 +1,4 @@
-import { type RefObject, useEffect, useState } from "react";
+import { type RefObject, useEffect, useRef, useState } from "react";
 import type { Habilidade, Lembrete } from "../api";
 import { duracaoDaFala, type EstadoGravacao, estadoDoNucleo } from "../gravacao";
 import { MS_POR_LETRA, useDigitando } from "../hooks/useDigitando";
@@ -63,21 +63,33 @@ export function Comando({
   // Resposta longa (comum com a IA): o núcleo encolhe para abrir espaço ao texto.
   const conversaLonga = (resposta?.length ?? 0) + nucleo.detalhe.length > LETRAS_PARA_ENCOLHER;
 
-  // Enquanto ele fala a resposta, o núcleo "fala" junto.
+  // Enquanto ele fala a resposta, o núcleo "fala" junto. A resposta chega frase a
+  // frase; cada frase nova empurra o fim da fala para mais adiante.
+  const [falandoAte, setFalandoAte] = useState(0);
+  const respostaAnterior = useRef("");
+  useEffect(() => {
+    const atual = resposta ?? "";
+    const anterior = respostaAnterior.current;
+    respostaAnterior.current = atual;
+    const nova = atual.startsWith(anterior) ? atual.slice(anterior.length).trim() : atual;
+    if (!nova) return;
+    setFalandoAte((ate) => Math.max(ate, Date.now()) + duracaoDaFala(nova));
+  }, [resposta]);
   const [falando, setFalando] = useState(false);
   useEffect(() => {
-    if (gravacao.estado !== "ouvida" || !gravacao.resposta) return;
+    const falta = falandoAte - Date.now();
+    if (falta <= 0) return;
     setFalando(true);
-    const temporizador = setTimeout(() => setFalando(false), duracaoDaFala(gravacao.resposta));
-    return () => {
-      clearTimeout(temporizador);
-      setFalando(false);
-    };
-  }, [gravacao]);
+    const temporizador = setTimeout(() => setFalando(false), falta);
+    return () => clearTimeout(temporizador);
+  }, [falandoAte]);
 
+  const esperandoResposta =
+    gravacao.estado === "enviando" ||
+    (gravacao.estado === "ouvida" && !gravacao.resposta && !gravacao.terminou);
   const modo: ModoNucleo = gravando
     ? "ouvindo"
-    : gravacao.estado === "enviando"
+    : esperandoResposta
       ? "pensando"
       : falando
         ? "falando"

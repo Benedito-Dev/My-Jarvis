@@ -116,6 +116,14 @@ class Sessao:
         """Fala uma resposta do Jarvis, cortando o que ele estiver dizendo."""
         self._locutor.falar(frase, interromper=True)
 
+    def falar_em_sequencia(self, frase: str) -> None:
+        """Fala depois do que já está na fila (resposta da IA, frase a frase)."""
+        self._locutor.enfileirar(frase)
+
+    def calar(self) -> None:
+        """Para de falar e esvazia a fila (vai começar uma resposta nova)."""
+        self._locutor.calar()
+
     def desbloquear_por_pin(self, identificador: str, pin: str, acesso_pin: AcessoPin) -> str:
         """Valida o acesso alternativo sem expor a lista de perfis."""
         with self._trava:

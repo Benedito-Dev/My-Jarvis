@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { duracaoDaFala, escolherFormato, estadoDoNucleo } from "./gravacao";
+import {
+  aplicarEvento,
+  duracaoDaFala,
+  type EstadoGravacao,
+  escolherFormato,
+  estadoDoNucleo,
+} from "./gravacao";
 
 describe("escolherFormato", () => {
   it("prefere o webm quando o sistema suporta (Linux)", () => {
@@ -37,23 +43,28 @@ describe("estadoDoNucleo", () => {
     });
   });
 
-  it("ouvida, volta ao azul e repete o que foi dito", () => {
-    const nucleo = estadoDoNucleo({
-      estado: "ouvida",
-      texto: "que horas são",
-      resposta: null,
-      acao: null,
-    });
+  const ouvida = (texto: string, resposta: string, terminou: boolean): EstadoGravacao => ({
+    estado: "ouvida",
+    texto,
+    resposta,
+    acao: null,
+    terminou,
+  });
+
+  it("ouvida com resposta, volta ao azul e repete o que foi dito", () => {
+    const nucleo = estadoDoNucleo(ouvida("que horas são", "São 10 horas.", true));
 
     expect(nucleo.titulo).toBe("Você disse");
     expect(nucleo.detalhe).toBe("“que horas são”");
     expect(nucleo.tom).toBe("aviso"); // parou de ouvir: volta ao azul
   });
 
+  it("já ouviu mas a resposta não começou: continua roxo, pensando", () => {
+    expect(estadoDoNucleo(ouvida("ideia de jantar?", "", false)).tom).toBe("pensando");
+  });
+
   it("ouvida sem texto, avisa que não entendeu", () => {
-    expect(estadoDoNucleo({ estado: "ouvida", texto: "", resposta: null, acao: null }).titulo).toBe(
-      "Não entendi",
-    );
+    expect(estadoDoNucleo(ouvida("", "", true)).titulo).toBe("Não entendi");
   });
 
   it("erro, mostra a mensagem como detalhe", () => {
@@ -75,5 +86,27 @@ describe("duracaoDaFala", () => {
     const ms = duracaoDaFala("São 13 horas e 57.");
     expect(ms).toBeGreaterThan(1000);
     expect(ms).toBeLessThan(3000);
+  });
+});
+
+describe("aplicarEvento", () => {
+  it("monta a conversa conforme o fluxo chega", () => {
+    let estado: EstadoGravacao = { estado: "enviando" };
+
+    estado = aplicarEvento(estado, { tipo: "ouvido", texto: "jantar?", arquivo: "a.webm" });
+    expect(estado).toMatchObject({ estado: "ouvida", texto: "jantar?", resposta: "" });
+
+    estado = aplicarEvento(estado, { tipo: "trecho", texto: "Um omelete." });
+    estado = aplicarEvento(estado, { tipo: "trecho", texto: "Fica pronto já." });
+    expect(estado).toMatchObject({ resposta: "Um omelete. Fica pronto já.", terminou: false });
+
+    estado = aplicarEvento(estado, { tipo: "fim", acao: "bloquear" });
+    expect(estado).toMatchObject({ terminou: true, acao: "bloquear" });
+  });
+
+  it("trecho fora de ordem (antes do ouvido) é ignorado", () => {
+    const enviando: EstadoGravacao = { estado: "enviando" };
+
+    expect(aplicarEvento(enviando, { tipo: "trecho", texto: "x" })).toBe(enviando);
   });
 });

@@ -18,6 +18,9 @@ class ProcessoFalso:
         self.terminou = False
         self.interrompido = False
 
+    def wait(self):
+        self.terminou = True  # nos testes, a fala "acaba" na hora
+
     def poll(self):
         return 0 if self.terminou else None
 
@@ -33,7 +36,17 @@ class Cenario:
         self.agora = 0.0
         self.comandos: list[list[str]] = []
         self.processos: list[ProcessoFalso] = []
-        self.locutor = Locutor(motor=motor, iniciar=self._iniciar, relogio=lambda: self.agora)
+        self.adiadas = []  # tarefas "em fundo": o teste decide quando rodar
+        self.locutor = Locutor(
+            motor=motor,
+            iniciar=self._iniciar,
+            relogio=lambda: self.agora,
+            em_fundo=self.adiadas.append,
+        )
+
+    def rodar_em_fundo(self) -> None:
+        while self.adiadas:
+            self.adiadas.pop(0)()
 
     def _iniciar(self, comando):
         self.comandos.append(comando)
@@ -117,3 +130,45 @@ def test_fica_mudo_se_o_programa_de_voz_nao_esta_instalado(monkeypatch):
 
     assert locutor.muda
     assert not locutor.falar("Bem-vindo")
+
+
+# --- Fila de fala (respostas em pedaços) ---------------------------------------
+
+
+def test_fila_fala_as_frases_em_ordem():
+    cenario = Cenario()
+
+    cenario.locutor.enfileirar("Primeira frase.")
+    cenario.locutor.enfileirar("Segunda frase.")
+    cenario.rodar_em_fundo()
+
+    assert cenario.comandos == [["falar", "Primeira frase."], ["falar", "Segunda frase."]]
+
+
+def test_interromper_esvazia_a_fila():
+    cenario = Cenario()
+    cenario.locutor.enfileirar("Resposta antiga, parte um.")
+    cenario.locutor.enfileirar("Resposta antiga, parte dois.")
+
+    cenario.locutor.falar("Bem-vindo", interromper=True)
+    cenario.rodar_em_fundo()
+
+    assert ["falar", "Resposta antiga, parte dois."] not in cenario.comandos
+
+
+def test_resposta_nova_depois_de_interromper_toca_mesmo_assim():
+    # A fila antiga ainda não percebeu a interrupção; a nova não pode ficar sem tocar.
+    cenario = Cenario()
+    cenario.locutor.enfileirar("Antiga.")
+    cenario.locutor.falar("Interrompe", interromper=True)
+    cenario.locutor.enfileirar("Nova resposta.")
+    cenario.rodar_em_fundo()
+
+    assert ["falar", "Nova resposta."] in cenario.comandos
+    assert ["falar", "Antiga."] not in cenario.comandos
+
+
+def test_fila_sem_motor_nao_faz_nada():
+    locutor = Locutor(motor=None)
+
+    locutor.enfileirar("oi")  # não quebra

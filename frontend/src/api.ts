@@ -1,3 +1,6 @@
+import type { EventoConversa } from "./gravacao";
+import { LeitorDeLinhas } from "./linhas";
+
 // Ponte com o backend Python (jarvis servidor), que roda só nesta máquina.
 export const URL_BACKEND = "http://127.0.0.1:8765";
 
@@ -143,28 +146,37 @@ export const cancelarCadastro = (nome: string) =>
     method: "DELETE",
   });
 
-export type Gravacao = {
-  arquivo: string;
-  bytes: number;
-  /** O que foi dito (Whisper no backend). Vazio quando não deu para entender. */
-  texto: string;
-  /** O que o Jarvis respondeu (e já falou em voz alta). Null se não houve fala. */
-  resposta: string | null;
-  /** O que ele fez além de falar: hoje só "bloquear". */
-  acao: string | null;
-};
-
-// Manda o áudio gravado no app para o backend guardar e transcrever.
-export const enviarGravacao = (audio: Blob) =>
-  requisitar<Gravacao>(
-    "/conversa/gravacao",
-    {
-      method: "POST",
-      headers: { "Content-Type": audio.type || "audio/webm" },
-      body: audio,
-    },
-    TEMPO_LIMITE_TRANSCRICAO_MS,
-  );
+/**
+ * Manda o áudio gravado e recebe a conversa EM FLUXO: cada evento (o que foi
+ * dito, cada frase da resposta, o fim) chega assim que o backend o tem, em vez
+ * de esperar a resposta inteira. Ver `/conversa/gravacao` no backend.
+ */
+export async function conversar(
+  audio: Blob,
+  aoEvento: (evento: EventoConversa) => void,
+): Promise<void> {
+  const resposta = await fetch(`${URL_BACKEND}/conversa/gravacao`, {
+    method: "POST",
+    headers: { "Content-Type": audio.type || "audio/webm" },
+    body: audio,
+    signal: AbortSignal.timeout(TEMPO_LIMITE_TRANSCRICAO_MS),
+  });
+  if (!resposta.ok || !resposta.body) {
+    const corpo = await resposta.json().catch(() => null);
+    throw new Error(corpo?.detail ?? `Backend respondeu ${resposta.status} na conversa`);
+  }
+  const leitor = resposta.body.getReader();
+  const decodificador = new TextDecoder();
+  const linhas = new LeitorDeLinhas();
+  for (;;) {
+    const { done, value } = await leitor.read();
+    if (done) break;
+    linhas.empurrar(decodificador.decode(value, { stream: true })).forEach((linha) => {
+      aoEvento(JSON.parse(linha));
+    });
+  }
+  linhas.terminar().forEach((linha) => aoEvento(JSON.parse(linha)));
+}
 
 export const enviarQuadro = (jpeg: Blob) =>
   requisitar<Avaliacao>("/desbloqueio/quadro", {
