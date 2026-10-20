@@ -1351,7 +1351,8 @@ body {
 
 /* O conteúdo do painel entra em cascata, logo atrás da borda do círculo. */
 .app--revelando .barra-topo,
-.app--revelando .comando__coluna,
+.app--revelando .comando__manchete,
+.app--revelando .comando__cantos,
 .app--revelando .comando__centro,
 .app--revelando .comando__conversa {
   animation: surgir 0.6s ease-out backwards;
@@ -1365,11 +1366,15 @@ body {
   animation: surgir-nucleo 0.8s 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
 }
 
-.app--revelando .comando__coluna--esquerda {
+.app--revelando .comando__manchete {
+  animation-delay: 0.4s;
+}
+
+.app--revelando .comando__cantos--esquerda {
   animation-delay: 0.5s;
 }
 
-.app--revelando .comando__coluna--direita {
+.app--revelando .comando__cantos--direita {
   animation-delay: 0.6s;
 }
 
@@ -1426,7 +1431,8 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .app--revelando,
   .app--revelando .barra-topo,
-  .app--revelando .comando__coluna,
+  .app--revelando .comando__manchete,
+  .app--revelando .comando__cantos,
   .app--revelando .comando__centro,
   .app--revelando .comando__conversa {
     animation: none;

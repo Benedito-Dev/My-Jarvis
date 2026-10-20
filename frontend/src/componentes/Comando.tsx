@@ -15,19 +15,35 @@ import {
   type Troca,
 } from "../gravacao";
 import { MS_POR_LETRA, useDigitando } from "../hooks/useDigitando";
-import { cumprimento } from "../tempo";
-import { ModuloHabilidades, ModuloLembretes, ModuloSistema, ModuloTempo } from "./ModulosComando";
+import { duracaoDesde, resumoDosLembretes } from "../modulos";
+import { cumprimento, formatarData, formatarHora } from "../tempo";
+import {
+  Canto,
+  ModuloHabilidades,
+  ModuloLembretes,
+  ModuloSistema,
+  ModuloTempo,
+} from "./ModulosComando";
 import { useVozDoJarvis } from "../hooks/useVozDoJarvis";
 import { HistoricoConversa } from "./HistoricoConversa";
 import { type ModoNucleo, Nucleo } from "./Nucleo";
 import { OndaVoz } from "./OndaVoz";
 import "./comando.css";
 
-// A central de comando: o painel depois do desbloqueio. O núcleo no centro é o
-// Jarvis; as colunas dos lados mostram só dados reais, cada um com seu rótulo.
+// A central de comando: o painel depois do desbloqueio. A tela é a conversa:
+// no centro, o orbe (o Jarvis), a manchete do que ele está fazendo e a legenda
+// do que ele fala. Os dados ficam em resumos pequenos nos cantos; um clique
+// abre o módulo inteiro.
 
-// Acima disto (pergunta + resposta), o núcleo encolhe para o texto caber.
-const LETRAS_PARA_ENCOLHER = 140;
+type Fase = "espera" | "ouvindo" | "pensando" | "falando";
+type NomeCanto = "sistema" | "lembretes" | "tempo" | "habilidades";
+
+const MANCHETES: Record<Fase, string> = {
+  espera: "Em espera",
+  ouvindo: "Ouvindo",
+  pensando: "Pensando",
+  falando: "Falando",
+};
 
 const CORES = {
   aviso: "57, 197, 255",
@@ -98,9 +114,6 @@ export function Comando({
   const resposta = gravacao.estado === "ouvida" ? gravacao.resposta : null;
   const respostaVisivel = useDigitando(resposta ?? "", nucleo.detalhe.length * MS_POR_LETRA + 250);
 
-  // Resposta longa (comum com a IA): o núcleo encolhe para abrir espaço ao texto.
-  const conversaLonga = (resposta?.length ?? 0) + nucleo.detalhe.length > LETRAS_PARA_ENCOLHER;
-
   // Enquanto ele fala a resposta, o núcleo "fala" junto. A resposta chega frase a
   // frase; cada frase nova empurra o fim da fala para mais adiante.
   const [falandoAte, setFalandoAte] = useState(0);
@@ -140,48 +153,138 @@ export function Comando({
           ? "falando"
           : "calmo";
 
-  return (
-    <main className={`comando comando--${nucleo.tom}`}>
-      <aside className="comando__coluna comando__coluna--esquerda">
-        <ModuloSistema
-          usuario={usuario}
-          agora={agora}
-          desbloqueadoEm={desbloqueadoEm}
-          latencias={latencias}
-          rostos={cadastrados.length}
-          ouvindo={gravando}
-          versao={versao}
-          onCadastrarRosto={onCadastrarRosto}
-          onConfigurarPin={onConfigurarPin}
-        />
-        <ModuloLembretes lembretes={lembretes} agora={agora} />
-      </aside>
+  const fase: Fase =
+    modo === "ouvindo" || modo === "pensando" ? modo : modo === "calmo" ? "espera" : "falando";
+  // Erro ou "não entendi" aparecem na própria manchete, para não passarem despercebidos.
+  const deuErrado =
+    gravacao.estado === "erro" || (gravacao.estado === "ouvida" && gravacao.texto === "");
+  const manchete = deuErrado ? nucleo.titulo : MANCHETES[fase];
+  const sublinha = deuErrado
+    ? nucleo.detalhe
+    : fase === "espera"
+      ? `${cumprimento(agora)}, ${usuario}`
+      : fase === "ouvindo"
+        ? "Solte ESPAÇO quando terminar"
+        : fase === "pensando"
+          ? "Preparando a resposta"
+          : "";
 
-      <section className={`comando__centro ${conversaLonga ? "comando__centro--longa" : ""}`}>
+  // Um canto aberto por vez. ESC ou um clique fora fecham.
+  const [cantoAberto, setCantoAberto] = useState<NomeCanto | null>(null);
+  const alternar = (nome: NomeCanto) => () =>
+    setCantoAberto((atual) => (atual === nome ? null : nome));
+  useEffect(() => {
+    if (!cantoAberto) return;
+    const fecharComEsc = (evento: KeyboardEvent) => {
+      if (evento.key === "Escape") setCantoAberto(null);
+    };
+    const fecharClicandoFora = (evento: PointerEvent) => {
+      if (!(evento.target as Element).closest(".canto")) setCantoAberto(null);
+    };
+    window.addEventListener("keydown", fecharComEsc);
+    window.addEventListener("pointerdown", fecharClicandoFora);
+    return () => {
+      window.removeEventListener("keydown", fecharComEsc);
+      window.removeEventListener("pointerdown", fecharClicandoFora);
+    };
+  }, [cantoAberto]);
+
+  const ultimaLatencia = latencias[latencias.length - 1];
+  const ativas = habilidades.filter((h) => h.situacao === "pronta").length;
+
+  return (
+    <main className={`comando comando--${nucleo.tom} comando--${fase}`}>
+      <header className="comando__manchete">
+        <p className="comando__estado" role="status">
+          {manchete}
+        </p>
+        <p className="comando__sublinha">{sublinha}</p>
+      </header>
+
+      <section className="comando__centro">
         <div className="comando__nucleo">
           <Nucleo niveis={[nivel, voz.nivel]} tom={nucleo.tom} modo={modo} />
         </div>
-        <p className="comando__cumprimento">
-          {cumprimento(agora)}, <strong>{usuario}</strong>.
-        </p>
-        <p className="comando__estado" role="status">
-          {nucleo.titulo}
-        </p>
-        <p className={`comando__detalhe ${falaOuvida ? "comando__detalhe--fala" : ""}`}>
-          {detalhe}
-          {!resposta && <span className="comando__cursor" aria-hidden="true" />}
-        </p>
-        {resposta && (
-          <p className="comando__resposta">
-            <span className="comando__quem">{"J.A.R.V.I.S. ›"}</span> {respostaVisivel}
-            <span className="comando__cursor" aria-hidden="true" />
-          </p>
-        )}
+        {/* A legenda: a sua frase pequena e a fala dele grande, como num filme.
+            Fala longa mostra só as últimas linhas, as de cima vão sumindo. */}
+        <div className="comando__legenda">
+          {falaOuvida && (
+            <p className="comando__voce">
+              <span className="comando__quem">{"Você ›"}</span> {detalhe}
+            </p>
+          )}
+          {resposta && (
+            <div className="comando__resposta">
+              <p>
+                {respostaVisivel}
+                <span className="comando__cursor" aria-hidden="true" />
+              </p>
+            </div>
+          )}
+        </div>
       </section>
 
-      <aside className="comando__coluna comando__coluna--direita">
-        <ModuloTempo agora={agora} />
-        <ModuloHabilidades habilidades={habilidades} />
+      <aside className="comando__cantos comando__cantos--esquerda">
+        <Canto
+          rotulo="Sistema"
+          valor={
+            <>
+              <span className="canto__ponto" aria-hidden="true" />
+              {ultimaLatencia === undefined ? "Online" : `${ultimaLatencia} ms`}
+            </>
+          }
+          detalhe={`Sessão ${duracaoDesde(desbloqueadoEm, agora)}`}
+          lado="esquerda"
+          altura="topo"
+          aberto={cantoAberto === "sistema"}
+          onAlternar={alternar("sistema")}
+        >
+          <ModuloSistema
+            usuario={usuario}
+            agora={agora}
+            desbloqueadoEm={desbloqueadoEm}
+            latencias={latencias}
+            rostos={cadastrados.length}
+            ouvindo={gravando}
+            versao={versao}
+            onCadastrarRosto={onCadastrarRosto}
+            onConfigurarPin={onConfigurarPin}
+          />
+        </Canto>
+        <Canto
+          rotulo="Lembretes"
+          valor={resumoDosLembretes(lembretes, agora)}
+          lado="esquerda"
+          altura="base"
+          aberto={cantoAberto === "lembretes"}
+          onAlternar={alternar("lembretes")}
+        >
+          <ModuloLembretes lembretes={lembretes} agora={agora} />
+        </Canto>
+      </aside>
+
+      <aside className="comando__cantos comando__cantos--direita">
+        <Canto
+          rotulo="Tempo"
+          valor={formatarHora(agora)}
+          detalhe={formatarData(agora)}
+          lado="direita"
+          altura="topo"
+          aberto={cantoAberto === "tempo"}
+          onAlternar={alternar("tempo")}
+        >
+          <ModuloTempo agora={agora} />
+        </Canto>
+        <Canto
+          rotulo="Habilidades"
+          valor={`${ativas}/${habilidades.length} ativas`}
+          lado="direita"
+          altura="base"
+          aberto={cantoAberto === "habilidades"}
+          onAlternar={alternar("habilidades")}
+        >
+          <ModuloHabilidades habilidades={habilidades} />
+        </Canto>
       </aside>
 
       <footer className="comando__conversa">

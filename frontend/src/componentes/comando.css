@@ -1,14 +1,15 @@
 /* Central de comando (Comando.tsx): o painel depois do desbloqueio.
    Mesma linguagem da tela de bloqueio: grade fina, fonte mono, azul e brilho. */
 
+/* Três faixas: manchete, palco (orbe + cantos por cima) e a faixa de voz. */
 .comando {
   --cor-comando: var(--destaque);
   flex: 1;
   display: grid;
-  grid-template-columns: minmax(240px, 300px) 1fr minmax(240px, 300px);
-  grid-template-rows: 1fr auto;
-  gap: 16px 32px;
-  padding: 16px 40px 28px;
+  grid-template-columns: minmax(180px, 230px) 1fr minmax(180px, 230px);
+  grid-template-rows: auto 1fr auto;
+  gap: 8px 32px;
+  padding: 18px 40px 28px;
   min-height: 0;
 }
 
@@ -24,15 +25,140 @@
   --cor-comando: var(--pensando);
 }
 
-/* --- Colunas laterais: módulos de HUD (ModulosComando.tsx) ----------------- */
+/* --- Cantos: resumos pequenos que abrem o módulo inteiro ------------------- */
 
-.comando__coluna {
-  align-self: center;
+.comando__cantos {
+  grid-row: 2;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  justify-content: space-between;
+  z-index: 2; /* por cima do palco, que ocupa a largura toda */
+  min-height: 0;
+  pointer-events: none; /* o vão entre os cantos não bloqueia nada */
   font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
   color: color-mix(in srgb, var(--destaque) 85%, white);
+}
+
+.comando__cantos--esquerda {
+  grid-column: 1;
+  align-items: flex-start;
+}
+
+.comando__cantos--direita {
+  grid-column: 3;
+  align-items: flex-end;
+}
+
+.canto {
+  position: relative;
+  pointer-events: auto;
+}
+
+.canto__resumo {
+  display: grid;
+  gap: 3px;
+  min-width: 150px;
+  padding: 9px 14px 10px;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  background: rgba(4, 10, 18, 0.45);
+  border: 1px solid color-mix(in srgb, var(--destaque) 14%, transparent);
+  border-left: 2px solid color-mix(in srgb, var(--destaque) 55%, transparent);
+  opacity: 0.7;
+  transition:
+    opacity 0.2s,
+    border-color 0.2s,
+    background 0.2s;
+}
+
+.canto--direita .canto__resumo {
+  text-align: right;
+  border-left-width: 1px;
+  border-left-color: color-mix(in srgb, var(--destaque) 14%, transparent);
+  border-right: 2px solid color-mix(in srgb, var(--destaque) 55%, transparent);
+}
+
+.canto__resumo:hover,
+.canto__resumo:focus-visible,
+.canto--aberto .canto__resumo {
+  opacity: 1;
+  background: color-mix(in srgb, var(--destaque) 8%, rgba(4, 10, 18, 0.7));
+  outline: none;
+}
+
+.canto__rotulo {
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.canto__valor {
+  display: flex;
+  white-space: nowrap;
+  align-items: center;
+  gap: 7px;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  color: var(--destaque);
+}
+
+.canto--direita .canto__valor {
+  justify-content: flex-end;
+}
+
+.canto__detalhe {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--texto-suave);
+}
+
+.canto__ponto {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--destaque);
+  box-shadow: 0 0 8px var(--destaque);
+  animation: pulsar-sinal 2s ease-in-out infinite;
+}
+
+/* O módulo inteiro, aberto ao lado do resumo: desce dos cantos de cima, sobe dos de baixo. */
+.canto__painel {
+  position: absolute;
+  width: 300px;
+  z-index: 3;
+  animation: abrir-canto 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.canto--esquerda .canto__painel {
+  left: 0;
+}
+
+.canto--direita .canto__painel {
+  right: 0;
+}
+
+.canto--topo .canto__painel {
+  top: calc(100% + 8px);
+}
+
+.canto--base .canto__painel {
+  bottom: calc(100% + 8px);
+}
+
+.canto__painel .modulo {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--destaque) 7%, transparent), transparent 70%),
+    rgba(4, 10, 18, 0.92);
+}
+
+@keyframes abrir-canto {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
 }
 
 .modulo {
@@ -534,37 +660,69 @@
 
 /* --- Centro: o núcleo -------------------------------------------------- */
 
+/* --- Manchete: o que o Jarvis está fazendo agora ---------------------------- */
+
+.comando__manchete {
+  grid-column: 2;
+  grid-row: 1;
+  text-align: center;
+}
+
+.comando__estado {
+  margin: 0;
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  font-size: 15px;
+  letter-spacing: 0.6em;
+  /* o espaçamento empurra o texto para a esquerda; isto o recentraliza */
+  margin-right: -0.6em;
+  text-transform: uppercase;
+  color: var(--cor-comando);
+  text-shadow: 0 0 14px color-mix(in srgb, var(--cor-comando) 60%, transparent);
+  transition: color 0.3s;
+}
+
+/* Uma régua fina de traços sob a manchete, como no HUD. */
+.comando__estado::after {
+  content: "";
+  display: block;
+  width: 180px;
+  height: 3px;
+  margin: 8px auto 0;
+  background: repeating-linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--cor-comando) 55%, transparent) 0 2px,
+    transparent 2px 6px
+  );
+}
+
+.comando__sublinha {
+  min-height: 1.4em;
+  margin: 8px 0 0;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--texto-suave);
+}
+
+/* --- Palco: o orbe grande e a legenda ------------------------------------- */
+
 .comando__centro {
+  grid-column: 1 / -1;
+  grid-row: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   min-height: 0;
   overflow: hidden; /* nada do centro invade a faixa de voz */
   text-align: center;
 }
 
+/* O orbe ocupa a altura que sobra (quadrado); a legenda tem espaço fixo embaixo. */
 .comando__nucleo {
-  flex-shrink: 0;
-  width: min(52vh, 100%);
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: 640px;
+  max-width: 100%;
   aspect-ratio: 1;
-  transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-/* Resposta longa: o núcleo recua e o texto ganha espaço (e rolagem, se ainda faltar). */
-.comando__centro--longa .comando__nucleo {
-  width: min(30vh, 100%);
-}
-
-.comando__centro--longa .comando__resposta {
-  max-height: 9em;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--destaque) 40%, transparent) transparent;
-}
-
-.comando__centro--longa .comando__detalhe--fala {
-  font-size: 15px;
 }
 
 .nucleo {
@@ -573,52 +731,45 @@
   height: 100%;
 }
 
-.comando__cumprimento {
-  margin: 4px 0 0;
-  font-size: 22px;
-  font-weight: 300;
-  color: var(--texto);
+/* A legenda, como num filme: espaço reservado sempre (a sua frase + três
+   linhas da fala), para o orbe não pular quando ela aparece. */
+.comando__legenda {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  width: clamp(360px, 100% - 520px, 720px); /* o vão entre os cantos */
+  height: calc(14px * 1.5 + 8px + 21px * 1.45 * 3);
+  transition: opacity 0.6s;
 }
 
-.comando__cumprimento strong {
-  font-weight: 400;
-  color: var(--destaque);
+/* Terminou de falar: a última resposta continua ali, mais apagada. */
+.comando--espera .comando__legenda {
+  opacity: 0.55;
 }
 
-.comando__estado {
-  margin: 10px 0 0;
-  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
-  font-size: 13px;
-  letter-spacing: 0.35em;
-  text-transform: uppercase;
-  color: var(--cor-comando);
-  text-shadow: 0 0 10px color-mix(in srgb, var(--cor-comando) 55%, transparent);
-  transition: color 0.3s;
-}
-
-.comando__detalhe {
-  min-height: 1.5em;
-  max-width: min(560px, 90%);
-  margin: 6px 0 0;
-  font-size: 12px;
+.comando__voce {
+  margin: 0 0 8px;
+  font-size: 14px;
   color: var(--texto-suave);
 }
 
-/* "Você disse": a sua frase em destaque, sendo digitada. */
-.comando__detalhe--fala {
-  font-size: 18px;
-  font-weight: 300;
-  color: var(--texto);
+/* Só as últimas três linhas: o texto cresce para cima e as de cima saem. */
+.comando__resposta {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  max-height: calc(1.45em * 3);
+  overflow: hidden;
+  font-size: 21px;
+  line-height: 1.45;
+  font-weight: 400;
+  color: color-mix(in srgb, var(--destaque) 18%, white);
+  text-shadow: 0 0 16px color-mix(in srgb, var(--destaque) 30%, transparent);
 }
 
-/* A resposta do Jarvis, logo abaixo da sua frase. */
-.comando__resposta {
-  max-width: min(560px, 90%);
-  min-height: 1.5em;
-  margin: 10px 0 0;
-  font-size: 16px;
-  color: var(--destaque);
-  text-shadow: 0 0 12px color-mix(in srgb, var(--destaque) 40%, transparent);
+.comando__resposta p {
+  margin: 0;
 }
 
 .comando__quem {
@@ -886,16 +1037,32 @@
 @media (max-width: 900px) {
   .comando {
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto auto;
+    grid-template-rows: auto 1fr auto auto;
     padding: 12px 20px 20px;
   }
 
+  .comando__manchete,
   .comando__centro {
     grid-column: 1 / -1;
-    grid-row: 1;
   }
 
-  .comando__nucleo {
-    width: min(42vh, 80vw);
+  /* Os cantos descem para baixo do orbe, lado a lado. */
+  .comando__cantos {
+    grid-row: 3;
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .comando__cantos--esquerda {
+    grid-column: 1;
+  }
+
+  .comando__cantos--direita {
+    grid-column: 2;
+  }
+
+  .canto__resumo {
+    min-width: 0;
   }
 }
+

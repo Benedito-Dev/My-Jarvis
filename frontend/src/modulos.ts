@@ -1,5 +1,6 @@
 // Lógica pura dos módulos laterais do painel (Comando.tsx): histórico de
-// latência, tempo de sessão e o desenho do mini-gráfico. Testável sem tela.
+// latência, tempo de sessão, o desenho do mini-gráfico e os resumos dos cantos.
+// Testável sem tela.
 
 /** Quantas medições de latência o gráfico mostra (uma a cada 3 s = 1 minuto). */
 export const MEDICOES_LATENCIA = 20;
@@ -46,4 +47,12 @@ export function tempoAte(quando: Date, agora: Date): string {
   if (minutos < 60) return `em ${minutos} min`;
   const horas = Math.floor(minutos / 60);
   return `em ${horas} h ${String(minutos % 60).padStart(2, "0")}`;
+}
+
+/** O resumo dos lembretes no canto do painel: "2 lembretes · em 5 min" (o próximo). */
+export function resumoDosLembretes(lembretes: { quando: string }[], agora: Date): string {
+  if (lembretes.length === 0) return "Nenhum";
+  const proximo = Math.min(...lembretes.map((lembrete) => new Date(lembrete.quando).getTime()));
+  const quantos = lembretes.length === 1 ? "1 lembrete" : `${lembretes.length} lembretes`;
+  return `${quantos} · ${tempoAte(new Date(proximo), agora)}`;
 }

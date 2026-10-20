@@ -36,6 +36,41 @@ function Modulo({
   );
 }
 
+/**
+ * Um canto do painel: um resumo pequeno (rótulo + valor) que, clicado, abre o
+ * módulo inteiro por cima. Assim o centro fica livre para a conversa.
+ */
+export function Canto({
+  rotulo,
+  valor,
+  detalhe,
+  lado,
+  altura,
+  aberto,
+  onAlternar,
+  children,
+}: {
+  rotulo: string;
+  valor: ReactNode;
+  detalhe?: string;
+  lado: "esquerda" | "direita";
+  altura: "topo" | "base";
+  aberto: boolean;
+  onAlternar: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className={`canto canto--${lado} canto--${altura} ${aberto ? "canto--aberto" : ""}`}>
+      <button className="canto__resumo" type="button" onClick={onAlternar} aria-expanded={aberto}>
+        <span className="canto__rotulo">{rotulo}</span>
+        <span className="canto__valor">{valor}</span>
+        {detalhe && <span className="canto__detalhe">{detalhe}</span>}
+      </button>
+      {aberto && <div className="canto__painel">{children}</div>}
+    </div>
+  );
+}
+
 // --- 01 · Sistema -------------------------------------------------------------
 
 const GRAFICO = { largura: 160, altura: 28 };

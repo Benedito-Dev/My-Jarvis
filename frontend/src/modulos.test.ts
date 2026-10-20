@@ -4,6 +4,7 @@ import {
   duracaoDesde,
   guardarLatencia,
   linhaDoGrafico,
+  resumoDosLembretes,
   tempoAte,
 } from "./modulos";
 
@@ -58,5 +59,24 @@ describe("tempoAte", () => {
 
   it("já passou ou está tocando", () => {
     expect(tempoAte(daqui(-1), agora)).toBe("agora");
+  });
+});
+
+describe("resumoDosLembretes", () => {
+  const agora = new Date("2026-10-20T12:00:00Z");
+
+  it("sem lembretes", () => {
+    expect(resumoDosLembretes([], agora)).toBe("Nenhum");
+  });
+
+  it("conta e mostra quanto falta para o próximo, mesmo fora de ordem", () => {
+    const lembretes = [{ quando: "2026-10-20T14:00:00Z" }, { quando: "2026-10-20T12:05:00Z" }];
+    expect(resumoDosLembretes(lembretes, agora)).toBe("2 lembretes · em 5 min");
+  });
+
+  it("um só, no singular", () => {
+    expect(resumoDosLembretes([{ quando: "2026-10-20T12:10:00Z" }], agora)).toBe(
+      "1 lembrete · em 10 min",
+    );
   });
 });
