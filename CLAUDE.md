@@ -53,5 +53,5 @@ uv run ruff check . && uv run ruff format --check .
 npx npm@11 install         # o npm do Node 20 tem bug (edgesOut)
 npm run build              # tsc + vite build (checa os tipos)
 npm test                   # testes (Vitest)
-npm run tauri dev          # abre o app
+npm run tauri dev          # abre o app (e ele liga o backend sozinho, decisão 0020)
 ```
