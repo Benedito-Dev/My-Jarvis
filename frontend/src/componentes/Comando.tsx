@@ -270,14 +270,6 @@ export function Comando({
             )}
           </div>
         </div>
-        {fila.length > 0 && (
-          <div className="comando__fila" aria-label="Cartões desta sessão">
-            {fila.map((cartao, i) => {
-              const numero = fimDaFila - fila.length + i + 1;
-              return <CartaoMini key={numero} cartao={cartao} numero={numero} />;
-            })}
-          </div>
-        )}
         {/* A legenda: a sua frase pequena e a fala dele grande, como num filme.
             Fala longa mostra só as últimas linhas, as de cima vão sumindo. */}
         <div className="comando__legenda">
@@ -296,6 +288,15 @@ export function Comando({
           )}
         </div>
       </section>
+
+      {/* A fileira da sessão: faixa própria acima da barra de digitar, longe do
+          orbe. O espaço fica reservado mesmo vazia, para o orbe não pular. */}
+      <div className="comando__fila" aria-label="Cartões desta sessão">
+        {fila.map((cartao, i) => {
+          const numero = fimDaFila - fila.length + i + 1;
+          return <CartaoMini key={numero} cartao={cartao} numero={numero} />;
+        })}
+      </div>
 
       <aside className="comando__cantos comando__cantos--esquerda">
         <Canto

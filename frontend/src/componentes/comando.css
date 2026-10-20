@@ -1,13 +1,13 @@
 /* Central de comando (Comando.tsx): o painel depois do desbloqueio.
    Mesma linguagem da tela de bloqueio: grade fina, fonte mono, azul e brilho. */
 
-/* Três faixas: manchete, palco (orbe + cantos por cima) e a faixa de voz. */
+/* Quatro faixas: manchete, palco (orbe + cantos por cima), fileira de cartões e a faixa de voz. */
 .comando {
   --cor-comando: var(--destaque);
   flex: 1;
   display: grid;
   grid-template-columns: minmax(180px, 230px) 1fr minmax(180px, 230px);
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto 1fr auto auto;
   gap: 8px 32px;
   padding: 18px 40px 28px;
   min-height: 0;
@@ -983,22 +983,24 @@
   }
 }
 
-/* A fileira da sessão: por cima da borda de baixo do orbe, logo acima da legenda. */
+/* A fileira da sessão: faixa própria entre o palco e a barra de digitar.
+   A altura fica reservada (um cartão pequeno) mesmo sem cartões. */
 .comando__fila {
-  position: absolute;
-  left: 50%;
-  bottom: calc(14px * 1.5 + 8px + 21px * 1.45 * 3 + 6px);
+  grid-column: 1 / -1;
+  grid-row: 3;
   display: flex;
-  gap: 8px;
-  max-width: calc(100% - 500px);
-  transform: translateX(-50%);
+  gap: 10px;
+  min-height: 54px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .cartao-mini {
   display: grid;
-  gap: 3px;
-  width: 150px;
-  padding: 8px 10px;
+  gap: 4px;
+  flex: 0 1 200px;
+  min-width: 0;
+  padding: 9px 12px;
   text-align: left;
   background: rgba(4, 12, 24, 0.78);
   border: 1px solid color-mix(in srgb, var(--destaque) 22%, transparent);
@@ -1026,7 +1028,7 @@
 
 .cartao-mini__resumo {
   overflow: hidden;
-  font-size: 12px;
+  font-size: 13px;
   white-space: nowrap;
   text-overflow: ellipsis;
   color: color-mix(in srgb, var(--destaque) 25%, white);
@@ -1109,6 +1111,7 @@
 
 .comando__conversa {
   grid-column: 1 / -1;
+  grid-row: 4;
   display: flex;
   align-items: center;
   gap: 20px;
@@ -1346,8 +1349,16 @@
 @media (max-width: 900px) {
   .comando {
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto 1fr auto auto;
+    grid-template-rows: auto 1fr auto auto auto;
     padding: 12px 20px 20px;
+  }
+
+  .comando__fila {
+    grid-row: 4;
+  }
+
+  .comando__conversa {
+    grid-row: 5;
   }
 
   .comando__manchete,
