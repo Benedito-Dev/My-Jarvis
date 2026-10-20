@@ -1,15 +1,16 @@
 import { type RefObject, useEffect, useRef } from "react";
 import type { TomNucleo } from "../gravacao";
-import { girar, pontosNaEsfera } from "../nucleo";
+import { type Fio, criarFios, girar, pontoDoFio } from "../nucleo";
 
-// O núcleo do painel: uma esfera de partículas girando, cercada de anéis.
-// Parado, ela respira devagar; segurando ESPAÇO, pulsa com o volume real da voz.
-// É o "rosto" do Jarvis: a forma é enfeite, mas o pulso é a sua voz de verdade.
+// O núcleo do painel: um orbe de fios de luz entrelaçados, girando devagar.
+// Parado, ele respira; com voz (a sua ou a do Jarvis), os fios se agitam e o
+// orbe se abre no ritmo do volume real. É o "rosto" do Jarvis.
 
-const ESFERA = pontosNaEsfera(520);
-// Cada partícula oscila no seu próprio ritmo quando há voz (fase fixa por ponto).
-const FASES = ESFERA.map((_, i) => (i * 2.399) % (Math.PI * 2));
-const RISCOS = 72;
+const FIOS = criarFios(14);
+const PONTOS_POR_FIO = 128;
+// O fio é desenhado em trechos: cada trecho tem o brilho da sua profundidade
+// (o que está atrás fica apagado), e é isso que dá volume ao novelo.
+const PONTOS_POR_TRECHO = 8;
 
 const CORES: Record<TomNucleo, string> = {
   aviso: "57, 197, 255",
@@ -109,99 +110,109 @@ function desenhar(
   const cy = altura / 2;
   const R = Math.min(largura, altura) / 2;
   const traco = R / 220; // espessuras proporcionais ao tamanho do núcleo
+  const tempo = agora / 1000;
+  const claro = clarear(cor, 0.55);
   ctx.clearRect(0, 0, largura, altura);
 
-  // 1. Brilho de fundo: cresce com a voz.
-  const brilho = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * (0.55 + energia * 0.25));
-  brilho.addColorStop(0, `rgba(${cor}, ${0.22 + energia * 0.3})`);
+  // 1. Brilho de fundo: uma névoa que cresce com a voz.
+  const brilho = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * (0.7 + energia * 0.2));
+  brilho.addColorStop(0, `rgba(${cor}, ${0.1 + energia * 0.18})`);
+  brilho.addColorStop(0.6, `rgba(${cor}, ${0.04 + energia * 0.06})`);
   brilho.addColorStop(1, `rgba(${cor}, 0)`);
   ctx.fillStyle = brilho;
   ctx.fillRect(0, 0, largura, altura);
 
-  // 2. Coroa de risquinhos girando devagar; os maiores a cada 45°.
-  const giroCoroa = agora / 9000;
-  ctx.strokeStyle = `rgba(${cor}, 0.45)`;
-  ctx.lineWidth = 1.2 * traco;
-  ctx.beginPath();
-  for (let i = 0; i < RISCOS; i++) {
-    const angulo = giroCoroa + (i / RISCOS) * Math.PI * 2;
-    const longo = i % 9 === 0;
-    const r1 = R * 0.94;
-    const r2 = R * (longo ? 0.86 : 0.9);
-    ctx.moveTo(cx + Math.cos(angulo) * r1, cy + Math.sin(angulo) * r1);
-    ctx.lineTo(cx + Math.cos(angulo) * r2, cy + Math.sin(angulo) * r2);
-  }
-  ctx.stroke();
+  // "lighter" soma as luzes: onde os fios se cruzam, o brilho fica mais forte.
+  ctx.globalCompositeOperation = "lighter";
+  // Pontas retas: com pontas redondas, a luz somava duas vezes em cada emenda
+  // de trecho e o fio parecia pontilhado.
+  ctx.lineCap = "butt";
+  ctx.lineJoin = "round";
 
-  // 3. Arcos girando em sentidos opostos.
-  arco(ctx, cx, cy, R * 0.8, giro * 1.6, 1.4, `rgba(${cor}, 0.6)`, (2 + energia * 2) * traco);
-  arco(
-    ctx,
-    cx,
-    cy,
-    R * 0.8,
-    giro * 1.6 + Math.PI,
-    0.6,
-    `rgba(${cor}, 0.6)`,
-    (2 + energia * 2) * traco,
-  );
-  arco(ctx, cx, cy, R * 0.74, -giro * 1.2, 2.2, `rgba(${cor}, 0.3)`, 1 * traco);
-
-  // 4. Onda de choque: um anel que se expande com a força da voz.
+  // 2. Onda de choque: anéis finos que saem do orbe com a força da voz.
   if (energia > 0.05) {
-    // Dois anéis defasados, saindo da esfera em direção à coroa.
-    for (const atraso of [0, 350]) {
-      const fase = ((agora + atraso) % 700) / 700;
-      ctx.strokeStyle = `rgba(${cor}, ${(1 - fase) * Math.min(1, energia * 1.4)})`;
-      ctx.lineWidth = (1 + energia * 3) * traco;
+    for (const atraso of [0, 450]) {
+      const fase = ((agora + atraso) % 900) / 900;
+      ctx.strokeStyle = `rgba(${cor}, ${(1 - fase) * Math.min(0.6, energia)})`;
+      ctx.lineWidth = 1.2 * traco;
       ctx.beginPath();
-      ctx.arc(cx, cy, R * (0.48 + fase * 0.36), 0, Math.PI * 2);
+      ctx.arc(cx, cy, R * (0.66 + fase * 0.3), 0, Math.PI * 2);
       ctx.stroke();
     }
   }
 
-  // 5. A esfera de partículas: gira, respira e, com voz, se expande e ondula
-  //    como uma superfície viva (cada ponto num ritmo, ondas correndo de polo a polo).
-  const respiro = 1 + Math.sin(agora / 900) * 0.025;
-  const raio = R * 0.44 * respiro * (1 + energia * 0.35);
-  const emX = 0.42 + Math.sin(agora / 6000) * 0.12 + energia * 0.25 * Math.sin(agora / 700);
-  for (let i = 0; i < ESFERA.length; i++) {
-    const original = ESFERA[i];
-    const onda =
-      Math.sin(original.y * 6 - agora / 140) * 0.5 + Math.sin(FASES[i] + agora / 90) * 0.5;
-    const agito = 1 + energia * 0.55 * onda;
-    const p = girar(original, giro, emX);
-    const profundidade = (p.z + 1) / 2; // 0 = fundo, 1 = frente
-    const tamanho = (0.8 + profundidade * 1.6) * traco * (1 + energia * 1.2);
-    ctx.fillStyle = `rgba(${cor}, ${0.12 + profundidade * 0.78})`;
-    ctx.fillRect(
-      cx + p.x * raio * agito - tamanho / 2,
-      cy + p.y * raio * agito - tamanho / 2,
-      tamanho,
-      tamanho,
-    );
+  // 3. Os fios: cada um em duas passadas, um halo largo e fraco e o fio fino
+  //    e claro por cima. Juntos, parecem luz de verdade (sem filtro de blur).
+  const respiro = 1 + Math.sin(agora / 1100) * 0.02;
+  const raio = R * 0.58 * respiro * (1 + energia * 0.22);
+  // O anel balança de leve (para se ver a profundidade) e gira no plano da tela.
+  const emY = Math.sin(agora / 5000) * 0.25;
+  const emX = Math.sin(agora / 6500) * 0.2;
+  for (let f = 0; f < FIOS.length; f++) {
+    const pontos = projetarFio(FIOS[f], tempo, energia, emY, emX, giro);
+    for (let i = 0; i < PONTOS_POR_FIO; i += PONTOS_POR_TRECHO) {
+      const meio = pontos[(i + PONTOS_POR_TRECHO / 2) % PONTOS_POR_FIO];
+      const frente = (meio.z + 1) / 2; // 0 = fundo, 1 = frente
+      const forca = 0.15 + frente * 0.85;
+      ctx.beginPath();
+      for (let j = 0; j <= PONTOS_POR_TRECHO; j++) {
+        const p = pontos[(i + j) % PONTOS_POR_FIO];
+        const x = cx + p.x * raio;
+        const y = cy + p.y * raio;
+        if (j === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = `rgba(${cor}, ${forca * (0.07 + energia * 0.06)})`;
+      ctx.lineWidth = (7 + energia * 5) * traco;
+      ctx.stroke();
+      ctx.strokeStyle = `rgba(${claro}, ${forca * (0.55 + energia * 0.35)})`;
+      ctx.lineWidth = (1 + energia * 0.6) * traco;
+      ctx.stroke();
+    }
+
+    // 4. Faíscas: um ponto de luz que corre por alguns fios, como um sinal.
+    if (f % 3 === 0) {
+      const posicao = Math.floor((((agora / 4200) * (1 + f * 0.13) + f * 0.37) % 1) * PONTOS_POR_FIO);
+      const p = pontos[posicao];
+      const frente = (p.z + 1) / 2;
+      const x = cx + p.x * raio;
+      const y = cy + p.y * raio;
+      const tamanho = (10 + energia * 8) * traco;
+      const faisca = ctx.createRadialGradient(x, y, 0, x, y, tamanho);
+      faisca.addColorStop(0, `rgba(${claro}, ${0.25 + frente * 0.7})`);
+      faisca.addColorStop(1, `rgba(${cor}, 0)`);
+      ctx.fillStyle = faisca;
+      ctx.fillRect(x - tamanho, y - tamanho, tamanho * 2, tamanho * 2);
+    }
   }
 
-  // 6. O "olho" no centro.
-  ctx.fillStyle = `rgba(${cor}, ${0.55 + energia * 0.45})`;
-  ctx.beginPath();
-  ctx.arc(cx, cy, R * (0.035 + energia * 0.02), 0, Math.PI * 2);
-  ctx.fill();
+  ctx.globalCompositeOperation = "source-over";
 }
 
-function arco(
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
-  raio: number,
-  inicio: number,
-  comprimento: number,
-  estilo: string,
-  espessura: number,
+/**
+ * Os pontos de um fio já virados para a câmera (x, y na tela; z = profundidade),
+ * e girados `noPlano` radianos em volta do centro da tela.
+ */
+function projetarFio(
+  fio: Fio,
+  tempo: number,
+  energia: number,
+  emY: number,
+  emX: number,
+  noPlano: number,
 ) {
-  ctx.strokeStyle = estilo;
-  ctx.lineWidth = espessura;
-  ctx.beginPath();
-  ctx.arc(cx, cy, raio, inicio, inicio + comprimento);
-  ctx.stroke();
+  const cos = Math.cos(noPlano);
+  const sen = Math.sin(noPlano);
+  return Array.from({ length: PONTOS_POR_FIO }, (_, i) => {
+    const p = girar(pontoDoFio(fio, (i / PONTOS_POR_FIO) * Math.PI * 2, tempo, energia), emY, emX);
+    return { x: p.x * cos - p.y * sen, y: p.x * sen + p.y * cos, z: p.z };
+  });
+}
+
+/** Mistura a cor "r, g, b" com branco: o miolo do fio é mais claro que o halo. */
+function clarear(cor: string, quanto: number): string {
+  return cor
+    .split(",")
+    .map((canal) => Math.round(Number(canal) + (255 - Number(canal)) * quanto))
+    .join(", ");
 }

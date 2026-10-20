@@ -1,19 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { girar, nivelDoSinal, pontosNaEsfera } from "./nucleo";
-
-describe("pontosNaEsfera", () => {
-  it("todos os pontos ficam na superfície da esfera", () => {
-    for (const { x, y, z } of pontosNaEsfera(200)) {
-      expect(Math.hypot(x, y, z)).toBeCloseTo(1, 6);
-    }
-  });
-
-  it("vai de um polo ao outro", () => {
-    const pontos = pontosNaEsfera(50);
-    expect(pontos[0].y).toBe(1);
-    expect(pontos[49].y).toBe(-1);
-  });
-});
+import { criarFios, girar, nivelDoSinal, pontoDoFio } from "./nucleo";
 
 describe("girar", () => {
   it("meia volta em Y leva a frente para trás", () => {
@@ -44,5 +30,37 @@ describe("nivelDoSinal", () => {
     const nivel = nivelDoSinal(baixo);
     expect(nivel).toBeGreaterThan(0.3);
     expect(nivel).toBeLessThan(1);
+  });
+});
+
+describe("fios do orbe", () => {
+  const fios = criarFios(12);
+
+  it("são sempre os mesmos (sem sorteio)", () => {
+    expect(criarFios(12)).toEqual(fios);
+  });
+
+  it("cada fio é um laço fechado", () => {
+    for (const fio of fios) {
+      const inicio = pontoDoFio(fio, 0, 3.2, 0.5);
+      const fim = pontoDoFio(fio, Math.PI * 2, 3.2, 0.5);
+      expect(fim.x).toBeCloseTo(inicio.x, 6);
+      expect(fim.y).toBeCloseTo(inicio.y, 6);
+      expect(fim.z).toBeCloseTo(inicio.z, 6);
+    }
+  });
+
+  it("em silêncio fica perto da esfera, e a voz abre o orbe", () => {
+    const maiorDistancia = (energia: number) =>
+      Math.max(
+        ...fios.flatMap((fio) =>
+          Array.from({ length: 64 }, (_, i) => {
+            const p = pontoDoFio(fio, (i / 64) * Math.PI * 2, 1, energia);
+            return Math.hypot(p.x, p.y, p.z);
+          }),
+        ),
+      );
+    expect(maiorDistancia(0)).toBeLessThan(1.15);
+    expect(maiorDistancia(1)).toBeGreaterThan(maiorDistancia(0));
   });
 });
