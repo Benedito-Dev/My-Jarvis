@@ -1,9 +1,23 @@
-import { type RefObject, useEffect, useRef, useState } from "react";
+import {
+  type FormEvent,
+  type RefObject,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import type { Habilidade, Lembrete } from "../api";
-import { duracaoDaFala, type EstadoGravacao, estadoDoNucleo } from "../gravacao";
+import {
+  duracaoDaFala,
+  type EstadoGravacao,
+  estadoDoNucleo,
+  registrarTroca,
+  type Troca,
+} from "../gravacao";
 import { MS_POR_LETRA, useDigitando } from "../hooks/useDigitando";
 import { cumprimento } from "../tempo";
 import { ModuloHabilidades, ModuloLembretes, ModuloSistema, ModuloTempo } from "./ModulosComando";
+import { HistoricoConversa } from "./HistoricoConversa";
 import { type ModoNucleo, Nucleo } from "./Nucleo";
 import { OndaVoz } from "./OndaVoz";
 import "./comando.css";
@@ -32,6 +46,7 @@ type Props = {
   lembretes: Lembrete[];
   gravacao: EstadoGravacao;
   nivel: RefObject<number>;
+  onEnviarTexto: (texto: string) => void;
   onCadastrarRosto: () => void;
   onConfigurarPin: () => void;
 };
@@ -47,10 +62,32 @@ export function Comando({
   lembretes,
   gravacao,
   nivel,
+  onEnviarTexto,
   onCadastrarRosto,
   onConfigurarPin,
 }: Props) {
   const nucleo = estadoDoNucleo(gravacao);
+
+  // Histórico da conversa desta sessão: cada troca entra quando termina.
+  const [historico, setHistorico] = useState<Troca[]>([]);
+  const [historicoAberto, setHistoricoAberto] = useState(false);
+  const fecharHistorico = useCallback(() => setHistoricoAberto(false), []);
+  // A mesma conversa só entra uma vez (o React pode rodar este efeito em dobro).
+  const ultimaRegistrada = useRef<EstadoGravacao | null>(null);
+  useEffect(() => {
+    if (ultimaRegistrada.current === gravacao) return;
+    ultimaRegistrada.current = gravacao;
+    setHistorico((atual) => registrarTroca(atual, gravacao, new Date()));
+  }, [gravacao]);
+
+  // Para quando não dá para falar: digita e aperta Enter.
+  const [digitado, setDigitado] = useState("");
+  function enviarDigitado(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    if (!digitado.trim()) return;
+    onEnviarTexto(digitado);
+    setDigitado("");
+  }
   // O detalhe aparece digitando: no "Você disse", é a sua frase sendo escrita.
   const detalhe = useDigitando(nucleo.detalhe);
   const falaOuvida = gravacao.estado === "ouvida" && gravacao.texto !== "";
@@ -140,10 +177,34 @@ export function Comando({
       </aside>
 
       <footer className="comando__conversa">
-        <span className="comando__rotulo">Voz</span>
+        <form className="comando__digitar" onSubmit={enviarDigitado}>
+          <span className="comando__rotulo" aria-hidden="true">
+            ›
+          </span>
+          <input
+            className="comando__entrada"
+            value={digitado}
+            onChange={(evento) => setDigitado(evento.target.value)}
+            placeholder="Digite para o Jarvis… ou segure ESPAÇO para falar"
+            maxLength={500}
+            aria-label="Mensagem para o Jarvis"
+          />
+        </form>
         <OndaVoz nivel={nivel} cor={CORES[nucleo.tom]} />
         <kbd className={`comando__tecla ${gravando ? "comando__tecla--apertada" : ""}`}>ESPAÇO</kbd>
+        <button
+          className="comando__historico"
+          type="button"
+          onClick={() => setHistoricoAberto(true)}
+          title="Histórico da conversa"
+        >
+          Histórico <span className="comando__contador">{historico.length}</span>
+        </button>
       </footer>
+
+      {historicoAberto && (
+        <HistoricoConversa trocas={historico} onFechar={fecharHistorico} />
+      )}
     </main>
   );
 }

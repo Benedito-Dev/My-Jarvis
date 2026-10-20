@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   aplicarEvento,
+  registrarTroca,
   duracaoDaFala,
   type EstadoGravacao,
   escolherFormato,
@@ -108,5 +109,34 @@ describe("aplicarEvento", () => {
     const enviando: EstadoGravacao = { estado: "enviando" };
 
     expect(aplicarEvento(enviando, { tipo: "trecho", texto: "x" })).toBe(enviando);
+  });
+});
+
+describe("registrarTroca", () => {
+  const quando = new Date("2026-10-20T11:00:00Z");
+  const terminada: EstadoGravacao = {
+    estado: "ouvida",
+    texto: "que horas são",
+    resposta: "São 11 horas.",
+    acao: null,
+    terminou: true,
+  };
+
+  it("guarda a troca quando a conversa termina", () => {
+    expect(registrarTroca([], terminada, quando)).toEqual([
+      { id: 1, pergunta: "que horas são", resposta: "São 11 horas.", quando },
+    ]);
+  });
+
+  it("não guarda conversa pela metade nem fala vazia", () => {
+    expect(registrarTroca([], { ...terminada, terminou: false }, quando)).toEqual([]);
+    expect(registrarTroca([], { ...terminada, texto: "" }, quando)).toEqual([]);
+  });
+
+  it("guarda só as mais recentes", () => {
+    let historico = registrarTroca([], terminada, quando);
+    historico = registrarTroca(historico, terminada, quando, 1);
+
+    expect(historico.map((t) => t.id)).toEqual([2]);
   });
 });

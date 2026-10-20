@@ -94,3 +94,22 @@ export function aplicarEvento(atual: EstadoGravacao, evento: EventoConversa): Es
       return { ...atual, acao: evento.acao, terminou: true };
   }
 }
+
+/** Uma troca concluída da conversa, para o histórico na tela. */
+export type Troca = { id: number; pergunta: string; resposta: string; quando: Date };
+
+/**
+ * Se a conversa acabou de terminar (com algo dito), devolve o histórico com ela
+ * no fim; senão, o mesmo histórico. Guarda as `maximo` mais recentes.
+ */
+export function registrarTroca(
+  historico: Troca[],
+  gravacao: EstadoGravacao,
+  quando: Date,
+  maximo = 30,
+): Troca[] {
+  if (gravacao.estado !== "ouvida" || !gravacao.terminou || !gravacao.texto) return historico;
+  const id = (historico[historico.length - 1]?.id ?? 0) + 1;
+  const troca = { id, pergunta: gravacao.texto, resposta: gravacao.resposta, quando };
+  return [...historico, troca].slice(-maximo);
+}

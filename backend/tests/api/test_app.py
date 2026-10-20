@@ -3,6 +3,7 @@ from datetime import datetime
 
 import cv2
 import numpy as np
+import pytest
 from fastapi.testclient import TestClient
 
 from jarvis.api import criar_app
@@ -665,3 +666,33 @@ def test_cerebro_sem_resposta_diz_que_nao_sabe(tmp_path):
     assert ler_conversa(cliente.post("/conversa/gravacao", content=b"voz"))["resposta"] == (
         "Ainda não sei fazer isso."
     )
+
+
+# --- Conversa por texto (para quando não dá para falar) ---------------------------
+
+
+def test_texto_digitado_segue_o_mesmo_fluxo_da_voz(tmp_path):
+    cerebro = CerebroFalso("Um omelete resolve.")
+    cliente = cliente_de_gravacao(tmp_path, sessao=sessao_aberta(tmp_path), cerebro=cerebro)
+
+    corpo = ler_conversa(cliente.post("/conversa/texto", json={"texto": " ideia de jantar? "}))
+
+    assert corpo["texto"] == "ideia de jantar?"
+    assert corpo["arquivo"] is None  # não houve áudio
+    assert corpo["resposta"] == "Um omelete resolve."
+    assert cerebro.perguntas == [("ideia de jantar?", "Benedito")]
+
+
+def test_texto_digitado_tambem_usa_os_comandos_locais(tmp_path):
+    cliente = cliente_de_gravacao(tmp_path, sessao=sessao_aberta(tmp_path), cerebro=CerebroFalso())
+
+    corpo = ler_conversa(cliente.post("/conversa/texto", json={"texto": "que horas são?"}))
+
+    assert corpo["resposta"].startswith(("São", "É"))
+
+
+@pytest.mark.parametrize("texto", ["", "x" * 501])
+def test_texto_vazio_ou_grande_demais_e_recusado(tmp_path, texto):
+    cliente = cliente_de_gravacao(tmp_path)
+
+    assert cliente.post("/conversa/texto", json={"texto": texto}).status_code == 422

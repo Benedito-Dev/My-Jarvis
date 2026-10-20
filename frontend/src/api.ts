@@ -161,6 +161,27 @@ export async function conversar(
     body: audio,
     signal: AbortSignal.timeout(TEMPO_LIMITE_TRANSCRICAO_MS),
   });
+  await lerConversa(resposta, aoEvento);
+}
+
+/** O mesmo que `conversar`, com um texto digitado no lugar da voz (sem transcrição). */
+export async function conversarPorTexto(
+  texto: string,
+  aoEvento: (evento: EventoConversa) => void,
+): Promise<void> {
+  const resposta = await fetch(`${URL_BACKEND}/conversa/texto`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ texto }),
+    signal: AbortSignal.timeout(TEMPO_LIMITE_TRANSCRICAO_MS),
+  });
+  await lerConversa(resposta, aoEvento);
+}
+
+async function lerConversa(
+  resposta: Response,
+  aoEvento: (evento: EventoConversa) => void,
+): Promise<void> {
   if (!resposta.ok || !resposta.body) {
     const corpo = await resposta.json().catch(() => null);
     throw new Error(corpo?.detail ?? `Backend respondeu ${resposta.status} na conversa`);

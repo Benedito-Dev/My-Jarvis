@@ -1,5 +1,5 @@
-import { type RefObject, useEffect, useRef, useState } from "react";
-import { conversar } from "../api";
+import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
+import { conversar, conversarPorTexto } from "../api";
 import {
   aplicarEvento,
   duracaoDaFala,
@@ -15,6 +15,8 @@ export type Gravacao = {
   gravacao: EstadoGravacao;
   /** Volume da voz agora, de 0 a 1. Ref, e não estado: muda a cada quadro. */
   nivel: RefObject<number>;
+  /** Manda um texto digitado: segue o mesmo caminho da voz, sem a transcrição. */
+  enviarTexto: (texto: string) => void;
 };
 
 /**
@@ -28,6 +30,25 @@ export function useGravacao(ligado: boolean): Gravacao {
   const gravador = useRef<MediaRecorder | null>(null);
   const segurando = useRef(false);
   const nivel = useRef(0);
+  const montado = useRef(true);
+  useEffect(() => {
+    montado.current = true;
+    return () => {
+      montado.current = false;
+    };
+  }, []);
+
+  const enviarTexto = useCallback(async (texto: string) => {
+    if (!texto.trim() || gravador.current) return; // ignora enquanto grava a voz
+    setGravacao({ estado: "enviando" });
+    try {
+      await conversarPorTexto(texto.trim(), (evento) => {
+        if (montado.current) setGravacao((atual) => aplicarEvento(atual, evento));
+      });
+    } catch (erro) {
+      if (montado.current) setGravacao({ estado: "erro", mensagem: descreverErro(erro) });
+    }
+  }, []);
 
   useEffect(() => {
     if (!ligado) return;
@@ -130,7 +151,7 @@ export function useGravacao(ligado: boolean): Gravacao {
     return () => clearTimeout(temporizador);
   }, [gravacao]);
 
-  return { gravacao, nivel };
+  return { gravacao, nivel, enviarTexto };
 }
 
 /**

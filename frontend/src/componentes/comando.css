@@ -673,8 +673,191 @@
 
 .onda-voz {
   flex: 1;
+  max-width: 34%;
   height: 36px;
   min-width: 0;
+}
+
+/* A caixa de texto: para quando não dá para falar. */
+.comando__digitar {
+  flex: 1.4;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.comando__entrada {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 0;
+  font: inherit;
+  font-size: 14px;
+  color: var(--texto);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--destaque) 25%, transparent);
+  outline: none;
+  user-select: text;
+  transition: border-color 0.2s;
+}
+
+.comando__entrada::placeholder {
+  color: var(--texto-suave);
+}
+
+.comando__entrada:focus {
+  border-bottom-color: var(--destaque);
+}
+
+.comando__historico {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--destaque);
+  background: color-mix(in srgb, var(--destaque) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--destaque) 35%, transparent);
+  cursor: pointer;
+}
+
+.comando__historico:hover,
+.comando__historico:focus-visible {
+  background: color-mix(in srgb, var(--destaque) 16%, transparent);
+  outline: none;
+}
+
+.comando__contador {
+  padding: 0 5px;
+  color: #02050a;
+  background: var(--destaque);
+}
+
+/* --- 05 · A gaveta do histórico --------------------------------------------- */
+
+.historico {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+}
+
+.historico__fundo {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(2, 5, 10, 0.55);
+  cursor: default;
+  animation: surgir 0.25s ease-out backwards;
+}
+
+.historico__gaveta {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(440px, 92vw);
+  padding: 20px 22px;
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--destaque) 7%, transparent), transparent 40%),
+    #040a12;
+  border-left: 1px solid color-mix(in srgb, var(--destaque) 35%, transparent);
+  box-shadow: -20px 0 60px rgba(0, 0, 0, 0.6);
+  animation: deslizar-gaveta 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+
+@keyframes deslizar-gaveta {
+  from {
+    translate: 100% 0;
+  }
+}
+
+.historico__cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+.historico__titulo {
+  margin: 0;
+  font-size: inherit;
+  font-weight: 500;
+  letter-spacing: inherit;
+  color: var(--texto);
+}
+
+.historico__fechar {
+  padding: 3px 8px;
+  font: inherit;
+  font-size: 9px;
+  color: var(--texto-suave);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--texto-suave) 40%, transparent);
+  cursor: pointer;
+}
+
+.historico__lista {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+  padding: 0 4px 0 0;
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--destaque) 40%, transparent) transparent;
+}
+
+.historico__troca {
+  padding-left: 12px;
+  border-left: 2px solid color-mix(in srgb, var(--destaque) 30%, transparent);
+}
+
+.historico__hora {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--texto-suave);
+}
+
+.historico__pergunta {
+  margin: 4px 0 6px;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  font-size: 14px;
+  color: var(--texto);
+  user-select: text;
+}
+
+.historico__resposta {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--destaque);
+  user-select: text;
+}
+
+.historico__vazio {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .historico__gaveta,
+  .historico__fundo {
+    animation: none;
+  }
 }
 
 .comando__tecla {
