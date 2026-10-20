@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   aplicarEvento,
+  faseDoPainel,
   registrarTroca,
   duracaoDaFala,
   type EstadoGravacao,
@@ -121,6 +122,36 @@ describe("aplicarEvento", () => {
 
     estado = aplicarEvento(estado, { tipo: "cartao", cartao });
     expect(estado).toMatchObject({ usando: null, cartoes: [cartao] });
+  });
+});
+
+describe("faseDoPainel", () => {
+  const conversa = (terminou: boolean): EstadoGravacao => ({
+    estado: "ouvida",
+    texto: "e o clima?",
+    resposta: "Faz 30 graus.",
+    acao: null,
+    terminou,
+    cartoes: [],
+    usando: null,
+  });
+
+  it("a pausa entre frases não vira espera enquanto a resposta não terminou", () => {
+    expect(faseDoPainel(conversa(false), false)).toBe("pensando");
+    expect(faseDoPainel(conversa(false), true)).toBe("falando");
+  });
+
+  it("terminou e parou de falar: em espera", () => {
+    expect(faseDoPainel(conversa(true), false)).toBe("espera");
+    expect(faseDoPainel({ estado: "parado" }, false)).toBe("espera");
+  });
+
+  it("resposta pronta mas a voz ainda não começou: segue pensando", () => {
+    expect(faseDoPainel(conversa(true), false, true)).toBe("pensando");
+  });
+
+  it("gravando é sempre ouvindo", () => {
+    expect(faseDoPainel({ estado: "gravando" }, true)).toBe("ouvindo");
   });
 });
 

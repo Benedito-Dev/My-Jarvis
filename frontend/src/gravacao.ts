@@ -116,6 +116,29 @@ export function aplicarEvento(atual: EstadoGravacao, evento: EventoConversa): Es
   }
 }
 
+/** O que o painel mostra na manchete (e o que decide onde ficam os cartões). */
+export type FasePainel = "espera" | "ouvindo" | "pensando" | "falando";
+
+/**
+ * A fase do painel. `falando` já deve vir com folga (useSustentado): entre duas
+ * frases a voz para um instante, e isso não pode virar "em espera". Enquanto a
+ * conversa não terminou, o que não é fala é "pensando". `aguardandoVoz`: a
+ * resposta chegou inteira, mas a voz ainda não começou.
+ */
+export function faseDoPainel(
+  gravacao: EstadoGravacao,
+  falando: boolean,
+  aguardandoVoz = false,
+): FasePainel {
+  if (gravacao.estado === "gravando") return "ouvindo";
+  if (falando) return "falando";
+  // A resposta já chegou, mas a voz ainda está sendo gerada: ainda não acabou.
+  if (aguardandoVoz) return "pensando";
+  if (gravacao.estado === "enviando") return "pensando";
+  if (gravacao.estado === "ouvida" && !gravacao.terminou) return "pensando";
+  return "espera";
+}
+
 /** Uma troca concluída da conversa, para o histórico na tela. */
 export type Troca = { id: number; pergunta: string; resposta: string; quando: Date };
 

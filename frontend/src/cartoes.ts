@@ -53,16 +53,20 @@ export const CARTOES_NA_FILA = 4;
 
 /**
  * O que a tela mostra: o cartão em destaque (na frente do orbe) e a fileira de
- * baixo. Enquanto o Jarvis trabalha ou fala, o último cartão desta conversa fica
- * em destaque; quando ele volta a esperar, todos descem para a fileira.
+ * baixo. Os cartões desta conversa esperam escondidos enquanto ele trabalha e só
+ * aparecem quando a voz começa: o último em destaque, os outros na fileira.
+ * Quando ele volta a esperar, todos descem para a fileira.
  */
 export function arrumarCartoes(
   anteriores: Cartao[],
   atuais: Cartao[],
-  emEspera: boolean,
+  momento: "trabalhando" | "falando" | "espera",
 ): { destaque: Cartao | null; fila: Cartao[] } {
-  if (emEspera || atuais.length === 0) {
+  if (momento === "espera" || atuais.length === 0) {
     return { destaque: null, fila: [...anteriores, ...atuais].slice(-CARTOES_NA_FILA) };
+  }
+  if (momento === "trabalhando") {
+    return { destaque: null, fila: anteriores.slice(-CARTOES_NA_FILA) };
   }
   return {
     destaque: atuais[atuais.length - 1],

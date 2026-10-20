@@ -12,10 +12,13 @@ import {
   duracaoDaFala,
   type EstadoGravacao,
   estadoDoNucleo,
+  type FasePainel,
+  faseDoPainel,
   registrarTroca,
   type Troca,
 } from "../gravacao";
 import { MS_POR_LETRA, useDigitando } from "../hooks/useDigitando";
+import { useSustentado } from "../hooks/useSustentado";
 import { duracaoDesde, resumoDosLembretes } from "../modulos";
 import { cumprimento, formatarData, formatarHora } from "../tempo";
 import {
@@ -37,10 +40,13 @@ import "./comando.css";
 // do que ele fala. Os dados ficam em resumos pequenos nos cantos; um clique
 // abre o módulo inteiro.
 
-type Fase = "espera" | "ouvindo" | "pensando" | "falando";
+// Pausa máxima entre duas frases que ainda conta como a mesma fala.
+const FOLGA_DA_FALA_MS = 1500;
+// Quanto esperar a voz começar depois que a resposta chegou, antes de desistir dela.
+const ESPERA_MAXIMA_DA_VOZ_MS = 5000;
 type NomeCanto = "sistema" | "lembretes" | "tempo" | "habilidades";
 
-const MANCHETES: Record<Fase, string> = {
+const MANCHETES: Record<FasePainel, string> = {
   espera: "Em espera",
   ouvindo: "Ouvindo",
   pensando: "Pensando",
@@ -155,8 +161,28 @@ export function Comando({
           ? "falando"
           : "calmo";
 
-  const fase: Fase =
-    modo === "ouvindo" || modo === "pensando" ? modo : modo === "calmo" ? "espera" : "falando";
+  // Entre duas frases a voz para um instante: a folga segura o "falando", para
+  // a manchete e o cartão não piscarem a cada pausa.
+  const falandoAgora = modo === "voz" || modo === "falando";
+  const falandoComFolga = useSustentado(falandoAgora, FOLGA_DA_FALA_MS);
+  // A resposta pode chegar inteira antes de a voz começar (a voz leva um tempo
+  // para ser gerada). Até ela começar, a conversa não acabou. Se a voz não vier
+  // (sem som, erro), desiste depois de um tempo.
+  const [falouNestaConversa, setFalouNestaConversa] = useState(false);
+  useEffect(() => {
+    if (gravacao.estado !== "ouvida") setFalouNestaConversa(false);
+  }, [gravacao.estado]);
+  useEffect(() => {
+    if (falandoAgora) setFalouNestaConversa(true);
+  }, [falandoAgora]);
+  const aguardandoVoz =
+    gravacao.estado === "ouvida" && gravacao.resposta !== "" && !falouNestaConversa;
+  useEffect(() => {
+    if (!aguardandoVoz) return;
+    const temporizador = setTimeout(() => setFalouNestaConversa(true), ESPERA_MAXIMA_DA_VOZ_MS);
+    return () => clearTimeout(temporizador);
+  }, [aguardandoVoz]);
+  const fase = faseDoPainel(gravacao, falandoComFolga, aguardandoVoz);
   // Erro ou "não entendi" aparecem na própria manchete, para não passarem despercebidos.
   const deuErrado =
     gravacao.estado === "erro" || (gravacao.estado === "ouvida" && gravacao.texto === "");
@@ -208,8 +234,13 @@ export function Comando({
   }, [gravacao]);
   const atuais = gravacao.estado === "ouvida" ? gravacao.cartoes : [];
   const usando = gravacao.estado === "ouvida" ? gravacao.usando : null;
-  // Rodando uma ferramenta, o centro é do cartão de progresso: os outros descem.
-  const { destaque, fila } = arrumarCartoes(anteriores, atuais, fase === "espera" || !!usando);
+  // O cartão só sobe quando a voz começa; antes disso (e com uma ferramenta
+  // rodando, quando o centro é do cartão de progresso) ele espera escondido.
+  const { destaque, fila } = arrumarCartoes(
+    anteriores,
+    atuais,
+    fase === "espera" ? "espera" : fase === "falando" && !usando ? "falando" : "trabalhando",
+  );
   // Numeração da sessão inteira: o destaque é sempre o último; a fileira vem antes.
   const fimDaFila = anteriores.length + atuais.length - (destaque ? 1 : 0);
 

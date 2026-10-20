@@ -7,23 +7,30 @@ describe("arrumarCartoes", () => {
   const anteriores = [cartao("a"), cartao("b")];
 
   it("falando, o último cartão da conversa fica em destaque", () => {
-    const { destaque, fila } = arrumarCartoes(anteriores, [cartao("c"), cartao("d")], false);
+    const { destaque, fila } = arrumarCartoes(anteriores, [cartao("c"), cartao("d")], "falando");
 
     expect(destaque?.titulo).toBe("d");
     expect(fila.map((c) => c.titulo)).toEqual(["a", "b", "c"]);
   });
 
   it("em espera, todos descem para a fileira", () => {
-    const { destaque, fila } = arrumarCartoes(anteriores, [cartao("c")], true);
+    const { destaque, fila } = arrumarCartoes(anteriores, [cartao("c")], "espera");
 
     expect(destaque).toBeNull();
     expect(fila.map((c) => c.titulo)).toEqual(["a", "b", "c"]);
   });
 
+  it("trabalhando, os desta conversa esperam escondidos até ele falar", () => {
+    const { destaque, fila } = arrumarCartoes(anteriores, [cartao("c")], "trabalhando");
+
+    expect(destaque).toBeNull();
+    expect(fila.map((c) => c.titulo)).toEqual(["a", "b"]);
+  });
+
   it("a fileira guarda só os mais recentes", () => {
     const muitos = ["1", "2", "3", "4", "5", "6"].map(cartao);
 
-    expect(arrumarCartoes(muitos, [], true).fila.map((c) => c.titulo)).toEqual([
+    expect(arrumarCartoes(muitos, [], "espera").fila.map((c) => c.titulo)).toEqual([
       "3",
       "4",
       "5",
