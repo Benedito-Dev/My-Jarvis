@@ -25,6 +25,14 @@ abrir coisas. Ele também não lembrava da conversa: "e amanhã?" não fazia sen
   depois de 10 minutos parada ou ao bloquear, para a próxima pessoa não herdar a conversa.
 - Pedidos que falam de lembrete, "amanhã", "ontem" etc. saem dos comandos
   fixos e vão para a IA. Antes, "me lembra daqui a 2 horas" respondia a hora atual.
+- **A memória guarda a troca inteira**, com as chamadas de ferramenta. Na
+  primeira versão ela guardava só o texto ("Abrindo o Spotify."), e depois de
+  algumas perguntas a IA passava a FINGIR as ações, imitando a própria memória.
+  Com a troca completa, 18 de 18 pedidos usaram a ferramenta certa.
+- O segundo lote de ferramentas: `pesquisar_web` (DuckDuckGo, grátis e sem chave),
+  `clima` (Open-Meteo; cidade padrão em `JARVIS_CIDADE`), `abrir_site`, `abrir_app`
+  (os comandos de cada sistema ficam em `nucleo/sistema.py`), `anotar` e
+  `ler_notas` (`dados/notas.json`), e `calcular` (contas exatas, sem `eval`).
 - **Regra para as próximas ferramentas:** o que for irreversível ou falar em
   nome do dono (mandar mensagem, apagar arquivo) pede confirmação antes.
 

@@ -11,6 +11,7 @@ import re
 import urllib.error
 import urllib.request
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 from datetime import datetime
 
 from jarvis.habilidades.conversa import ferramentas as mod_ferramentas
@@ -33,12 +34,22 @@ Sua resposta vai ser FALADA em voz alta por um sintetizador, então:
 - escreva números como se fala ("384 mil quilômetros", não "384.400 km").
 Seu tom é calmo, educado e confiante, com um leve humor seco. \
 Use as ferramentas que tiver quando elas resolverem o pedido. \
+REGRA: só diga que abriu, anotou, agendou ou pesquisou algo se tiver chamado a \
+ferramenta para isso AGORA, nesta resposta. Nunca finja uma ação. \
 Se precisar de algo que você não tem (clima, notícias, abrir apps), \
 diga com honestidade que ainda não tem acesso a isso.
 Agora: {hora} {data}"""
 
 # Manda o corpo do pedido e devolve a resposta (JSON) do OpenRouter.
 Enviar = Callable[[dict, str], dict]
+
+
+@dataclass(frozen=True)
+class RespostaDaIA:
+    fala: str
+    # A troca inteira, como a IA viu: pergunta, ferramentas chamadas, resultados e
+    # resposta. É isso que vai para a memória (ver memoria.py, sobre fingir ações).
+    troca: list[dict]
 
 
 class CerebroIndisponivelError(RuntimeError):
@@ -79,7 +90,7 @@ class Cerebro:
         agora: datetime | None = None,
         historico: Sequence[dict] = (),
         ferramentas: Sequence[Ferramenta] = (),
-    ) -> str:
+    ) -> RespostaDaIA:
         """Responde `pergunta`, lembrando do `historico` e podendo usar `ferramentas`."""
         momento = (agora or datetime.now(FUSO)).astimezone(FUSO)
         mensagens = [
@@ -92,12 +103,17 @@ class Cerebro:
             *historico,
             {"role": "user", "content": pergunta},
         ]
+        inicio_da_troca = len(mensagens) - 1
+
+        def concluir(fala: str) -> RespostaDaIA:
+            final = {"role": "assistant", "content": fala}
+            return RespostaDaIA(fala=fala, troca=[*mensagens[inicio_da_troca:], final])
 
         for _ in range(MAXIMO_DE_RODADAS):
             mensagem = self._perguntar(mensagens, ferramentas)
             chamadas = mensagem.get("tool_calls") or []
             if not chamadas:
-                return limpar_para_falar(mensagem.get("content") or "")
+                return concluir(limpar_para_falar(mensagem.get("content") or ""))
 
             resultados = [
                 (
@@ -110,14 +126,14 @@ class Cerebro:
                 )
                 for chamada in chamadas
             ]
-            # Toda ferramenta já trouxe a sua confirmação: fala direto, sem outra viagem à IA.
-            if all(resultado.fala for _, resultado in resultados):
-                return " ".join(resultado.fala for _, resultado in resultados)
-            mensagens.append(mensagem)
+            mensagens.append({"role": "assistant", "content": None, "tool_calls": chamadas})
             mensagens += [
                 {"role": "tool", "tool_call_id": chamada["id"], "content": resultado.para_ia}
                 for chamada, resultado in resultados
             ]
+            # Toda ferramenta já trouxe a sua confirmação: fala direto, sem outra viagem à IA.
+            if all(resultado.fala for _, resultado in resultados):
+                return concluir(" ".join(resultado.fala for _, resultado in resultados))
         raise CerebroIndisponivelError("A IA ficou usando ferramentas sem responder.")
 
     def _perguntar(self, mensagens: list[dict], ferramentas: Sequence[Ferramenta]) -> dict:

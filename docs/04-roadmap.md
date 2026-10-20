@@ -63,10 +63,11 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ pendente
 |---|---|---|
 | ✅ | 1. Memória curta | "Que dia é hoje?" → "E amanhã?" entende o "amanhã" |
 | ✅ | 2. Primeira mão: lembretes | "Me lembra de X daqui a 20 min" → ele avisa em voz; módulo 04 no painel |
-| ⬜ | 3. Pesquisar na web | "Qual o placar do jogo?" |
-| ⬜ | 4. Abrir apps e sites | "Abre o Spotify" |
-| ⬜ | 5. Controlar o sistema | "Abaixa o volume" |
-| ⬜ | 6. Memória longa | Lembra de fatos sobre o dono entre os dias |
+| ✅ | 3. Pesquisar na web | "Como foi o jogo do Flamengo ontem?" (DuckDuckGo, grátis) |
+| ✅ | 4. Abrir apps e sites | "Abre o Spotify", "Abre o YouTube com lofi" |
+| ✅ | 5. Clima, notas e calculadora | "Vai chover amanhã?", "Anota: comprar café", "17% de 3480" |
+| ⬜ | 6. Controlar o sistema | "Abaixa o volume", "Como tá a bateria?" |
+| ⬜ | 7. Memória longa | Lembra de fatos sobre o dono entre os dias |
 
 ## Depois (ideias, sem ordem)
 

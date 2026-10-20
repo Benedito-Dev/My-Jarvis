@@ -32,7 +32,7 @@ def test_responde_com_o_texto_da_ia():
     falso = OpenRouterFalso(resposta_com("Um omelete resolve, Benedito."))
     cerebro = Cerebro("chave-x", enviar=falso.enviar)
 
-    assert cerebro.responder("ideia de jantar?", "Benedito", AGORA) == (
+    assert cerebro.responder("ideia de jantar?", "Benedito", AGORA).fala == (
         "Um omelete resolve, Benedito."
     )
 
@@ -125,11 +125,11 @@ def test_ferramenta_com_fala_pronta_responde_sem_voltar_a_ia():
     ferramenta, usadas = ferramenta_de_teste(fala="Certo. Te aviso às 10 e 25.")
     falso = OpenRouterRoteirizado(chamada_de("acao", '{"x": 1}'))
 
-    fala = Cerebro("k", enviar=falso.enviar).responder(
+    resposta = Cerebro("k", enviar=falso.enviar).responder(
         "me lembra", "Benedito", AGORA, ferramentas=[ferramenta]
     )
 
-    assert fala == "Certo. Te aviso às 10 e 25."
+    assert resposta.fala == "Certo. Te aviso às 10 e 25."
     assert usadas == [{"x": 1}]
     assert len(falso.pedidos) == 1  # uma viagem só
     assert falso.pedidos[0]["tools"][0]["function"]["name"] == "acao"
@@ -139,11 +139,11 @@ def test_ferramenta_sem_fala_volta_a_ia_com_o_resultado():
     ferramenta, _ = ferramenta_de_teste(fala=None)
     falso = OpenRouterRoteirizado(chamada_de("acao", "{}"), {"content": "Pronto, feito."})
 
-    fala = Cerebro("k", enviar=falso.enviar).responder(
+    resposta = Cerebro("k", enviar=falso.enviar).responder(
         "faz", "Benedito", AGORA, ferramentas=[ferramenta]
     )
 
-    assert fala == "Pronto, feito."
+    assert resposta.fala == "Pronto, feito."
     resultado = falso.pedidos[1]["messages"][-1]
     assert resultado == {"role": "tool", "tool_call_id": "c1", "content": "feito"}
 
@@ -154,3 +154,30 @@ def test_ia_presa_usando_ferramentas_desiste():
 
     with pytest.raises(CerebroIndisponivelError):
         Cerebro("k", enviar=falso.enviar).responder("faz", "B", AGORA, ferramentas=[ferramenta])
+
+
+def test_a_troca_guarda_a_ferramenta_usada_para_a_memoria():
+    # Sem isto, a memória só teria "Certo..." e a IA aprenderia a fingir a ação.
+    ferramenta, _ = ferramenta_de_teste(fala="Certo.")
+    falso = OpenRouterRoteirizado(chamada_de("acao", "{}"))
+
+    troca = (
+        Cerebro("k", enviar=falso.enviar)
+        .responder("faz", "B", AGORA, ferramentas=[ferramenta])
+        .troca
+    )
+
+    assert [m["role"] for m in troca] == ["user", "assistant", "tool", "assistant"]
+    assert troca[1]["tool_calls"][0]["function"]["name"] == "acao"
+    assert troca[-1] == {"role": "assistant", "content": "Certo."}
+
+
+def test_troca_sem_ferramenta_e_pergunta_e_resposta():
+    falso = OpenRouterRoteirizado({"content": "Quatro."})
+
+    troca = Cerebro("k", enviar=falso.enviar).responder("2+2?", "B", AGORA).troca
+
+    assert troca == [
+        {"role": "user", "content": "2+2?"},
+        {"role": "assistant", "content": "Quatro."},
+    ]

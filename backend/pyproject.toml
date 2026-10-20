@@ -7,6 +7,7 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
     # O faster-whisper 1.2 abre o áudio com um parâmetro que o av 14+ removeu.
     "av<14",
+    "ddgs==9.16.0",
     "fastapi>=0.143.3",
     "faster-whisper>=1.2.1",
     "opencv-python>=5.0.0.93",

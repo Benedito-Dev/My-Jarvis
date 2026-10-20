@@ -34,6 +34,7 @@ from jarvis.habilidades.desbloqueio_facial.desbloqueio import (
     NenhumRostoCadastradoError,
 )
 from jarvis.habilidades.lembretes.agenda import Agenda, Lembrete
+from jarvis.habilidades.notas.caderno import Caderno
 from jarvis.nucleo.acesso_pin import (
     AcessoPin,
     IdentificadorEmUsoError,
@@ -190,6 +191,7 @@ def criar_app(
     cerebro: Cerebro | None = None,
     agenda: Agenda | None = None,
     memoria: Memoria | None = None,
+    caderno: Caderno | None = None,
 ) -> FastAPI:
     """Monta a API. Sem `cerebro`, perguntas livres recebem "Ainda não sei fazer isso"."""
     sessao = sessao or Sessao(pasta_rostos)
@@ -197,7 +199,18 @@ def criar_app(
     # Na hora do lembrete, o Jarvis fala, esteja bloqueado ou não (como um alarme).
     agenda = agenda or Agenda(avisar=lambda lem: sessao.falar(f"Lembrete: {lem.texto}."))
     # As "mãos" que a IA pode usar. Nova ferramenta = nova linha aqui.
-    maos = [ferramentas.lembrete(agenda), ferramentas.listar_lembretes(agenda)]
+    caderno = caderno or Caderno()
+    maos = [
+        ferramentas.lembrete(agenda),
+        ferramentas.listar_lembretes(agenda),
+        ferramentas.pesquisar_web(),
+        ferramentas.clima(),
+        ferramentas.abrir_site(),
+        ferramentas.abrir_app(),
+        ferramentas.anotar(caderno),
+        ferramentas.ler_notas(caderno),
+        ferramentas.calcular(),
+    ]
 
     def trancar() -> None:
         """Bloqueia e esquece a conversa: a próxima pessoa não herda o contexto."""
@@ -336,9 +349,10 @@ def criar_app(
         # Não é um comando conhecido: pergunta à IA. Só com a sessão aberta, para
         # ninguém gastar o crédito (nem ler respostas) com o Jarvis bloqueado.
         usuario = sessao.usuario
+        troca_da_ia = None
         if not resposta.entendeu and cerebro is not None and usuario is not None:
             try:
-                fala = await run_in_threadpool(
+                da_ia = await run_in_threadpool(
                     lambda: cerebro.responder(
                         texto,
                         usuario.capitalize(),
@@ -346,7 +360,8 @@ def criar_app(
                         ferramentas=maos,
                     )
                 )
-                resposta = comandos.Resposta(fala=fala or comandos.NAO_SEI)
+                resposta = comandos.Resposta(fala=da_ia.fala or comandos.NAO_SEI)
+                troca_da_ia = da_ia.troca
             except CerebroIndisponivelError as erro:
                 print(erro)
                 resposta = comandos.Resposta(fala=SEM_CEREBRO, entendeu=False)
@@ -354,6 +369,8 @@ def criar_app(
         sessao.falar(resposta.fala)
         if resposta.acao == "bloquear":
             trancar()
+        elif troca_da_ia:
+            memoria.lembrar_troca(troca_da_ia)  # com as ferramentas usadas
         else:
             memoria.lembrar(texto, resposta.fala)
         return GravacaoResposta(

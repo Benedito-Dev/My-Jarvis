@@ -6,7 +6,7 @@ from jarvis.api import criar_app
 from jarvis.api.cadastros import Cadastros
 from jarvis.api.sessao import Sessao
 from jarvis.habilidades import HABILIDADES
-from jarvis.habilidades.conversa.cerebro import CerebroIndisponivelError
+from jarvis.habilidades.conversa.cerebro import CerebroIndisponivelError, RespostaDaIA
 from jarvis.habilidades.conversa.memoria import Memoria
 from jarvis.habilidades.conversa.transcricao import TranscricaoIndisponivelError
 from jarvis.habilidades.desbloqueio_facial import banco_rostos
@@ -235,7 +235,13 @@ class CerebroFalso:
         self.ferramentas = list(ferramentas)
         if self.erro:
             raise self.erro
-        return self.fala
+        return RespostaDaIA(
+            fala=self.fala,
+            troca=[
+                {"role": "user", "content": pergunta},
+                {"role": "assistant", "content": self.fala},
+            ],
+        )
 
 
 def cliente_de_gravacao(pasta, transcritor=None, sessao=None, cerebro=None):
@@ -371,7 +377,7 @@ def test_a_ia_lembra_das_trocas_anteriores(tmp_path):
     assert historico[1]["role"] == "assistant"
 
 
-def test_a_ia_recebe_a_ferramenta_de_lembrete(tmp_path):
+def test_a_ia_recebe_todas_as_ferramentas(tmp_path):
     cerebro = CerebroFalso()
     cliente = cliente_de_gravacao(
         tmp_path, TranscritorFalso("me lembra de algo"), sessao_aberta(tmp_path), cerebro
@@ -379,7 +385,17 @@ def test_a_ia_recebe_a_ferramenta_de_lembrete(tmp_path):
 
     cliente.post("/conversa/gravacao", content=b"voz")
 
-    assert [f.nome for f in cerebro.ferramentas] == ["criar_lembrete", "listar_lembretes"]
+    assert [f.nome for f in cerebro.ferramentas] == [
+        "criar_lembrete",
+        "listar_lembretes",
+        "pesquisar_web",
+        "clima",
+        "abrir_site",
+        "abrir_app",
+        "anotar",
+        "ler_notas",
+        "calcular",
+    ]
 
 
 def test_bloquear_esquece_a_conversa(tmp_path):

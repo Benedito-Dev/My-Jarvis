@@ -44,3 +44,29 @@ def test_esquecer_apaga_tudo():
     memoria.esquecer()
 
     assert memoria.recentes() == []
+
+
+def test_guarda_a_troca_com_ferramentas():
+    memoria = Memoria(relogio=Relogio())
+    troca = [
+        {"role": "user", "content": "abre o Spotify"},
+        {"role": "assistant", "content": None, "tool_calls": [{"id": "c1"}]},
+        {"role": "tool", "tool_call_id": "c1", "content": "Spotify aberto."},
+        {"role": "assistant", "content": "Abrindo o Spotify."},
+    ]
+
+    memoria.lembrar_troca(troca)
+
+    assert memoria.recentes() == troca
+
+
+def test_resultado_grande_de_ferramenta_e_encurtado():
+    memoria = Memoria(relogio=Relogio())
+    memoria.lembrar_troca(
+        [
+            {"role": "user", "content": "pesquisa"},
+            {"role": "tool", "tool_call_id": "c1", "content": "x" * 5000},
+        ]
+    )
+
+    assert len(memoria.recentes()[1]["content"]) < 400
