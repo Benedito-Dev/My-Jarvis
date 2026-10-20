@@ -6,6 +6,7 @@ from jarvis.api import criar_app
 from jarvis.api.cadastros import Cadastros
 from jarvis.api.sessao import Sessao
 from jarvis.habilidades import HABILIDADES
+from jarvis.habilidades.conversa.cerebro import CerebroIndisponivelError
 from jarvis.habilidades.conversa.transcricao import TranscricaoIndisponivelError
 from jarvis.habilidades.desbloqueio_facial import banco_rostos
 from jarvis.habilidades.desbloqueio_facial.cadastro import Cadastro as CadastroDeVerdade
@@ -218,15 +219,35 @@ class LocutorQueAnota:
         return True
 
 
-def cliente_de_gravacao(pasta, transcritor=None, sessao=None):
+class CerebroFalso:
+    def __init__(self, fala="Um omelete resolve.", erro=None):
+        self.fala = fala
+        self.erro = erro
+        self.perguntas = []
+
+    def responder(self, pergunta, usuario):
+        self.perguntas.append((pergunta, usuario))
+        if self.erro:
+            raise self.erro
+        return self.fala
+
+
+def cliente_de_gravacao(pasta, transcritor=None, sessao=None, cerebro=None):
     sessao = sessao or Sessao(pasta / "rostos", locutor=LocutorQueAnota())
     return TestClient(
         criar_app(
             pasta_gravacoes=pasta,
             transcritor=transcritor or TranscritorFalso(),
             sessao=sessao,
+            cerebro=cerebro,
         )
     )
+
+
+def sessao_aberta(pasta, locutor=None):
+    sessao = Sessao(pasta / "rostos", locutor=locutor or LocutorQueAnota())
+    sessao._usuario = "benedito"  # como se já tivesse desbloqueado
+    return sessao
 
 
 def test_gravacao_e_guardada(tmp_path):
@@ -282,6 +303,52 @@ def test_pedido_desconhecido_responde_que_ainda_nao_sabe(tmp_path):
     corpo = cliente.post("/conversa/gravacao", content=b"voz").json()
 
     assert corpo["resposta"] == "Ainda não sei fazer isso."
+
+
+def test_pergunta_livre_vai_para_o_cerebro_e_e_falada(tmp_path):
+    locutor = LocutorQueAnota()
+    cerebro = CerebroFalso("Um omelete resolve.")
+    cliente = cliente_de_gravacao(
+        tmp_path, TranscritorFalso("ideia de jantar?"), sessao_aberta(tmp_path, locutor), cerebro
+    )
+
+    corpo = cliente.post("/conversa/gravacao", content=b"voz").json()
+
+    assert corpo["resposta"] == "Um omelete resolve."
+    assert cerebro.perguntas == [("ideia de jantar?", "Benedito")]
+    assert locutor.frases == ["Um omelete resolve."]
+
+
+def test_comando_conhecido_nao_gasta_a_ia(tmp_path):
+    cerebro = CerebroFalso()
+    cliente = cliente_de_gravacao(
+        tmp_path, TranscritorFalso("que horas são"), sessao_aberta(tmp_path), cerebro
+    )
+
+    cliente.post("/conversa/gravacao", content=b"voz")
+
+    assert cerebro.perguntas == []
+
+
+def test_com_o_jarvis_bloqueado_a_ia_nao_e_usada(tmp_path):
+    cerebro = CerebroFalso()
+    cliente = cliente_de_gravacao(tmp_path, TranscritorFalso("ideia de jantar?"), cerebro=cerebro)
+
+    corpo = cliente.post("/conversa/gravacao", content=b"voz").json()
+
+    assert cerebro.perguntas == []
+    assert corpo["resposta"] == "Ainda não sei fazer isso."
+
+
+def test_ia_fora_do_ar_avisa_em_voz(tmp_path):
+    cerebro = CerebroFalso(erro=CerebroIndisponivelError("sem crédito"))
+    cliente = cliente_de_gravacao(
+        tmp_path, TranscritorFalso("ideia de jantar?"), sessao_aberta(tmp_path), cerebro
+    )
+
+    corpo = cliente.post("/conversa/gravacao", content=b"voz").json()
+
+    assert corpo["resposta"].startswith("Não consegui pensar nisso agora")
 
 
 def test_sem_fala_nao_responde_nada(tmp_path):

@@ -21,6 +21,8 @@ from jarvis.api.sessao import (
 )
 from jarvis.habilidades import HABILIDADES, Situacao
 from jarvis.habilidades.conversa import comandos, gravacoes
+from jarvis.habilidades.conversa.cerebro import MODELO as MODELO_IA
+from jarvis.habilidades.conversa.cerebro import Cerebro, CerebroIndisponivelError, criar_cerebro
 from jarvis.habilidades.conversa.gravacoes import TipoDeAudioInvalidoError
 from jarvis.habilidades.conversa.transcricao import TranscricaoIndisponivelError, Transcritor
 from jarvis.habilidades.desbloqueio_facial import banco_rostos
@@ -36,7 +38,8 @@ from jarvis.nucleo.acesso_pin import (
     IdentificadorInvalidoError,
     PinInvalidoError,
 )
-from jarvis.nucleo.config import NOME_ASSISTENTE
+from jarvis.nucleo.caminhos import PASTA_BACKEND
+from jarvis.nucleo.config import NOME_ASSISTENTE, carregar_segredos
 
 # Só a própria máquina acessa: o Jarvis não fica exposto na rede.
 HOST = "127.0.0.1"
@@ -156,6 +159,9 @@ def _retangulos(rostos) -> list["RetanguloResposta"]:
     ]
 
 
+# Quando a IA não responde (sem internet, sem crédito...).
+SEM_CEREBRO = "Não consegui pensar nisso agora. Tente de novo em instantes."
+
 # Um só Whisper para o servidor inteiro: carregar leva segundos e ocupa ~500 MB.
 TRANSCRITOR = Transcritor()
 
@@ -167,7 +173,9 @@ def criar_app(
     pasta_gravacoes: Path = gravacoes.PASTA_GRAVACOES,
     transcritor: Transcritor | None = None,
     cadastros: Cadastros | None = None,
+    cerebro: Cerebro | None = None,
 ) -> FastAPI:
+    """Monta a API. Sem `cerebro`, perguntas livres recebem "Ainda não sei fazer isso"."""
     sessao = sessao or Sessao(pasta_rostos)
     acesso_pin = acesso_pin or AcessoPin()
     cadastros = cadastros or Cadastros(pasta_rostos)
@@ -291,6 +299,17 @@ def criar_app(
         if resposta is None:
             return GravacaoResposta(arquivo=caminho.name, bytes=len(audio), texto=texto)
 
+        # Não é um comando conhecido: pergunta à IA. Só com a sessão aberta, para
+        # ninguém gastar o crédito (nem ler respostas) com o Jarvis bloqueado.
+        usuario = sessao.usuario
+        if not resposta.entendeu and cerebro is not None and usuario is not None:
+            try:
+                fala = await run_in_threadpool(cerebro.responder, texto, usuario.capitalize())
+                resposta = comandos.Resposta(fala=fala or comandos.NAO_SEI)
+            except CerebroIndisponivelError as erro:
+                print(erro)
+                resposta = comandos.Resposta(fala=SEM_CEREBRO, entendeu=False)
+
         sessao.falar(resposta.fala)
         if resposta.acao == "bloquear":
             sessao.bloquear()
@@ -324,6 +343,10 @@ def criar_app(
 
 def rodar() -> None:
     """Sobe o servidor e fica rodando até Ctrl+C."""
+    # Segredos (a chave da IA) vêm de backend/.env, que não vai para o git.
+    carregar_segredos(PASTA_BACKEND / ".env")
+    cerebro = criar_cerebro()
+    print(f"Cérebro de IA: {'ligado (' + MODELO_IA + ')' if cerebro else 'desligado (sem chave)'}")
     # Já deixa os modelos carregados: o primeiro desbloqueio não espera 2 s e a
     # primeira fala não espera o Whisper (~3 s, ou o download no primeiro uso).
     threading.Thread(target=modelos, daemon=True).start()
@@ -331,4 +354,4 @@ def rodar() -> None:
     # E a voz: "Bem-vindo", "Aproxime seu rosto"... já geradas antes de precisar.
     sessao = Sessao()
     threading.Thread(target=sessao.preparar_voz, daemon=True).start()
-    uvicorn.run(criar_app(sessao=sessao), host=HOST, port=PORTA)
+    uvicorn.run(criar_app(sessao=sessao, cerebro=cerebro), host=HOST, port=PORTA)

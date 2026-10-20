@@ -34,6 +34,6 @@ HABILIDADES = [
     Habilidade(
         id="conversa",
         nome="Conversa",
-        descricao="Responde hora, data e bloquear por voz",
+        descricao="Conversa por voz: comandos e perguntas livres (IA)",
     ),
 ]

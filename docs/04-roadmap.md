@@ -52,7 +52,7 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ pendente
 | ✅ | 1. Ouvir | Segura ESPAÇO, fala, e o Jarvis grava a sua voz; o núcleo pulsa com o volume |
 | ✅ | 2. Transcrever | "Você disse: que horas são" (Whisper local, [decisão 0016](decisoes/0016-whisper-local-para-transcrever.md)) |
 | ✅ | 3. Comandos simples | "Que horas são?" → "São 14 horas e 3."; também data e "bloquear", e o núcleo "fala" junto |
-| ⬜ | 4. Cérebro de IA | Pergunta livre → resposta (Claude) |
+| ✅ | 4. Cérebro de IA | Pergunta livre → resposta falada (DeepSeek pelo OpenRouter, [decisão 0018](decisoes/0018-cerebro-openrouter-deepseek.md)) |
 | ⬜ | 5. Bônus | Palavra de ativação "Jarvis" |
 
 ## Depois (ideias, sem ordem)

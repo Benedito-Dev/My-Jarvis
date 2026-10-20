@@ -18,3 +18,6 @@ backend/src/jarvis/habilidades/conversa/modelos/
 
 # Voz do Jarvis (Piper): baixada no primeiro uso
 backend/src/jarvis/nucleo/modelos/
+
+# Segredos (chave da IA): nunca vão para o git
+backend/.env

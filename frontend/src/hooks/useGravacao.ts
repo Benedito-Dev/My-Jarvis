@@ -1,6 +1,6 @@
 import { type RefObject, useEffect, useRef, useState } from "react";
 import { enviarGravacao } from "../api";
-import { escolherFormato, type EstadoGravacao } from "../gravacao";
+import { duracaoDaFala, escolherFormato, type EstadoGravacao } from "../gravacao";
 import { nivelDoSinal } from "../nucleo";
 
 // Tempo mínimo do estado "pensando" (roxo) depois de soltar o ESPAÇO.
@@ -127,7 +127,9 @@ export function useGravacao(ligado: boolean): Gravacao {
   // ficar à disposição.
   useEffect(() => {
     if (gravacao.estado !== "ouvida") return;
-    const temporizador = setTimeout(() => setGravacao({ estado: "parado" }), RECADO_MS);
+    // Resposta longa da IA: o recado fica até ela terminar de falar, e mais um pouco.
+    const tempo = Math.max(RECADO_MS, duracaoDaFala(gravacao.resposta ?? "") + 2500);
+    const temporizador = setTimeout(() => setGravacao({ estado: "parado" }), tempo);
     return () => clearTimeout(temporizador);
   }, [gravacao]);
 

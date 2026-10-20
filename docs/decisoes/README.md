@@ -23,6 +23,7 @@ Cada decisão importante ganha **um arquivo** nesta pasta.
 | [0015](0015-malha-do-rosto-no-app.md) | Malha do rosto no app (MediaPipe), o backend continua decidindo | ✅ Aceita | 2026-10-19 |
 | [0016](0016-whisper-local-para-transcrever.md) | Whisper local (faster-whisper "small") para transcrever a voz | ✅ Aceita | 2026-10-19 |
 | [0017](0017-voz-piper-faber.md) | A voz do Jarvis: Piper TTS com a voz "Faber", igual nos três sistemas | ✅ Aceita | 2026-10-19 |
+| [0018](0018-cerebro-openrouter-deepseek.md) | Cérebro de IA: DeepSeek V4.1 Flash pelo OpenRouter | ✅ Aceita | 2026-10-20 |
 
 ## Como criar uma nova decisão
 
