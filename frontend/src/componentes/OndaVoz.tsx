@@ -1,12 +1,15 @@
 import { type RefObject, useEffect, useRef } from "react";
 
 // A onda da voz na faixa de conversa: barras que andam da direita para a
-// esquerda com o volume real do microfone. Em silêncio, uma linha quase parada.
+// esquerda com o volume real: o do microfone (você) e o da voz do Jarvis
+// (envelope vindo do backend). Em silêncio, uma linha quase parada.
 
 const BARRAS = 64;
 
-export function OndaVoz({ nivel, cor }: { nivel: RefObject<number>; cor: string }) {
+export function OndaVoz({ niveis, cor }: { niveis: RefObject<number>[]; cor: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const niveisRef = useRef(niveis);
+  niveisRef.current = niveis;
   const corRef = useRef(cor);
   corRef.current = cor;
 
@@ -30,7 +33,7 @@ export function OndaVoz({ nivel, cor }: { nivel: RefObject<number>; cor: string 
       // Uma barra nova a cada 40 ms: rápido para parecer vivo, lento para dar para ler.
       if (agora - ultimoEmpurrao > 40) {
         historico.shift();
-        historico.push(nivel.current ?? 0);
+        historico.push(Math.max(0, ...niveisRef.current.map((n) => n.current ?? 0)));
         ultimoEmpurrao = agora;
       }
 
@@ -54,7 +57,7 @@ export function OndaVoz({ nivel, cor }: { nivel: RefObject<number>; cor: string 
       cancelAnimationFrame(quadro);
       observador.disconnect();
     };
-  }, [nivel]);
+  }, []);
 
   return <canvas ref={canvasRef} className="onda-voz" aria-hidden="true" />;
 }

@@ -18,13 +18,18 @@ const CORES: Record<TomNucleo, string> = {
   pensando: "169, 112, 255",
 };
 
-/** Como a esfera se comporta: em repouso, ouvindo, pensando ou falando. */
-export type ModoNucleo = "calmo" | "ouvindo" | "pensando" | "falando";
+/**
+ * Como a esfera se comporta: em repouso, ouvindo, pensando ou falando.
+ * "voz" é falando com o volume real da fala (canal /voz/eventos); "falando" é a
+ * estimativa, para quando o backend não mede a voz (sem Piper).
+ */
+export type ModoNucleo = "calmo" | "ouvindo" | "pensando" | "falando" | "voz";
 
 // "Energia" mínima de cada modo, antes de qualquer som. Ouvindo, a voz soma por
 // cima; pensando, a esfera pulsa sozinha entre o repouso e a fala.
 function energiaDoModo(modo: ModoNucleo, agora: number): number {
   if (modo === "ouvindo") return 0.18;
+  if (modo === "voz") return 0.08; // o resto vem do volume real da fala
   if (modo === "pensando") return 0.42 + Math.sin(agora / 260) * 0.14;
   if (modo === "falando") {
     // Pulsos curtos, como sílabas, dentro de uma "frase" que sobe e desce.
@@ -36,12 +41,15 @@ function energiaDoModo(modo: ModoNucleo, agora: number): number {
 }
 
 type Props = {
-  nivel: RefObject<number>;
+  /** Volumes que agitam a esfera (o microfone e a voz do Jarvis): vale o maior. */
+  niveis: RefObject<number>[];
   tom: TomNucleo;
   modo: ModoNucleo;
 };
 
-export function Nucleo({ nivel, tom, modo }: Props) {
+export function Nucleo({ niveis, tom, modo }: Props) {
+  const niveisRef = useRef(niveis);
+  niveisRef.current = niveis;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const tomRef = useRef(tom);
   tomRef.current = tom;
@@ -69,7 +77,8 @@ export function Nucleo({ nivel, tom, modo }: Props) {
     function passo(agora: number) {
       const intervalo = anterior ? Math.min(agora - anterior, 50) : 16;
       anterior = agora;
-      const alvo = Math.max(nivel.current ?? 0, energiaDoModo(modoRef.current, agora));
+      const volume = Math.max(0, ...niveisRef.current.map((n) => n.current ?? 0));
+      const alvo = Math.max(volume, energiaDoModo(modoRef.current, agora));
       energia += (alvo - energia) * (alvo > energia ? 0.45 : 0.1);
       // Parada, uma volta a cada ~26 s; falando alto, umas 6 vezes mais rápido.
       if (!calmo) giro += intervalo * (0.00024 + energia * 0.0014);
@@ -82,7 +91,7 @@ export function Nucleo({ nivel, tom, modo }: Props) {
       cancelAnimationFrame(quadro);
       observador.disconnect();
     };
-  }, [nivel]);
+  }, []);
 
   return <canvas ref={canvasRef} className="nucleo" aria-hidden="true" />;
 }
@@ -126,7 +135,16 @@ function desenhar(
 
   // 3. Arcos girando em sentidos opostos.
   arco(ctx, cx, cy, R * 0.8, giro * 1.6, 1.4, `rgba(${cor}, 0.6)`, (2 + energia * 2) * traco);
-  arco(ctx, cx, cy, R * 0.8, giro * 1.6 + Math.PI, 0.6, `rgba(${cor}, 0.6)`, (2 + energia * 2) * traco);
+  arco(
+    ctx,
+    cx,
+    cy,
+    R * 0.8,
+    giro * 1.6 + Math.PI,
+    0.6,
+    `rgba(${cor}, 0.6)`,
+    (2 + energia * 2) * traco,
+  );
   arco(ctx, cx, cy, R * 0.74, -giro * 1.2, 2.2, `rgba(${cor}, 0.3)`, 1 * traco);
 
   // 4. Onda de choque: um anel que se expande com a força da voz.
@@ -149,13 +167,19 @@ function desenhar(
   const emX = 0.42 + Math.sin(agora / 6000) * 0.12 + energia * 0.25 * Math.sin(agora / 700);
   for (let i = 0; i < ESFERA.length; i++) {
     const original = ESFERA[i];
-    const onda = Math.sin(original.y * 6 - agora / 140) * 0.5 + Math.sin(FASES[i] + agora / 90) * 0.5;
+    const onda =
+      Math.sin(original.y * 6 - agora / 140) * 0.5 + Math.sin(FASES[i] + agora / 90) * 0.5;
     const agito = 1 + energia * 0.55 * onda;
     const p = girar(original, giro, emX);
     const profundidade = (p.z + 1) / 2; // 0 = fundo, 1 = frente
     const tamanho = (0.8 + profundidade * 1.6) * traco * (1 + energia * 1.2);
     ctx.fillStyle = `rgba(${cor}, ${0.12 + profundidade * 0.78})`;
-    ctx.fillRect(cx + p.x * raio * agito - tamanho / 2, cy + p.y * raio * agito - tamanho / 2, tamanho, tamanho);
+    ctx.fillRect(
+      cx + p.x * raio * agito - tamanho / 2,
+      cy + p.y * raio * agito - tamanho / 2,
+      tamanho,
+      tamanho,
+    );
   }
 
   // 6. O "olho" no centro.

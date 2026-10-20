@@ -172,3 +172,41 @@ def test_fila_sem_motor_nao_faz_nada():
     locutor = Locutor(motor=None)
 
     locutor.enfileirar("oi")  # não quebra
+
+
+# --- Avisar quando uma fala começa (para o núcleo pulsar junto) ----------------
+
+
+def test_avisa_quando_comeca_a_falar_com_o_envelope():
+    motor = MotorDeVoz(
+        nome="falso",
+        programa="falar",
+        falar=lambda frase: ["falar", frase],
+        envelope=lambda frase: [0.5, 0.8],
+    )
+    cenario = Cenario(motor)
+    avisos = []
+    cenario.locutor.observar(lambda frase, envelope: avisos.append((frase, envelope)))
+
+    cenario.locutor.falar("Bem-vindo, Benedito")
+    cenario.locutor.enfileirar("Uma resposta.")
+    cenario.rodar_em_fundo()
+
+    assert avisos == [("Bem-vindo, Benedito", [0.5, 0.8]), ("Uma resposta.", [0.5, 0.8])]
+
+
+def test_motor_sem_envelope_avisa_sem_ele():
+    cenario = Cenario()
+    avisos = []
+    cenario.locutor.observar(lambda frase, envelope: avisos.append((frase, envelope)))
+
+    cenario.locutor.falar("Olá")
+
+    assert avisos == [("Olá", None)]
+
+
+def test_observador_com_defeito_nao_cala_o_jarvis():
+    cenario = Cenario()
+    cenario.locutor.observar(lambda *_: 1 / 0)
+
+    assert cenario.locutor.falar("Olá")

@@ -20,6 +20,13 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from jarvis.nucleo.voz_piper import VozPiper
 
+
+def envelope_do_arquivo(arquivo: Path) -> list[float]:
+    from jarvis.nucleo.voz_piper import envelope  # numpy só quando for usar
+
+    return envelope(arquivo)
+
+
 # Voz usada em cada sistema. Pode ser trocada por `JARVIS_VOZ`.
 # - macOS: vozes pt-BR instaladas aparecem em `say -v '?' | grep pt_BR`.
 # - Linux: o `spd-say` fala por idioma, não por nome de voz. Só existe pt
@@ -42,6 +49,8 @@ class MotorDeVoz:
       processo não basta. `None` quando matar o processo já resolve.
     - `programa`: o executável que precisa existir na máquina para falar.
     - `preparar(frases)`: deixa frases prontas antes (só o Piper usa).
+    - `envelope(frase)`: o volume da frase a cada 40 ms, de 0 a 1 (só o Piper,
+      que gera o áudio aqui; com `say`/`spd-say` não há como medir).
     """
 
     nome: str
@@ -49,6 +58,7 @@ class MotorDeVoz:
     programa: str
     cancelar: list[str] | None = None
     preparar: Callable[[Iterable[str]], None] | None = None
+    envelope: Callable[[str], list[float]] | None = None
 
 
 def _motor_macos(voz: str) -> MotorDeVoz:
@@ -109,6 +119,7 @@ def _motor_piper(
         programa=tocar(Path("x.wav"))[0],
         falar=lambda frase: tocar(voz.arquivo_da_frase(frase)),
         preparar=voz.preparar,
+        envelope=lambda frase: envelope_do_arquivo(voz.arquivo_da_frase(frase)),
     )
 
 

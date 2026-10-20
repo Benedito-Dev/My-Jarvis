@@ -1,6 +1,9 @@
 import os
+import wave
 
-from jarvis.nucleo.voz_piper import VozPiper, nome_no_cache
+import numpy as np
+
+from jarvis.nucleo.voz_piper import VozPiper, envelope, nome_no_cache
 
 
 class SinteseFalsa:
@@ -73,3 +76,21 @@ def test_cache_tem_limite_e_tira_as_usadas_ha_mais_tempo(tmp_path):
 
 def test_frases_diferentes_caem_em_arquivos_diferentes():
     assert nome_no_cache("Bloqueando.") != nome_no_cache("Bem-vindo.")
+
+
+def test_envelope_segue_o_volume_do_audio(tmp_path):
+    taxa = 22050
+    silencio = np.zeros(int(taxa * 0.08), dtype=np.int16)  # 2 janelas de 40 ms
+    alto = (np.sin(np.linspace(0, 400, int(taxa * 0.08))) * 32767 * 0.5).astype(np.int16)
+    arquivo = tmp_path / "fala.wav"
+    with wave.open(str(arquivo), "wb") as saida:
+        saida.setnchannels(1)
+        saida.setsampwidth(2)
+        saida.setframerate(taxa)
+        saida.writeframes(np.concatenate([silencio, alto]).tobytes())
+
+    niveis = envelope(arquivo)
+
+    assert niveis[:2] == [0.0, 0.0]  # silêncio
+    assert min(niveis[2:4]) > 0.9  # seno com metade do volume máximo: bem acima da fala normal
+    assert all(0 <= n <= 1 for n in niveis)

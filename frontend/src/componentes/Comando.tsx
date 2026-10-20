@@ -17,6 +17,7 @@ import {
 import { MS_POR_LETRA, useDigitando } from "../hooks/useDigitando";
 import { cumprimento } from "../tempo";
 import { ModuloHabilidades, ModuloLembretes, ModuloSistema, ModuloTempo } from "./ModulosComando";
+import { useVozDoJarvis } from "../hooks/useVozDoJarvis";
 import { HistoricoConversa } from "./HistoricoConversa";
 import { type ModoNucleo, Nucleo } from "./Nucleo";
 import { OndaVoz } from "./OndaVoz";
@@ -121,6 +122,9 @@ export function Comando({
     return () => clearTimeout(temporizador);
   }, [falandoAte]);
 
+  // A voz de verdade (envelope vindo do backend). Sem ela, fica a estimativa acima.
+  const voz = useVozDoJarvis();
+
   const esperandoResposta =
     gravacao.estado === "enviando" ||
     (gravacao.estado === "ouvida" && !gravacao.resposta && !gravacao.terminou);
@@ -128,9 +132,13 @@ export function Comando({
     ? "ouvindo"
     : esperandoResposta
       ? "pensando"
-      : falando
-        ? "falando"
-        : "calmo";
+      : voz.temEnvelope
+        ? voz.falando
+          ? "voz"
+          : "calmo"
+        : falando
+          ? "falando"
+          : "calmo";
 
   return (
     <main className={`comando comando--${nucleo.tom}`}>
@@ -151,7 +159,7 @@ export function Comando({
 
       <section className={`comando__centro ${conversaLonga ? "comando__centro--longa" : ""}`}>
         <div className="comando__nucleo">
-          <Nucleo nivel={nivel} tom={nucleo.tom} modo={modo} />
+          <Nucleo niveis={[nivel, voz.nivel]} tom={nucleo.tom} modo={modo} />
         </div>
         <p className="comando__cumprimento">
           {cumprimento(agora)}, <strong>{usuario}</strong>.
@@ -190,7 +198,7 @@ export function Comando({
             aria-label="Mensagem para o Jarvis"
           />
         </form>
-        <OndaVoz nivel={nivel} cor={CORES[nucleo.tom]} />
+        <OndaVoz niveis={[nivel, voz.nivel]} cor={CORES[nucleo.tom]} />
         <kbd className={`comando__tecla ${gravando ? "comando__tecla--apertada" : ""}`}>ESPAÇO</kbd>
         <button
           className="comando__historico"

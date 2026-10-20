@@ -1,5 +1,6 @@
 import type { EventoConversa } from "./gravacao";
 import { LeitorDeLinhas } from "./linhas";
+import type { EventoVoz } from "./voz";
 
 // Ponte com o backend Python (jarvis servidor), que roda só nesta máquina.
 export const URL_BACKEND = "http://127.0.0.1:8765";
@@ -178,6 +179,18 @@ export async function conversarPorTexto(
   await lerConversa(resposta, aoEvento);
 }
 
+/**
+ * Fica ouvindo o canal da voz do Jarvis (uma linha por fala que começa) até o
+ * `sinal` cancelar ou o backend fechar. Não tem tempo limite: é um canal aberto.
+ */
+export async function ouvirVozDoJarvis(
+  aoEvento: (evento: EventoVoz) => void,
+  sinal: AbortSignal,
+): Promise<void> {
+  const resposta = await fetch(`${URL_BACKEND}/voz/eventos`, { signal: sinal });
+  await lerLinhas(resposta, (linha) => aoEvento(JSON.parse(linha)));
+}
+
 async function lerConversa(
   resposta: Response,
   aoEvento: (evento: EventoConversa) => void,
@@ -186,17 +199,21 @@ async function lerConversa(
     const corpo = await resposta.json().catch(() => null);
     throw new Error(corpo?.detail ?? `Backend respondeu ${resposta.status} na conversa`);
   }
+  await lerLinhas(resposta, (linha) => aoEvento(JSON.parse(linha)));
+}
+
+/** Lê um corpo em fluxo, linha por linha, conforme os bytes chegam. */
+async function lerLinhas(resposta: Response, aoLer: (linha: string) => void): Promise<void> {
+  if (!resposta.body) throw new Error("Resposta sem corpo");
   const leitor = resposta.body.getReader();
   const decodificador = new TextDecoder();
   const linhas = new LeitorDeLinhas();
   for (;;) {
     const { done, value } = await leitor.read();
     if (done) break;
-    linhas.empurrar(decodificador.decode(value, { stream: true })).forEach((linha) => {
-      aoEvento(JSON.parse(linha));
-    });
+    linhas.empurrar(decodificador.decode(value, { stream: true })).forEach(aoLer);
   }
-  linhas.terminar().forEach((linha) => aoEvento(JSON.parse(linha)));
+  linhas.terminar().forEach(aoLer);
 }
 
 export const enviarQuadro = (jpeg: Blob) =>

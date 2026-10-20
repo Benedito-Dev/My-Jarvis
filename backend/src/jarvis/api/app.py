@@ -1,6 +1,7 @@
 """Servidor FastAPI que o app (frontend) consulta."""
 
 import json
+import queue
 import threading
 from collections.abc import Iterator
 from importlib.metadata import version
@@ -52,6 +53,7 @@ from jarvis.nucleo.acesso_pin import (
 )
 from jarvis.nucleo.caminhos import PASTA_BACKEND, PASTA_DADOS
 from jarvis.nucleo.config import NOME_ASSISTENTE, carregar_segredos
+from jarvis.nucleo.transmissao import Transmissao
 
 # Só a própria máquina acessa: o Jarvis não fica exposto na rede.
 HOST = "127.0.0.1"
@@ -187,6 +189,9 @@ def _retangulos(rostos) -> list["RetanguloResposta"]:
     ]
 
 
+# De quanto em quanto tempo vem um ponto do envelope da voz (voz_piper.envelope).
+PASSO_DO_ENVELOPE_MS = 40
+
 # Onde os lembretes ficam salvos entre um reinício e outro (fora do git).
 ARQUIVO_LEMBRETES = PASTA_DADOS / "lembretes.json"
 
@@ -227,6 +232,15 @@ def criar_app(
         ferramentas.ler_notas(caderno),
         ferramentas.calcular(),
     ]
+
+    # Cada fala que começa a tocar vira um evento para o app (núcleo pulsando com
+    # a voz de verdade). Inclui "Bem-vindo" e lembretes, não só as respostas.
+    transmissao = Transmissao()
+    sessao.observar_voz(
+        lambda frase, envelope: transmissao.publicar(
+            {"tipo": "fala", "frase": frase, "envelope": envelope, "passo_ms": PASSO_DO_ENVELOPE_MS}
+        )
+    )
 
     def trancar() -> None:
         """Bloqueia e esquece a conversa: a próxima pessoa não herda o contexto."""
@@ -323,6 +337,25 @@ def criar_app(
         """Tranca o Jarvis de novo (botão Bloquear do app)."""
         trancar()
         return SessaoResposta(usuario=None)
+
+    @app.get("/voz/eventos")
+    def eventos_da_voz() -> StreamingResponse:
+        """Canal aberto (NDJSON): um evento a cada fala que começa, com o envelope do
+        volume. A cada 15 s sem fala, um "pulso", para perceber quando o app sai."""
+
+        def eventos() -> Iterator[str]:
+            fila = transmissao.assinar()
+            try:
+                yield _linha(tipo="pulso")
+                while True:
+                    try:
+                        yield _linha(**fila.get(timeout=15))
+                    except queue.Empty:
+                        yield _linha(tipo="pulso")
+            finally:
+                transmissao.cancelar(fila)
+
+        return _em_fluxo(eventos())
 
     @app.get("/lembretes")
     def lembretes() -> list[LembreteResposta]:

@@ -68,6 +68,7 @@ class Locutor:
         # Muda a cada interrupção: a fila antiga percebe e para de tocar.
         self._geracao = 0
         self._geracao_da_fila = -1  # de qual geração é a fila que está tocando
+        self._observador: Callable[[str, list[float] | None], None] | None = None
         self._trava = threading.Lock()
         self._processo: subprocess.Popen | None = None
         self._ultima_frase: str | None = None
@@ -102,7 +103,22 @@ class Locutor:
         self._processo = self._iniciar(comando)
         self._ultima_frase = frase
         self._ultima_vez = self._relogio()
+        self._avisar_que_comecou(frase)
         return True
+
+    def observar(self, observador: Callable[[str, list[float] | None], None]) -> None:
+        """Chama `observador(frase, envelope)` sempre que uma fala COMEÇA a tocar.
+        O envelope (volume a cada 40 ms) vem quando o motor sabe medir; senão, None."""
+        self._observador = observador
+
+    def _avisar_que_comecou(self, frase: str) -> None:
+        if self._observador is None:
+            return
+        try:
+            envelope = self._motor.envelope(frase) if self._motor.envelope else None
+            self._observador(frase, envelope)
+        except Exception as erro:  # observar nunca pode calar o Jarvis
+            print(f"Não consegui avisar a fala ({erro}).", flush=True)
 
     def calar(self) -> None:
         """Para a fala atual e esvazia a fila."""
@@ -147,6 +163,7 @@ class Locutor:
                 self._processo = self._iniciar(comando)
                 processo = self._processo
             self._ultima_frase, self._ultima_vez = frase, self._relogio()
+            self._avisar_que_comecou(frase)
             processo.wait()
 
     def _parar_de_tocar(self, geracao: int) -> None:

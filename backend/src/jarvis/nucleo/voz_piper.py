@@ -106,3 +106,30 @@ class VozPiper:
         """Deixa estas frases prontas no cache, para saírem sem espera."""
         for frase in frases:
             self.arquivo_da_frase(frase)
+
+
+# Volume "cheio" da voz Faber: um RMS de 0,35 vira nível 1. Medido: a fala fica
+# entre 0,15 (p50) e 0,28 (p90), com picos de ~0,4.
+RMS_DE_REFERENCIA = 0.35
+PASSO_DO_ENVELOPE_S = 0.04
+
+
+def envelope(arquivo: Path, passo_s: float = PASSO_DO_ENVELOPE_S) -> list[float]:
+    """O volume da fala a cada `passo_s` segundos, de 0 a 1.
+
+    É o que o app usa para o núcleo pulsar junto com a voz de verdade: o áudio
+    toca no backend, e o app não o ouve.
+    """
+    import numpy as np  # já vem com o OpenCV; só aqui para não pesar o import
+
+    with wave.open(str(arquivo)) as audio:
+        taxa = audio.getframerate()
+        amostras = np.frombuffer(audio.readframes(audio.getnframes()), dtype=np.int16)
+    sinal = amostras.astype(np.float32) / 32768
+    janela = max(1, int(taxa * passo_s))
+    niveis = []
+    for inicio in range(0, len(sinal), janela):
+        pedaco = sinal[inicio : inicio + janela]
+        rms = float(np.sqrt(np.mean(pedaco * pedaco)))
+        niveis.append(round(min(1.0, rms / RMS_DE_REFERENCIA), 2))
+    return niveis

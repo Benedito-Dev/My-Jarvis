@@ -40,5 +40,8 @@ dono ouvindo a mesma frase em 8 vozes** (Luciana, 4 do Piper e 3 do Kokoro).
 - ✅ A mesma voz no Mac, no Linux e no Windows, e o Windows deixa de ser mudo
 - ✅ Frases repetidas saem na hora (cache); as novas levam ~1 a 3 s para gerar
 - ✅ `JARVIS_MUDO=1` cala o Jarvis (os testes usam isso)
+- ✅ Como o áudio é gerado aqui, dá para medir o volume da fala (envelope, a cada
+  40 ms). O canal `GET /voz/eventos` avisa o app quando cada fala começa, e o núcleo
+  pulsa com a voz de verdade, inclusive em "Bem-vindo" e nos lembretes
 - ⚠️ O Piper avisa "Missing phoneme ̃" em sons nasais (são, estão). O dono aprovou a voz assim mesmo
 - ⚠️ O tocador do Windows (PowerShell) ainda não foi testado numa máquina Windows

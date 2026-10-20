@@ -120,6 +120,12 @@ class Sessao:
         """Fala depois do que já está na fila (resposta da IA, frase a frase)."""
         self._locutor.enfileirar(frase)
 
+    def observar_voz(self, observador) -> None:
+        """Avisa `observador(frase, envelope)` a cada fala que começa (se o locutor souber)."""
+        observar = getattr(self._locutor, "observar", None)
+        if observar is not None:
+            observar(observador)
+
     def calar(self) -> None:
         """Para de falar e esvazia a fila (vai começar uma resposta nova)."""
         self._locutor.calar()
