@@ -7,6 +7,7 @@ qualquer hora do dia sem esperar por ela.
 
 import re
 import unicodedata
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 from difflib import get_close_matches
@@ -91,12 +92,40 @@ def falar_data(agora: datetime) -> str:
     return f"Hoje é {DIAS[agora.weekday()]}, {agora.day} de {MESES[agora.month - 1]}."
 
 
-def pede_bloqueio(frase: str) -> bool:
-    """Alguma palavra da frase (já normalizada) é, ou parece, "bloquear"?"""
-    return any(
-        get_close_matches(palavra, PALAVRAS_BLOQUEAR, n=1, cutoff=SEMELHANCA_MINIMA)
-        for palavra in frase.split()
+# Os atalhos locais só respondem quando a frase é SÓ o pedido: palavras de
+# cortesia e "Jarvis" podem vir junto, mais nada. "Que horas são?" é atalho;
+# "que horas é o jogo do Barcelona?" tem "jogo" e "Barcelona" e vai para a IA.
+CORTESIA = {
+    "jarvis", "por", "favor", "voce", "sabe", "pode", "poderia", "me", "diz", "dizer",
+    "fala", "falar", "ai", "oi", "ola", "agora", "a", "o", "as", "os", "e", "qual",
+    "que", "de", "do", "da", "em", "exatamente", "certa", "certo", "hein",
+}  # fmt: skip
+SO_HORA = CORTESIA | {"hora", "horas", "sao", "son"}
+SO_DATA = CORTESIA | {"dia", "data", "hoje", "estamos"}
+SO_BLOQUEIO = CORTESIA | {"tela", "computador", "sistema", "tudo", "se", "isso"}
+
+
+def so_tem(
+    frase: str, permitidas: set[str], extras: Callable[[str], bool] = lambda _: False
+) -> bool:
+    """Todas as palavras da frase são permitidas (ou passam no teste `extras`)?
+
+    Letras soltas não contam: o Whisper às vezes "gagueja" ("B bloquear").
+    """
+    return all(
+        len(palavra) <= 1 or palavra in permitidas or extras(palavra) for palavra in frase.split()
     )
+
+
+def parece_bloquear(palavra: str) -> bool:
+    """A palavra é, ou parece, "bloquear" (o Whisper às vezes escreve "bloquia")."""
+    return bool(get_close_matches(palavra, PALAVRAS_BLOQUEAR, n=1, cutoff=SEMELHANCA_MINIMA))
+
+
+def pede_bloqueio(frase: str) -> bool:
+    """A frase é um pedido para bloquear, e só isso? ("como bloquear o Instagram" não é.)"""
+    palavras = frase.split()
+    return any(parece_bloquear(p) for p in palavras) and so_tem(frase, SO_BLOQUEIO, parece_bloquear)
 
 
 def responder(texto: str, agora: datetime | None = None) -> Resposta | None:
@@ -113,10 +142,9 @@ def responder(texto: str, agora: datetime | None = None) -> Resposta | None:
 
     if pede_bloqueio(frase):
         return Resposta(fala=BLOQUEANDO, acao="bloquear")
-    if re.search(r"\b(que dia|data|dia e hoje|dia de hoje|dia hoje)\b", frase):
+    palavras = set(frase.split())
+    if palavras & {"dia", "data"} and so_tem(frase, SO_DATA):
         return Resposta(fala=falar_data(momento))
-    if re.search(r"\b(que horas?|horas sao|qual (e )?a hora|diz a hora|diz as horas)\b", frase) or (
-        frase in ("hora", "horas")
-    ):
+    if palavras & {"hora", "horas"} and so_tem(frase, SO_HORA):
         return Resposta(fala=falar_hora(momento))
     return Resposta(fala=NAO_SEI, entendeu=False)

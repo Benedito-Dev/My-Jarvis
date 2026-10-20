@@ -110,3 +110,29 @@ def test_lembretes_e_outros_dias_vao_para_a_ia(frase):
 )
 def test_as_horas(hora, minuto, esperado):
     assert as_horas(datetime(2026, 10, 20, hora, minuto)) == esperado
+
+
+@pytest.mark.parametrize(
+    "frase",
+    [
+        "Jarvis, que horas é o jogo do Barcelona hoje?",
+        "Que horas são em Tóquio?",
+        "Que dia é o feriado de Natal?",
+        "Como bloquear o Instagram?",
+        "Qual a data da Copa do Mundo?",
+    ],
+)
+def test_pergunta_com_mais_coisa_vai_para_a_ia(frase):
+    # Achado ao vivo: "que horas é o jogo do Barcelona" respondia a hora atual.
+    resposta = responder(frase, AGORA)
+
+    assert not resposta.entendeu
+    assert resposta.acao is None
+
+
+@pytest.mark.parametrize(
+    "frase",
+    ["Jarvis, que horas são agora?", "Você sabe que horas são?", "Qual é a hora certa?"],
+)
+def test_so_o_pedido_de_hora_continua_atalho(frase):
+    assert responder(frase, AGORA).fala == "São 13 horas e 57."
