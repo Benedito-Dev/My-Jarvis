@@ -80,6 +80,20 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ pendente
 | ⬜ | 3. Jarvis.app instalado | Ícone em Aplicativos e no Dock, abre ao ligar o computador |
 | ⬜ | 4. Barra de menus | Fechar a janela não desliga o Jarvis: lembretes tocam com ela fechada |
 
+## Fase 6: "Jarvis, bom dia"
+
+O destino: você diz **"Jarvis, bom dia"** e ele conta o seu dia **falando e
+mostrando cartões na tela**. A tela deixa de ser um dashboard e vira a conversa.
+
+| | Passo | Resultado visível |
+|---|---|---|
+| ✅ | 1. Orbe de fios de luz | O núcleo vira um anel de laços de luz que se agita com a voz |
+| ✅ | 2. Tela limpa | Manchete de estado (EM ESPERA, FALANDO...), legenda da fala e módulos pequenos nos cantos |
+| ⬜ | 3. Cartões | "Como está o clima?" → um cartão de clima na frente do orbe; também lembrete, nota e pesquisa |
+| ⬜ | 4. Bom dia | "Bom dia" → clima + lembretes de hoje + notícias, um cartão por assunto |
+| ⬜ | 5. Sem tecla | Palavra de ativação "Jarvis" (o bônus da Fase 3) |
+| ⬜ | 6. Sua agenda e e-mail | Google Agenda e Gmail entram no bom dia |
+
 ## Depois (ideias, sem ordem)
 
 - 🖥️ Automações no Mac
