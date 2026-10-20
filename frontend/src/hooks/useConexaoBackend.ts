@@ -13,6 +13,9 @@ import { guardarLatencia } from "../modulos";
 
 // De quanto em quanto tempo o app confere se o backend está vivo.
 const INTERVALO_VERIFICACAO_MS = 3000;
+// O app liga o backend ao abrir (src-tauri/src/backend.rs), e ele leva alguns
+// segundos carregando os modelos. Até lá, "verificando" (iniciando), não "desconectado".
+const TEMPO_PARA_LIGAR_MS = 60_000;
 
 export type Conexao =
   | { estado: "verificando" }
@@ -36,6 +39,8 @@ export function useConexaoBackend(): Conexao {
   useEffect(() => {
     let ativo = true;
     let latencias: number[] = [];
+    let jaConectou = false;
+    const abriuEm = Date.now();
 
     async function verificar() {
       try {
@@ -51,6 +56,7 @@ export function useConexaoBackend(): Conexao {
         const [rostos, lembretes] = sessao.usuario
           ? await Promise.all([buscarRostos(), buscarLembretes()])
           : [{ cadastrados: [] }, []];
+        jaConectou = true;
         if (ativo) {
           setConexao({
             estado: "conectado",
@@ -63,7 +69,8 @@ export function useConexaoBackend(): Conexao {
           });
         }
       } catch {
-        if (ativo) setConexao({ estado: "desconectado" });
+        const aindaLigando = !jaConectou && Date.now() - abriuEm < TEMPO_PARA_LIGAR_MS;
+        if (ativo) setConexao({ estado: aindaLigando ? "verificando" : "desconectado" });
       }
     }
 

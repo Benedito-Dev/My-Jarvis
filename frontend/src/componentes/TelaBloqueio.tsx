@@ -33,6 +33,8 @@ function marcarOrigemDaRevelacao(visor: HTMLElement | null) {
 type Props = {
   nomeAssistente: string;
   backendOnline: boolean;
+  /** O app acabou de ligar o backend, que ainda está carregando os modelos. */
+  backendIniciando: boolean;
   onDesbloqueado: (usuario: string) => void;
   /** Já desbloqueou: a tela fica por baixo enquanto o painel se abre por cima. */
   saindo: boolean;
@@ -40,7 +42,13 @@ type Props = {
 
 type ModoAcesso = "facial" | "pin";
 
-export function TelaBloqueio({ nomeAssistente, backendOnline, onDesbloqueado, saindo }: Props) {
+export function TelaBloqueio({
+  nomeAssistente,
+  backendOnline,
+  backendIniciando,
+  onDesbloqueado,
+  saindo,
+}: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const janelaRef = useRef<HTMLDivElement>(null);
   const agora = useRelogio();
@@ -86,11 +94,17 @@ export function TelaBloqueio({ nomeAssistente, backendOnline, onDesbloqueado, sa
   const mensagem = (() => {
     if (camera.estado === "erro") return camera.mensagem;
     if (camera.estado === "iniciando") return "Ligando a câmera...";
-    if (!backendOnline) return "Backend desconectado. Rode: uv run python -m jarvis servidor";
+    if (backendIniciando) return "Iniciando o núcleo...";
+    if (!backendOnline) {
+      return "Não consegui ligar o núcleo. Veja backend/dados/servidor.log";
+    }
     if (erro) return erro;
     return visual?.mensagem ?? "Posicione o rosto no círculo";
   })();
-  const tom = camera.estado === "erro" || !backendOnline || erro ? "erro" : (visual?.tom ?? "aviso");
+  const tom =
+    camera.estado === "erro" || (!backendOnline && !backendIniciando) || erro
+      ? "erro"
+      : (visual?.tom ?? "aviso");
 
   const abrirPin = useCallback(() => {
     setModo("pin");
@@ -184,6 +198,7 @@ export function TelaBloqueio({ nomeAssistente, backendOnline, onDesbloqueado, sa
 
           <LeiturasHud
             backendOnline={backendOnline}
+            backendIniciando={backendIniciando}
             cameraLigada={camera.estado === "ligada"}
             rostosNaTela={avaliacao?.rostos.length ?? 0}
             progresso={avaliacao?.progresso ?? 0}

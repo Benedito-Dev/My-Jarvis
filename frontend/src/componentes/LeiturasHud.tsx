@@ -6,6 +6,7 @@ const BARRAS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
 type Props = {
   backendOnline: boolean;
+  backendIniciando: boolean;
   cameraLigada: boolean;
   rostosNaTela: number;
   progresso: number;
@@ -15,6 +16,7 @@ type Props = {
 /** As colunas laterais da tela de bloqueio: estado do sistema e relógio. */
 export function LeiturasHud({
   backendOnline,
+  backendIniciando,
   cameraLigada,
   rostosNaTela,
   progresso,
@@ -24,7 +26,11 @@ export function LeiturasHud({
     <>
       <div className="leituras leituras--esquerda">
         <h2 className="leituras__titulo">Sistema</h2>
-        <Leitura rotulo="Backend" valor={backendOnline ? "ONLINE" : "OFFLINE"} ok={backendOnline} />
+        <Leitura
+          rotulo="Backend"
+          valor={backendOnline ? "ONLINE" : backendIniciando ? "INICIANDO" : "OFFLINE"}
+          ok={backendOnline || (backendIniciando ? undefined : false)}
+        />
         <Leitura rotulo="Câmera" valor={cameraLigada ? "ATIVA" : "AGUARDE"} ok={cameraLigada} />
         <Leitura rotulo="Rostos" valor={String(rostosNaTela).padStart(2, "0")} />
         <Leitura rotulo="Leitura" valor={`${Math.round(progresso * 100)}%`} />

@@ -25,6 +25,7 @@ Cada decisão importante ganha **um arquivo** nesta pasta.
 | [0017](0017-voz-piper-faber.md) | A voz do Jarvis: Piper TTS com a voz "Faber", igual nos três sistemas | ✅ Aceita | 2026-10-19 |
 | [0018](0018-cerebro-openrouter-deepseek.md) | Cérebro de IA: DeepSeek V4.1 Flash pelo OpenRouter | ✅ Aceita | 2026-10-20 |
 | [0019](0019-ferramentas-da-ia.md) | As "mãos" do Jarvis: ferramentas que a IA decide usar | ✅ Aceita | 2026-10-20 |
+| [0020](0020-app-liga-o-backend.md) | O app liga o backend: um clique e tudo funciona | ✅ Aceita | 2026-10-20 |
 
 ## Como criar uma nova decisão
 

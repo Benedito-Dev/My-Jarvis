@@ -40,8 +40,9 @@ da habilidade (ex.: `desbloqueio-facial`).
 ## Comandos (dentro de `backend/`)
 
 ```bash
-uv sync                    # instala dependências
-uv run python -m jarvis    # roda
+uv sync                    # instala dependências (o app usa o .venv criado aqui)
+uv run python -m jarvis servidor   # liga só o backend (o app já faz isso sozinho)
+uv run python -m jarvis    # desbloqueio pelo terminal (sem o app)
 uv run pytest              # testes
 uv run ruff check . && uv run ruff format --check .
 ```

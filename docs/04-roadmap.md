@@ -69,6 +69,17 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ pendente
 | ⬜ | 6. Controlar o sistema | "Abaixa o volume", "Como tá a bateria?" |
 | ⬜ | 7. Memória longa | Lembra de fatos sobre o dono entre os dias |
 
+## Fase 5: Uso no dia a dia
+
+[Decisão 0020](decisoes/0020-app-liga-o-backend.md). O Jarvis pronto para ser usado todo dia, sem terminal.
+
+| | Passo | Resultado visível |
+|---|---|---|
+| ✅ | 1. Lembretes em disco | Reiniciou? Os lembretes voltam, e os vencidos são avisados ao ligar |
+| ✅ | 2. Um clique liga tudo | Abrir o app sobe o backend; fechar desliga ("Iniciando o núcleo..." enquanto carrega) |
+| ⬜ | 3. Jarvis.app instalado | Ícone em Aplicativos e no Dock, abre ao ligar o computador |
+| ⬜ | 4. Barra de menus | Fechar a janela não desliga o Jarvis: lembretes tocam com ela fechada |
+
 ## Depois (ideias, sem ordem)
 
 - 🖥️ Automações no Mac

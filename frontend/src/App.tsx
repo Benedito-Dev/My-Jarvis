@@ -186,6 +186,7 @@ function App() {
         <TelaBloqueio
           nomeAssistente={nomeAssistente}
           backendOnline={conexao.estado === "conectado"}
+          backendIniciando={conexao.estado === "verificando"}
           onDesbloqueado={aoDesbloquear}
           saindo={!!usuario}
         />
