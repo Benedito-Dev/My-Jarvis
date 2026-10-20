@@ -151,6 +151,7 @@ function App() {
               versao={conexao.status.versao}
               cadastrados={conexao.rostos.cadastrados}
               habilidades={conexao.status.habilidades}
+              lembretes={conexao.lembretes}
               gravacao={gravacao}
               nivel={nivel}
               onCadastrarRosto={() => setCadastrando(true)}

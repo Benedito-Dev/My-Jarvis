@@ -5,6 +5,7 @@ import pytest
 from jarvis.habilidades.conversa.comandos import (
     FUSO,
     NAO_SEI,
+    as_horas,
     falar_data,
     falar_hora,
     normalizar,
@@ -84,3 +85,28 @@ def test_o_que_nao_conhece_responde_que_ainda_nao_sabe():
 
 def test_sem_texto_nao_responde():
     assert responder("  ...  ", AGORA) is None
+
+
+@pytest.mark.parametrize(
+    "frase",
+    [
+        "Me lembra daqui a 2 horas de tomar remédio",
+        "me lembra de bloquear a porta",
+        "Que dia é amanhã?",
+        "Que horas vai ser daqui a 3 horas?",
+        "me avisa em 20 minutos",
+    ],
+)
+def test_lembretes_e_outros_dias_vao_para_a_ia(frase):
+    resposta = responder(frase, AGORA)
+
+    assert not resposta.entendeu
+    assert resposta.acao is None
+
+
+@pytest.mark.parametrize(
+    ("hora", "minuto", "esperado"),
+    [(10, 25, "às 10 e 25"), (15, 0, "às 15"), (12, 30, "ao meio-dia e 30"), (1, 5, "à uma e 5")],
+)
+def test_as_horas(hora, minuto, esperado):
+    assert as_horas(datetime(2026, 10, 20, hora, minuto)) == esperado

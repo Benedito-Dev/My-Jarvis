@@ -10,16 +10,20 @@ import os
 import re
 import urllib.error
 import urllib.request
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import datetime
 
+from jarvis.habilidades.conversa import ferramentas as mod_ferramentas
 from jarvis.habilidades.conversa.comandos import FUSO, falar_data, falar_hora
+from jarvis.habilidades.conversa.ferramentas import Ferramenta
 
 URL = "https://openrouter.ai/api/v1/chat/completions"
 # O DeepSeek mais barato do OpenRouter em out/2026 (~US$ 0,00003 por pergunta).
 MODELO = os.environ.get("JARVIS_MODELO_IA", "deepseek/deepseek-v4.1-flash")
 TEMPO_LIMITE_S = 30
 MAXIMO_DE_PALAVRAS = 300  # tokens de resposta: o Jarvis fala, não escreve redação
+# Quantas vezes a IA pode usar ferramentas antes de responder. Evita um laço sem fim.
+MAXIMO_DE_RODADAS = 3
 
 PERSONALIDADE = """\
 Você é o J.A.R.V.I.S., o assistente pessoal de {usuario}. \
@@ -28,7 +32,8 @@ Sua resposta vai ser FALADA em voz alta por um sintetizador, então:
 - nada de listas, markdown, emojis ou links;
 - escreva números como se fala ("384 mil quilômetros", não "384.400 km").
 Seu tom é calmo, educado e confiante, com um leve humor seco. \
-Se precisar de algo em tempo real que você não tem (clima, notícias, agenda), \
+Use as ferramentas que tiver quando elas resolverem o pedido. \
+Se precisar de algo que você não tem (clima, notícias, abrir apps), \
 diga com honestidade que ainda não tem acesso a isso.
 Agora: {hora} {data}"""
 
@@ -67,30 +72,70 @@ class Cerebro:
         self._modelo = modelo
         self._enviar = enviar
 
-    def responder(self, pergunta: str, usuario: str, agora: datetime | None = None) -> str:
+    def responder(
+        self,
+        pergunta: str,
+        usuario: str,
+        agora: datetime | None = None,
+        historico: Sequence[dict] = (),
+        ferramentas: Sequence[Ferramenta] = (),
+    ) -> str:
+        """Responde `pergunta`, lembrando do `historico` e podendo usar `ferramentas`."""
         momento = (agora or datetime.now(FUSO)).astimezone(FUSO)
+        mensagens = [
+            {
+                "role": "system",
+                "content": PERSONALIDADE.format(
+                    usuario=usuario, hora=falar_hora(momento), data=falar_data(momento)
+                ),
+            },
+            *historico,
+            {"role": "user", "content": pergunta},
+        ]
+
+        for _ in range(MAXIMO_DE_RODADAS):
+            mensagem = self._perguntar(mensagens, ferramentas)
+            chamadas = mensagem.get("tool_calls") or []
+            if not chamadas:
+                return limpar_para_falar(mensagem.get("content") or "")
+
+            resultados = [
+                (
+                    chamada,
+                    mod_ferramentas.executar(
+                        ferramentas,
+                        chamada["function"]["name"],
+                        chamada["function"].get("arguments", ""),
+                    ),
+                )
+                for chamada in chamadas
+            ]
+            # Toda ferramenta já trouxe a sua confirmação: fala direto, sem outra viagem à IA.
+            if all(resultado.fala for _, resultado in resultados):
+                return " ".join(resultado.fala for _, resultado in resultados)
+            mensagens.append(mensagem)
+            mensagens += [
+                {"role": "tool", "tool_call_id": chamada["id"], "content": resultado.para_ia}
+                for chamada, resultado in resultados
+            ]
+        raise CerebroIndisponivelError("A IA ficou usando ferramentas sem responder.")
+
+    def _perguntar(self, mensagens: list[dict], ferramentas: Sequence[Ferramenta]) -> dict:
         corpo = {
             "model": self._modelo,
             "max_tokens": MAXIMO_DE_PALAVRAS,
             # Sem "pensar antes": responde ~2x mais rápido com a mesma qualidade.
             "reasoning": {"enabled": False},
-            "messages": [
-                {
-                    "role": "system",
-                    "content": PERSONALIDADE.format(
-                        usuario=usuario, hora=falar_hora(momento), data=falar_data(momento)
-                    ),
-                },
-                {"role": "user", "content": pergunta},
-            ],
+            "messages": mensagens,
         }
+        if ferramentas:
+            corpo["tools"] = mod_ferramentas.no_formato_da_ia(ferramentas)
         resposta = self._enviar(corpo, self._chave)
         try:
-            texto = resposta["choices"][0]["message"]["content"]
+            return resposta["choices"][0]["message"]
         except (KeyError, IndexError, TypeError) as erro:
             motivo = resposta.get("error", {}).get("message", "resposta sem texto")
             raise CerebroIndisponivelError(f"A IA não respondeu ({motivo}).") from erro
-        return limpar_para_falar(texto or "")
 
 
 def criar_cerebro() -> Cerebro | None:

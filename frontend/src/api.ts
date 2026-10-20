@@ -85,6 +85,16 @@ export const buscarStatus = () => requisitar<Status>("/status");
 export const buscarRostos = () => requisitar<Rostos>("/rostos");
 export const buscarSessao = () => requisitar<Sessao>("/sessao");
 
+export type Lembrete = {
+  id: number;
+  texto: string;
+  /** Quando toca, em ISO 8601. */
+  quando: string;
+};
+
+// Só vêm com o Jarvis desbloqueado; bloqueado, o backend devolve a lista vazia.
+export const buscarLembretes = () => requisitar<Lembrete[]>("/lembretes");
+
 export const desbloquearPorPin = (identificador: string, pin: string) =>
   requisitar<Sessao>("/sessao/pin", {
     method: "POST",

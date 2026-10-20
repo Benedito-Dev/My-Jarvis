@@ -20,10 +20,11 @@ from jarvis.api.sessao import (
     modelos,
 )
 from jarvis.habilidades import HABILIDADES, Situacao
-from jarvis.habilidades.conversa import comandos, gravacoes
+from jarvis.habilidades.conversa import comandos, ferramentas, gravacoes
 from jarvis.habilidades.conversa.cerebro import MODELO as MODELO_IA
 from jarvis.habilidades.conversa.cerebro import Cerebro, CerebroIndisponivelError, criar_cerebro
 from jarvis.habilidades.conversa.gravacoes import TipoDeAudioInvalidoError
+from jarvis.habilidades.conversa.memoria import Memoria
 from jarvis.habilidades.conversa.transcricao import TranscricaoIndisponivelError, Transcritor
 from jarvis.habilidades.desbloqueio_facial import banco_rostos
 from jarvis.habilidades.desbloqueio_facial.banco_rostos import NomeInvalidoError
@@ -32,6 +33,7 @@ from jarvis.habilidades.desbloqueio_facial.desbloqueio import (
     EstadoDesbloqueio,
     NenhumRostoCadastradoError,
 )
+from jarvis.habilidades.lembretes.agenda import Agenda, Lembrete
 from jarvis.nucleo.acesso_pin import (
     AcessoPin,
     IdentificadorEmUsoError,
@@ -91,6 +93,12 @@ class ConfigurarPinRequest(BaseModel):
     pin: str
 
 
+class LembreteResposta(BaseModel):
+    id: int
+    texto: str
+    quando: str  # ISO 8601, no fuso de São Paulo
+
+
 class GravacaoResposta(BaseModel):
     arquivo: str
     bytes: int
@@ -146,6 +154,12 @@ async def _imagem_do_corpo(request: Request) -> "np.ndarray":
     return quadro
 
 
+def _lembrete(lembrete: Lembrete) -> "LembreteResposta":
+    return LembreteResposta(
+        id=lembrete.id, texto=lembrete.texto, quando=lembrete.quando.isoformat()
+    )
+
+
 def _retangulos(rostos) -> list["RetanguloResposta"]:
     return [
         RetanguloResposta(
@@ -174,9 +188,22 @@ def criar_app(
     transcritor: Transcritor | None = None,
     cadastros: Cadastros | None = None,
     cerebro: Cerebro | None = None,
+    agenda: Agenda | None = None,
+    memoria: Memoria | None = None,
 ) -> FastAPI:
     """Monta a API. Sem `cerebro`, perguntas livres recebem "Ainda não sei fazer isso"."""
     sessao = sessao or Sessao(pasta_rostos)
+    memoria = memoria or Memoria()
+    # Na hora do lembrete, o Jarvis fala, esteja bloqueado ou não (como um alarme).
+    agenda = agenda or Agenda(avisar=lambda lem: sessao.falar(f"Lembrete: {lem.texto}."))
+    # As "mãos" que a IA pode usar. Nova ferramenta = nova linha aqui.
+    maos = [ferramentas.lembrete(agenda), ferramentas.listar_lembretes(agenda)]
+
+    def trancar() -> None:
+        """Bloqueia e esquece a conversa: a próxima pessoa não herda o contexto."""
+        sessao.bloquear()
+        memoria.esquecer()
+
     acesso_pin = acesso_pin or AcessoPin()
     cadastros = cadastros or Cadastros(pasta_rostos)
     transcritor = transcritor or TRANSCRITOR
@@ -216,8 +243,15 @@ def criar_app(
     @app.post("/sessao/bloquear")
     def bloquear() -> SessaoResposta:
         """Tranca o Jarvis de novo (botão Bloquear do app)."""
-        sessao.bloquear()
+        trancar()
         return SessaoResposta(usuario=None)
+
+    @app.get("/lembretes")
+    def lembretes() -> list[LembreteResposta]:
+        """Os lembretes que ainda vão tocar. Com o Jarvis bloqueado, nenhum aparece."""
+        if sessao.usuario is None:
+            return []
+        return [_lembrete(lem) for lem in agenda.pendentes()]
 
     @app.post("/sessao/pin")
     def desbloquear_por_pin(entrada: LoginPinRequest) -> SessaoResposta:
@@ -304,7 +338,14 @@ def criar_app(
         usuario = sessao.usuario
         if not resposta.entendeu and cerebro is not None and usuario is not None:
             try:
-                fala = await run_in_threadpool(cerebro.responder, texto, usuario.capitalize())
+                fala = await run_in_threadpool(
+                    lambda: cerebro.responder(
+                        texto,
+                        usuario.capitalize(),
+                        historico=memoria.recentes(),
+                        ferramentas=maos,
+                    )
+                )
                 resposta = comandos.Resposta(fala=fala or comandos.NAO_SEI)
             except CerebroIndisponivelError as erro:
                 print(erro)
@@ -312,7 +353,9 @@ def criar_app(
 
         sessao.falar(resposta.fala)
         if resposta.acao == "bloquear":
-            sessao.bloquear()
+            trancar()
+        else:
+            memoria.lembrar(texto, resposta.fala)
         return GravacaoResposta(
             arquivo=caminho.name,
             bytes=len(audio),

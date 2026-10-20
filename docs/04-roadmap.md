@@ -55,6 +55,19 @@ Legenda: ✅ feito · 🔄 em andamento · ⬜ pendente
 | ✅ | 4. Cérebro de IA | Pergunta livre → resposta falada (DeepSeek pelo OpenRouter, [decisão 0018](decisoes/0018-cerebro-openrouter-deepseek.md)) |
 | ⬜ | 5. Bônus | Palavra de ativação "Jarvis" |
 
+## Fase 4: Autonomia (memória e mãos)
+
+[Decisão 0019](decisoes/0019-ferramentas-da-ia.md). Do assistente que conversa para o que **age**.
+
+| | Passo | Resultado visível |
+|---|---|---|
+| ✅ | 1. Memória curta | "Que dia é hoje?" → "E amanhã?" entende o "amanhã" |
+| ✅ | 2. Primeira mão: lembretes | "Me lembra de X daqui a 20 min" → ele avisa em voz; módulo 04 no painel |
+| ⬜ | 3. Pesquisar na web | "Qual o placar do jogo?" |
+| ⬜ | 4. Abrir apps e sites | "Abre o Spotify" |
+| ⬜ | 5. Controlar o sistema | "Abaixa o volume" |
+| ⬜ | 6. Memória longa | Lembra de fatos sobre o dono entre os dias |
+
 ## Depois (ideias, sem ordem)
 
 - 🖥️ Automações no Mac

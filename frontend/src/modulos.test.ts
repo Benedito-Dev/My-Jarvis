@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { MEDICOES_LATENCIA, duracaoDesde, guardarLatencia, linhaDoGrafico } from "./modulos";
+import {
+  MEDICOES_LATENCIA,
+  duracaoDesde,
+  guardarLatencia,
+  linhaDoGrafico,
+  tempoAte,
+} from "./modulos";
 
 describe("guardarLatencia", () => {
   it("guarda arredondado e descarta as mais antigas", () => {
@@ -35,5 +41,22 @@ describe("linhaDoGrafico", () => {
 
   it("sem valores, sem linha", () => {
     expect(linhaDoGrafico([], 100, 20)).toBe("");
+  });
+});
+
+describe("tempoAte", () => {
+  const agora = new Date("2026-10-20T10:00:00Z");
+  const daqui = (minutos: number) => new Date(agora.getTime() + minutos * 60_000);
+
+  it("minutos", () => {
+    expect(tempoAte(daqui(14), agora)).toBe("em 14 min");
+  });
+
+  it("horas e minutos", () => {
+    expect(tempoAte(daqui(65), agora)).toBe("em 1 h 05");
+  });
+
+  it("já passou ou está tocando", () => {
+    expect(tempoAte(daqui(-1), agora)).toBe("agora");
   });
 });

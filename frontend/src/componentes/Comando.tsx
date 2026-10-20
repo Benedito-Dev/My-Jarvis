@@ -1,9 +1,9 @@
 import { type RefObject, useEffect, useState } from "react";
-import type { Habilidade } from "../api";
+import type { Habilidade, Lembrete } from "../api";
 import { duracaoDaFala, type EstadoGravacao, estadoDoNucleo } from "../gravacao";
 import { MS_POR_LETRA, useDigitando } from "../hooks/useDigitando";
 import { cumprimento } from "../tempo";
-import { ModuloHabilidades, ModuloSistema, ModuloTempo } from "./ModulosComando";
+import { ModuloHabilidades, ModuloLembretes, ModuloSistema, ModuloTempo } from "./ModulosComando";
 import { type ModoNucleo, Nucleo } from "./Nucleo";
 import { OndaVoz } from "./OndaVoz";
 import "./comando.css";
@@ -26,6 +26,7 @@ type Props = {
   versao: string;
   cadastrados: string[];
   habilidades: Habilidade[];
+  lembretes: Lembrete[];
   gravacao: EstadoGravacao;
   nivel: RefObject<number>;
   onCadastrarRosto: () => void;
@@ -40,6 +41,7 @@ export function Comando({
   versao,
   cadastrados,
   habilidades,
+  lembretes,
   gravacao,
   nivel,
   onCadastrarRosto,
@@ -89,6 +91,7 @@ export function Comando({
           onCadastrarRosto={onCadastrarRosto}
           onConfigurarPin={onConfigurarPin}
         />
+        <ModuloLembretes lembretes={lembretes} agora={agora} />
       </aside>
 
       <section className="comando__centro">

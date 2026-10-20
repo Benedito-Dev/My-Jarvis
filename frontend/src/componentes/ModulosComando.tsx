@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import type { Habilidade } from "../api";
-import { duracaoDesde, linhaDoGrafico } from "../modulos";
+import type { Habilidade, Lembrete } from "../api";
+import { duracaoDesde, linhaDoGrafico, tempoAte } from "../modulos";
 import { formatarData, formatarHora } from "../tempo";
 
 // Os módulos das laterais da central de comando. Toda informação aqui é real e
@@ -75,7 +75,11 @@ export function ModuloSistema({
           <span className="sinal__valor">Online</span>
         </div>
         <div className="sinal__grafico">
-          <svg viewBox={`0 0 ${GRAFICO.largura} ${GRAFICO.altura}`} preserveAspectRatio="none" aria-hidden="true">
+          <svg
+            viewBox={`0 0 ${GRAFICO.largura} ${GRAFICO.altura}`}
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
             {linha && (
               <>
                 <polygon
@@ -184,6 +188,38 @@ export function ModuloHabilidades({ habilidades }: { habilidades: Habilidade[] }
   );
 }
 
+// --- 04 · Lembretes ---------------------------------------------------------------
+
+export function ModuloLembretes({ lembretes, agora }: { lembretes: Lembrete[]; agora: Date }) {
+  return (
+    <Modulo indice="04" titulo="Lembretes" extra={`${lembretes.length} ativos`}>
+      {lembretes.length === 0 ? (
+        <p className="lembretes__vazio">
+          Nenhum. Diga: <em>“Jarvis, me lembra de... daqui a 10 minutos”</em>
+        </p>
+      ) : (
+        <ul className="lembretes">
+          {lembretes.map((lembrete) => {
+            const quando = new Date(lembrete.quando);
+            return (
+              <li key={lembrete.id} className="lembrete">
+                <span className="lembrete__icone" aria-hidden="true">
+                  <IconeRelogio />
+                </span>
+                <span className="lembrete__texto">{lembrete.texto}</span>
+                <span className="lembrete__quando">
+                  <span className="lembrete__hora">{formatarHora(quando)}</span>
+                  <span className="lembrete__falta">{tempoAte(quando, agora)}</span>
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Modulo>
+  );
+}
+
 // --- Ícones (traço fino, herdam a cor) ------------------------------------------
 
 function IconeHabilidade({ id }: { id: string }) {
@@ -223,6 +259,13 @@ const IconeChave = () => (
   <Svg>
     <circle cx="8" cy="15" r="4" />
     <path d="M11 12l8-8M16 7l3 3M14 9l2 2" />
+  </Svg>
+);
+
+const IconeRelogio = () => (
+  <Svg>
+    <circle cx="12" cy="13" r="8" />
+    <path d="M12 9v4l2.5 2.5M9 2h6M12 2v3" />
   </Svg>
 );
 

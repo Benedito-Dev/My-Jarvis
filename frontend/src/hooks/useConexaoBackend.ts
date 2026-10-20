@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import {
+  buscarLembretes,
   buscarRostos,
   buscarSessao,
   buscarStatus,
+  type Lembrete,
   type Rostos,
   type Sessao,
   type Status,
@@ -23,6 +25,8 @@ export type Conexao =
       latencias: number[];
       /** Quando (Date.now) foi feita a pergunta que trouxe esta resposta. */
       perguntadoEm: number;
+      /** Lembretes que ainda vão tocar (vazio com o Jarvis bloqueado). */
+      lembretes: Lembrete[];
     }
   | { estado: "desconectado" };
 
@@ -44,11 +48,19 @@ export function useConexaoBackend(): Conexao {
         latencias = guardarLatencia(latencias, performance.now() - inicio);
         // Nomes de rostos são dados de sessão: não entram no cliente enquanto
         // o Jarvis estiver bloqueado. Isso evita enumeração antes do login.
-        const rostos = sessao.usuario
-          ? await buscarRostos()
-          : { cadastrados: [] };
+        const [rostos, lembretes] = sessao.usuario
+          ? await Promise.all([buscarRostos(), buscarLembretes()])
+          : [{ cadastrados: [] }, []];
         if (ativo) {
-          setConexao({ estado: "conectado", status, rostos, sessao, latencias, perguntadoEm });
+          setConexao({
+            estado: "conectado",
+            status,
+            rostos,
+            sessao,
+            latencias,
+            perguntadoEm,
+            lembretes,
+          });
         }
       } catch {
         if (ativo) setConexao({ estado: "desconectado" });

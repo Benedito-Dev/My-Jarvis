@@ -9,6 +9,7 @@ from jarvis.habilidades.conversa.cerebro import (
     limpar_para_falar,
 )
 from jarvis.habilidades.conversa.comandos import FUSO
+from jarvis.habilidades.conversa.ferramentas import Ferramenta, Resultado
 
 AGORA = datetime(2026, 10, 20, 9, 30, tzinfo=FUSO)
 
@@ -70,3 +71,86 @@ def test_com_chave_ha_cerebro(monkeypatch):
     monkeypatch.setenv("OPENROUTER_API_KEY", "chave-x")
 
     assert isinstance(criar_cerebro(), Cerebro)
+
+
+# --- Memória e ferramentas ------------------------------------------------------
+
+
+class OpenRouterRoteirizado:
+    """Responde, em ordem, as mensagens do roteiro (uma por pedido)."""
+
+    def __init__(self, *mensagens):
+        self.roteiro = list(mensagens)
+        self.pedidos = []
+
+    def enviar(self, corpo, _chave):
+        self.pedidos.append(corpo)
+        return {"choices": [{"message": self.roteiro.pop(0)}]}
+
+
+def chamada_de(nome, argumentos):
+    return {
+        "role": "assistant",
+        "content": None,
+        "tool_calls": [
+            {"id": "c1", "type": "function", "function": {"name": nome, "arguments": argumentos}}
+        ],
+    }
+
+
+def ferramenta_de_teste(fala):
+    usadas = []
+
+    def executar(parametros):
+        usadas.append(parametros)
+        return Resultado(para_ia="feito", fala=fala)
+
+    return Ferramenta("acao", "faz algo", {"type": "object"}, executar), usadas
+
+
+def test_manda_o_historico_antes_da_pergunta():
+    falso = OpenRouterRoteirizado({"content": "Amanhã é quarta."})
+    historico = [
+        {"role": "user", "content": "que dia é hoje?"},
+        {"role": "assistant", "content": "Hoje é terça."},
+    ]
+
+    Cerebro("k", enviar=falso.enviar).responder("e amanhã?", "Benedito", AGORA, historico)
+
+    mensagens = falso.pedidos[0]["messages"]
+    assert mensagens[1:] == [*historico, {"role": "user", "content": "e amanhã?"}]
+
+
+def test_ferramenta_com_fala_pronta_responde_sem_voltar_a_ia():
+    ferramenta, usadas = ferramenta_de_teste(fala="Certo. Te aviso às 10 e 25.")
+    falso = OpenRouterRoteirizado(chamada_de("acao", '{"x": 1}'))
+
+    fala = Cerebro("k", enviar=falso.enviar).responder(
+        "me lembra", "Benedito", AGORA, ferramentas=[ferramenta]
+    )
+
+    assert fala == "Certo. Te aviso às 10 e 25."
+    assert usadas == [{"x": 1}]
+    assert len(falso.pedidos) == 1  # uma viagem só
+    assert falso.pedidos[0]["tools"][0]["function"]["name"] == "acao"
+
+
+def test_ferramenta_sem_fala_volta_a_ia_com_o_resultado():
+    ferramenta, _ = ferramenta_de_teste(fala=None)
+    falso = OpenRouterRoteirizado(chamada_de("acao", "{}"), {"content": "Pronto, feito."})
+
+    fala = Cerebro("k", enviar=falso.enviar).responder(
+        "faz", "Benedito", AGORA, ferramentas=[ferramenta]
+    )
+
+    assert fala == "Pronto, feito."
+    resultado = falso.pedidos[1]["messages"][-1]
+    assert resultado == {"role": "tool", "tool_call_id": "c1", "content": "feito"}
+
+
+def test_ia_presa_usando_ferramentas_desiste():
+    ferramenta, _ = ferramenta_de_teste(fala=None)
+    falso = OpenRouterRoteirizado(*[chamada_de("acao", "{}")] * 5)
+
+    with pytest.raises(CerebroIndisponivelError):
+        Cerebro("k", enviar=falso.enviar).responder("faz", "B", AGORA, ferramentas=[ferramenta])

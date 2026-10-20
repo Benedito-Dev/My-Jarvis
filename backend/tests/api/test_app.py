@@ -7,12 +7,14 @@ from jarvis.api.cadastros import Cadastros
 from jarvis.api.sessao import Sessao
 from jarvis.habilidades import HABILIDADES
 from jarvis.habilidades.conversa.cerebro import CerebroIndisponivelError
+from jarvis.habilidades.conversa.memoria import Memoria
 from jarvis.habilidades.conversa.transcricao import TranscricaoIndisponivelError
 from jarvis.habilidades.desbloqueio_facial import banco_rostos
 from jarvis.habilidades.desbloqueio_facial.cadastro import Cadastro as CadastroDeVerdade
 from jarvis.habilidades.desbloqueio_facial.cadastro import EstadoCadastro, ResultadoAmostra
 from jarvis.habilidades.desbloqueio_facial.desbloqueio import Avaliacao, EstadoDesbloqueio
 from jarvis.habilidades.desbloqueio_facial.reconhecedor import Rosto
+from jarvis.habilidades.lembretes.agenda import Agenda
 from jarvis.nucleo.acesso_pin import AcessoPin
 from jarvis.nucleo.config import NOME_ASSISTENTE
 
@@ -224,9 +226,13 @@ class CerebroFalso:
         self.fala = fala
         self.erro = erro
         self.perguntas = []
+        self.historicos = []
+        self.ferramentas = []
 
-    def responder(self, pergunta, usuario):
+    def responder(self, pergunta, usuario, historico=(), ferramentas=()):
         self.perguntas.append((pergunta, usuario))
+        self.historicos.append(list(historico))
+        self.ferramentas = list(ferramentas)
         if self.erro:
             raise self.erro
         return self.fala
@@ -349,6 +355,55 @@ def test_ia_fora_do_ar_avisa_em_voz(tmp_path):
     corpo = cliente.post("/conversa/gravacao", content=b"voz").json()
 
     assert corpo["resposta"].startswith("Não consegui pensar nisso agora")
+
+
+def test_a_ia_lembra_das_trocas_anteriores(tmp_path):
+    cerebro = CerebroFalso("Amanhã é quarta.")
+    transcritor = TranscritorFalso("que horas são")
+    cliente = cliente_de_gravacao(tmp_path, transcritor, sessao_aberta(tmp_path), cerebro)
+    cliente.post("/conversa/gravacao", content=b"voz")  # comando local, vai para a memória
+
+    transcritor.texto = "e amanhã?"
+    cliente.post("/conversa/gravacao", content=b"voz")
+
+    [historico] = cerebro.historicos
+    assert historico[0] == {"role": "user", "content": "que horas são"}
+    assert historico[1]["role"] == "assistant"
+
+
+def test_a_ia_recebe_a_ferramenta_de_lembrete(tmp_path):
+    cerebro = CerebroFalso()
+    cliente = cliente_de_gravacao(
+        tmp_path, TranscritorFalso("me lembra de algo"), sessao_aberta(tmp_path), cerebro
+    )
+
+    cliente.post("/conversa/gravacao", content=b"voz")
+
+    assert [f.nome for f in cerebro.ferramentas] == ["criar_lembrete", "listar_lembretes"]
+
+
+def test_bloquear_esquece_a_conversa(tmp_path):
+    memoria = Memoria()
+    memoria.lembrar("segredo", "ok")
+    sessao = sessao_aberta(tmp_path)
+    cliente = TestClient(criar_app(pasta_gravacoes=tmp_path, sessao=sessao, memoria=memoria))
+
+    cliente.post("/sessao/bloquear")
+
+    assert memoria.recentes() == []
+
+
+def test_lembretes_pendentes_so_com_o_jarvis_aberto(tmp_path):
+    agenda = Agenda(avisar=lambda _: None, agendar=lambda _s, _a: None)
+    agenda.criar(20, "ligar pro dentista")
+    sessao = sessao_aberta(tmp_path)
+    cliente = TestClient(criar_app(pasta_gravacoes=tmp_path, sessao=sessao, agenda=agenda))
+
+    [lembrete] = cliente.get("/lembretes").json()
+    assert lembrete["texto"] == "ligar pro dentista"
+
+    cliente.post("/sessao/bloquear")
+    assert cliente.get("/lembretes").json() == []
 
 
 def test_sem_fala_nao_responde_nada(tmp_path):

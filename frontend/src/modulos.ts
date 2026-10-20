@@ -38,3 +38,12 @@ export function linhaDoGrafico(valores: number[], largura: number, altura: numbe
 }
 
 const round = (n: number) => Math.round(n * 10) / 10;
+
+/** Quanto falta para `quando`: "em 14 min", "em 1 h 05", "agora". */
+export function tempoAte(quando: Date, agora: Date): string {
+  const minutos = Math.ceil((quando.getTime() - agora.getTime()) / 60_000);
+  if (minutos <= 0) return "agora";
+  if (minutos < 60) return `em ${minutos} min`;
+  const horas = Math.floor(minutos / 60);
+  return `em ${horas} h ${String(minutos % 60).padStart(2, "0")}`;
+}

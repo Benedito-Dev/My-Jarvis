@@ -461,6 +461,69 @@
   color: var(--texto-suave);
 }
 
+/* 04 · Lembretes: o que o Jarvis vai avisar, com contagem regressiva */
+
+.lembretes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lembrete {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-left: 2px solid var(--pensando);
+  background: color-mix(in srgb, var(--pensando) 7%, transparent);
+}
+
+.lembrete__icone {
+  display: grid;
+  color: var(--pensando);
+}
+
+.lembrete__texto {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--texto);
+}
+
+.lembrete__quando {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.lembrete__hora {
+  font-size: 12px;
+  color: var(--pensando);
+}
+
+.lembrete__falta {
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.lembretes__vazio {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--texto-suave);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .modulo__traco::after,
   .habilidade__anel,
