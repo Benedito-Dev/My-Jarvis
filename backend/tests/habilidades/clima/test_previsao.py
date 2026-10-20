@@ -1,6 +1,6 @@
 import pytest
 
-from jarvis.habilidades.clima.previsao import ClimaIndisponivelError, clima
+from jarvis.habilidades.clima.previsao import ClimaIndisponivelError, cartao, clima, consultar
 
 LUGAR = {
     "results": [{"name": "Fortaleza", "admin1": "Ceará", "latitude": -3.7, "longitude": -38.5}]
@@ -53,3 +53,20 @@ def test_pede_em_portugues_e_no_fuso_da_cidade():
 
     assert "language=pt" in urls[0]
     assert "timezone=auto" in urls[1]
+
+
+def test_cartao_traz_os_numeros_para_a_tela():
+    dados = cartao(*consultar("Fortaleza", obter=internet_falsa))
+
+    assert dados["tipo"] == "clima"
+    assert dados["titulo"] == "Fortaleza"
+    assert (dados["temperatura"], dados["sensacao"], dados["umidade"]) == (31, 34, 50)
+    assert dados["ceu"] == "céu limpo"
+    assert dados["dias"][1] == {
+        "nome": "Amanhã",
+        "ceu": "chuva fraca",
+        "maxima": 31,
+        "minima": 25,
+        "chuva": 70,
+    }
+    assert dados["dias"][2]["chuva"] is None  # sem previsão de chuva: a tela mostra "?"

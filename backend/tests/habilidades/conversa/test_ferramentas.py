@@ -143,3 +143,90 @@ def test_calcular_entrega_o_resultado_exato():
     resultado = ferramentas.calcular().executar({"expressao": "3480 * 17 / 100"})
 
     assert resultado.para_ia == "3480 * 17 / 100 = 591.6"
+
+
+# --- Cartões: o que a tela mostra junto com a fala ---------------------------------
+
+
+def test_lembrete_criado_vira_cartao_com_a_hora():
+    resultado = ferramentas.lembrete(agenda_parada()).executar(
+        {"daqui_a_minutos": 20, "texto": "ligar pro dentista"}
+    )
+
+    assert resultado.cartao == {
+        "tipo": "lembretes",
+        "rotulo": "Lembrete criado",
+        "titulo": "1 lembrete",
+        "itens": [{"hora": "10:25", "texto": "ligar pro dentista"}],
+    }
+
+
+def test_lembrete_invalido_nao_tem_cartao():
+    resultado = ferramentas.lembrete(agenda_parada()).executar(
+        {"daqui_a_minutos": 99999, "texto": "x"}
+    )
+
+    assert resultado.cartao is None
+
+
+def test_pesquisa_vira_cartao_com_ate_tres_achados():
+    def busca(consulta, noticias):
+        return [{"title": f"T{i}", "body": "b", "href": "f"} for i in range(5)]
+
+    cartao = (
+        ferramentas.pesquisar_web(buscar=busca)
+        .executar({"consulta": "iphone", "noticias": True})
+        .cartao
+    )
+
+    assert (cartao["tipo"], cartao["rotulo"], cartao["titulo"]) == (
+        "pesquisa",
+        "Notícias",
+        "iphone",
+    )
+    assert [item["titulo"] for item in cartao["itens"]] == ["T0", "T1", "T2"]
+
+
+def test_pesquisa_sem_achados_nao_tem_cartao():
+    resultado = ferramentas.pesquisar_web(buscar=lambda c, n: []).executar({"consulta": "x"})
+
+    assert resultado.cartao is None
+
+
+def test_clima_vira_cartao(monkeypatch):
+    monkeypatch.setenv("JARVIS_CIDADE", "Fortaleza")
+    lugar = {"results": [{"name": "Fortaleza", "latitude": 0, "longitude": 0}]}
+    previsao = {
+        "current": {
+            "temperature_2m": 30,
+            "apparent_temperature": 33,
+            "weather_code": 0,
+            "relative_humidity_2m": 60,
+        },
+        "daily": {
+            "time": ["2026-10-20"],
+            "weather_code": [0],
+            "temperature_2m_max": [32],
+            "temperature_2m_min": [25],
+            "precipitation_probability_max": [10],
+        },
+    }
+
+    resultado = ferramentas.clima(
+        obter=lambda url: lugar if "geocoding" in url else previsao
+    ).executar({})
+
+    assert resultado.cartao["tipo"] == "clima"
+    assert resultado.cartao["temperatura"] == 30
+
+
+def test_notas_e_conta_viram_cartao(tmp_path):
+    caderno = Caderno(tmp_path / "notas.json")
+
+    anotado = ferramentas.anotar(caderno).executar({"texto": "comprar café"}).cartao
+    lidas = ferramentas.ler_notas(caderno).executar({}).cartao
+    conta = ferramentas.calcular().executar({"expressao": "3480 * 17 / 100"}).cartao
+
+    assert anotado["itens"] == ["comprar café"]
+    assert (lidas["titulo"], lidas["itens"]) == ("1 anotação", ["comprar café"])
+    assert (conta["titulo"], conta["expressao"]) == ("591,6", "3480 * 17 / 100")

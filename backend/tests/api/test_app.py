@@ -12,10 +12,12 @@ from jarvis.api.cadastros import Cadastros
 from jarvis.api.sessao import Sessao
 from jarvis.habilidades import HABILIDADES
 from jarvis.habilidades.conversa.cerebro import (
+    Cartao,
     CerebroIndisponivelError,
     Fim,
     Frase,
     RespostaDaIA,
+    Usando,
 )
 from jarvis.habilidades.conversa.comandos import FUSO
 from jarvis.habilidades.conversa.memoria import Memoria
@@ -255,9 +257,10 @@ def ler_conversa(resposta):
 
 
 class CerebroFalso:
-    def __init__(self, fala="Um omelete resolve.", erro=None):
+    def __init__(self, fala="Um omelete resolve.", erro=None, antes=()):
         self.fala = fala
         self.erro = erro
+        self.antes = list(antes)  # eventos antes da fala (ferramentas, cartões)
         self.perguntas = []
         self.historicos = []
         self.ferramentas = []
@@ -268,6 +271,7 @@ class CerebroFalso:
         self.ferramentas = list(ferramentas)
         if self.erro:
             raise self.erro
+        yield from self.antes
         yield Frase(self.fala)
         troca = [
             {"role": "user", "content": pergunta},
@@ -696,3 +700,18 @@ def test_texto_vazio_ou_grande_demais_e_recusado(tmp_path, texto):
     cliente = cliente_de_gravacao(tmp_path)
 
     assert cliente.post("/conversa/texto", json={"texto": texto}).status_code == 422
+
+
+def test_ferramenta_e_cartao_chegam_no_fluxo_antes_da_fala(tmp_path):
+    cartao = {"tipo": "clima", "rotulo": "Clima", "titulo": "Fortaleza", "temperatura": 30}
+    cerebro = CerebroFalso("Faz 30 graus.", antes=[Usando("clima"), Cartao(cartao)])
+    cliente = cliente_de_gravacao(
+        tmp_path, TranscritorFalso("e o clima?"), sessao_aberta(tmp_path), cerebro
+    )
+
+    resposta = cliente.post("/conversa/gravacao", content=b"voz")
+
+    eventos = [json.loads(linha) for linha in resposta.text.splitlines() if linha]
+    assert [e["tipo"] for e in eventos] == ["ouvido", "usando", "cartao", "trecho", "fim"]
+    assert eventos[1]["ferramenta"] == "clima"
+    assert eventos[2]["cartao"] == cartao

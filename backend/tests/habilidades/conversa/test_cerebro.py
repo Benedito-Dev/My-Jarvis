@@ -3,10 +3,12 @@ from datetime import datetime
 import pytest
 
 from jarvis.habilidades.conversa.cerebro import (
+    Cartao,
     Cerebro,
     CerebroIndisponivelError,
     Fim,
     Frase,
+    Usando,
     criar_cerebro,
     limpar_para_falar,
 )
@@ -243,3 +245,21 @@ def test_pede_a_resposta_sem_raciocinio():
     Cerebro("k", enviar=falso.enviar).responder("oi", "B", AGORA)
 
     assert falso.pedidos[0][0]["reasoning"] == {"enabled": False}
+
+
+def test_ferramenta_avisa_que_esta_em_uso_e_entrega_o_cartao():
+    cartao = {"tipo": "clima", "rotulo": "Clima", "titulo": "Fortaleza"}
+    ferramenta = Ferramenta(
+        "clima", "o tempo", {"type": "object"}, lambda _p: Resultado("30 graus", cartao=cartao)
+    )
+    falso = OpenRouterRoteirizado(chamada_de("clima", "{}"), {"content": "Faz 30 graus."})
+
+    eventos = list(
+        Cerebro("k", enviar=falso.enviar).responder_em_fluxo(
+            "e o clima?", "Benedito", AGORA, ferramentas=[ferramenta]
+        )
+    )
+
+    # Primeiro avisa, depois mostra, e só então a IA fala sobre o resultado.
+    assert eventos[:3] == [Usando("clima"), Cartao(cartao), Frase("Faz 30 graus.")]
+    assert isinstance(eventos[-1], Fim)

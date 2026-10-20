@@ -1,9 +1,12 @@
+import type { Cartao } from "./cartoes";
 import type { Tom } from "./desbloqueio";
 
 /** Um evento do fluxo da conversa, como o backend manda (uma linha NDJSON cada). */
 export type EventoConversa =
   | { tipo: "ouvido"; texto: string; arquivo: string }
   | { tipo: "trecho"; texto: string }
+  | { tipo: "usando"; ferramenta: string }
+  | { tipo: "cartao"; cartao: Cartao }
   | { tipo: "fim"; acao: string | null };
 
 export type EstadoGravacao =
@@ -18,6 +21,10 @@ export type EstadoGravacao =
       acao: string | null;
       /** O backend mandou o "fim": a resposta está completa. */
       terminou: boolean;
+      /** O que as ferramentas trouxeram nesta conversa, para mostrar na tela. */
+      cartoes: Cartao[];
+      /** A ferramenta rodando agora (ex.: "clima"), ou null. */
+      usando: string | null;
     }
   | { estado: "erro"; mensagem: string };
 
@@ -82,16 +89,30 @@ export function duracaoDaFala(frase: string): number {
 export function aplicarEvento(atual: EstadoGravacao, evento: EventoConversa): EstadoGravacao {
   switch (evento.tipo) {
     case "ouvido":
-      return { estado: "ouvida", texto: evento.texto, resposta: "", acao: null, terminou: false };
+      return {
+        estado: "ouvida",
+        texto: evento.texto,
+        resposta: "",
+        acao: null,
+        terminou: false,
+        cartoes: [],
+        usando: null,
+      };
     case "trecho":
       if (atual.estado !== "ouvida") return atual;
       return {
         ...atual,
         resposta: atual.resposta ? `${atual.resposta} ${evento.texto}` : evento.texto,
       };
+    case "usando":
+      if (atual.estado !== "ouvida") return atual;
+      return { ...atual, usando: evento.ferramenta };
+    case "cartao":
+      if (atual.estado !== "ouvida") return atual;
+      return { ...atual, cartoes: [...atual.cartoes, evento.cartao], usando: null };
     case "fim":
       if (atual.estado !== "ouvida") return atual;
-      return { ...atual, acao: evento.acao, terminou: true };
+      return { ...atual, acao: evento.acao, terminou: true, usando: null };
   }
 }
 

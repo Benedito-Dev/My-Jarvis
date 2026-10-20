@@ -89,7 +89,7 @@ mostrando cartões na tela**. A tela deixa de ser um dashboard e vira a conversa
 |---|---|---|
 | ✅ | 1. Orbe de fios de luz | O núcleo vira um anel de laços de luz que se agita com a voz |
 | ✅ | 2. Tela limpa | Manchete de estado (EM ESPERA, FALANDO...), legenda da fala e módulos pequenos nos cantos |
-| ⬜ | 3. Cartões | "Como está o clima?" → um cartão de clima na frente do orbe; também lembrete, nota e pesquisa |
+| ✅ | 3. Cartões | "Como está o clima?" → um cartão de clima na frente do orbe; também lembrete, nota e pesquisa |
 | ⬜ | 4. Bom dia | "Bom dia" → clima + lembretes de hoje + notícias, um cartão por assunto |
 | ⬜ | 5. Sem tecla | Palavra de ativação "Jarvis" (o bônus da Fase 3) |
 | ⬜ | 6. Sua agenda e e-mail | Google Agenda e Gmail entram no bom dia |

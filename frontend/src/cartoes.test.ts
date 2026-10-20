@@ -1,0 +1,66 @@
+import { describe, expect, it } from "vitest";
+import { type Cartao, arrumarCartoes, fraseDaFerramenta, resumoDoCartao } from "./cartoes";
+
+const cartao = (titulo: string): Cartao => ({ tipo: "abrir", rotulo: "Abrindo app", titulo });
+
+describe("arrumarCartoes", () => {
+  const anteriores = [cartao("a"), cartao("b")];
+
+  it("falando, o último cartão da conversa fica em destaque", () => {
+    const { destaque, fila } = arrumarCartoes(anteriores, [cartao("c"), cartao("d")], false);
+
+    expect(destaque?.titulo).toBe("d");
+    expect(fila.map((c) => c.titulo)).toEqual(["a", "b", "c"]);
+  });
+
+  it("em espera, todos descem para a fileira", () => {
+    const { destaque, fila } = arrumarCartoes(anteriores, [cartao("c")], true);
+
+    expect(destaque).toBeNull();
+    expect(fila.map((c) => c.titulo)).toEqual(["a", "b", "c"]);
+  });
+
+  it("a fileira guarda só os mais recentes", () => {
+    const muitos = ["1", "2", "3", "4", "5", "6"].map(cartao);
+
+    expect(arrumarCartoes(muitos, [], true).fila.map((c) => c.titulo)).toEqual([
+      "3",
+      "4",
+      "5",
+      "6",
+    ]);
+  });
+});
+
+describe("fraseDaFerramenta", () => {
+  it("diz o que está fazendo, mesmo com ferramenta desconhecida", () => {
+    expect(fraseDaFerramenta("clima")).toBe("Consultando o clima");
+    expect(fraseDaFerramenta("nova_coisa")).toBe("Trabalhando nisso");
+  });
+});
+
+describe("resumoDoCartao", () => {
+  it("clima mostra a temperatura e o céu", () => {
+    const clima: Cartao = {
+      tipo: "clima",
+      rotulo: "Clima · agora",
+      titulo: "Fortaleza",
+      temperatura: 31,
+      sensacao: 34,
+      umidade: 50,
+      ceu: "céu limpo",
+      dias: [],
+    };
+    expect(resumoDoCartao(clima)).toBe("31° · céu limpo");
+  });
+
+  it("um lembrete só mostra a hora e o texto", () => {
+    const lembrete: Cartao = {
+      tipo: "lembretes",
+      rotulo: "Lembrete criado",
+      titulo: "1 lembrete",
+      itens: [{ hora: "15:00", texto: "ligar pro banco" }],
+    };
+    expect(resumoDoCartao(lembrete)).toBe("15:00 · ligar pro banco");
+  });
+});

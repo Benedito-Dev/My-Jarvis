@@ -95,6 +95,20 @@ class Frase:
 
 
 @dataclass(frozen=True)
+class Usando:
+    """A IA pediu uma ferramenta, que vai rodar agora (a tela mostra "consultando...")."""
+
+    ferramenta: str
+
+
+@dataclass(frozen=True)
+class Cartao:
+    """O que uma ferramenta trouxe, organizado para a tela (ver ferramentas.py)."""
+
+    dados: dict
+
+
+@dataclass(frozen=True)
 class Fim:
     resposta: RespostaDaIA
 
@@ -128,10 +142,11 @@ class Cerebro:
         agora: datetime | None = None,
         historico: Sequence[dict] = (),
         ferramentas: Sequence[Ferramenta] = (),
-    ) -> Iterator[Frase | Fim]:
+    ) -> Iterator[Frase | Usando | Cartao | Fim]:
         """Responde `pergunta` aos pedaços: cada `Frase` sai assim que fecha, e no
         fim vem um `Fim` com a resposta inteira (e a troca, para a memória).
-        Lembra do `historico` e pode usar `ferramentas`.
+        Lembra do `historico` e pode usar `ferramentas`: cada uma avisa `Usando`
+        antes de rodar e, se tiver o que mostrar, entrega um `Cartao` depois.
         """
         momento = (agora or datetime.now(FUSO)).astimezone(FUSO)
         mensagens = [
@@ -176,15 +191,16 @@ class Cerebro:
                 return
 
             lista = [chamadas[i] for i in sorted(chamadas)]
-            resultados = [
-                (
-                    chamada,
-                    mod_ferramentas.executar(
-                        ferramentas, chamada["function"]["name"], chamada["function"]["arguments"]
-                    ),
+            resultados = []
+            for chamada in lista:
+                nome = chamada["function"]["name"]
+                yield Usando(nome)
+                resultado = mod_ferramentas.executar(
+                    ferramentas, nome, chamada["function"]["arguments"]
                 )
-                for chamada in lista
-            ]
+                if resultado.cartao:
+                    yield Cartao(resultado.cartao)
+                resultados.append((chamada, resultado))
             mensagens.append({"role": "assistant", "content": None, "tool_calls": lista})
             mensagens += [
                 {"role": "tool", "tool_call_id": chamada["id"], "content": resultado.para_ia}

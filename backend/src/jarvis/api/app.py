@@ -27,9 +27,11 @@ from jarvis.habilidades import HABILIDADES, Situacao
 from jarvis.habilidades.conversa import comandos, ferramentas, gravacoes
 from jarvis.habilidades.conversa.cerebro import MODELO as MODELO_IA
 from jarvis.habilidades.conversa.cerebro import (
+    Cartao,
     Cerebro,
     CerebroIndisponivelError,
     Frase,
+    Usando,
     criar_cerebro,
 )
 from jarvis.habilidades.conversa.comandos import as_horas
@@ -285,6 +287,10 @@ def criar_app(
                     sessao.falar_em_sequencia(evento.texto)
                     falou = True
                     yield _linha(tipo="trecho", texto=evento.texto)
+                elif isinstance(evento, Usando):
+                    yield _linha(tipo="usando", ferramenta=evento.ferramenta)
+                elif isinstance(evento, Cartao):
+                    yield _linha(tipo="cartao", cartao=evento.dados)
                 else:
                     memoria.lembrar_troca(evento.resposta.troca)  # com as ferramentas
         except CerebroIndisponivelError as erro:
@@ -426,6 +432,8 @@ def criar_app(
         Uma linha JSON por evento (NDJSON), enviada assim que acontece:
         - {"tipo": "ouvido", "texto", "arquivo"}: o que foi dito (logo após transcrever);
         - {"tipo": "trecho", "texto"}: um pedaço da resposta, que já está sendo falado;
+        - {"tipo": "usando", "ferramenta"}: a IA está usando uma ferramenta (ex.: "clima");
+        - {"tipo": "cartao", "cartao"}: o que a ferramenta trouxe, para mostrar na tela;
         - {"tipo": "fim", "acao"}: acabou ("bloquear" se for o caso).
         Assim o app mostra "Você disse..." e o Jarvis começa a falar antes de a IA
         terminar a resposta inteira.

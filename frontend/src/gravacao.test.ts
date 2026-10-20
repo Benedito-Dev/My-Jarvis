@@ -50,6 +50,8 @@ describe("estadoDoNucleo", () => {
     resposta,
     acao: null,
     terminou,
+    cartoes: [],
+    usando: null,
   });
 
   it("ouvida com resposta, volta ao azul e repete o que foi dito", () => {
@@ -110,6 +112,16 @@ describe("aplicarEvento", () => {
 
     expect(aplicarEvento(enviando, { tipo: "trecho", texto: "x" })).toBe(enviando);
   });
+
+  it("ferramenta em uso e depois o cartão que ela trouxe", () => {
+    const cartao = { tipo: "abrir" as const, rotulo: "Abrindo app", titulo: "Spotify" };
+    let estado = aplicarEvento({ estado: "enviando" }, { tipo: "ouvido", texto: "abre", arquivo: "" });
+    estado = aplicarEvento(estado, { tipo: "usando", ferramenta: "abrir_app" });
+    expect(estado).toMatchObject({ usando: "abrir_app", cartoes: [] });
+
+    estado = aplicarEvento(estado, { tipo: "cartao", cartao });
+    expect(estado).toMatchObject({ usando: null, cartoes: [cartao] });
+  });
 });
 
 describe("registrarTroca", () => {
@@ -120,6 +132,8 @@ describe("registrarTroca", () => {
     resposta: "São 11 horas.",
     acao: null,
     terminou: true,
+    cartoes: [],
+    usando: null,
   };
 
   it("guarda a troca quando a conversa termina", () => {

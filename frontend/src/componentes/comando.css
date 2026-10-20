@@ -708,6 +708,7 @@
 .comando__centro {
   grid-column: 1 / -1;
   grid-row: 2;
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -718,6 +719,7 @@
 
 /* O orbe ocupa a altura que sobra (quadrado); a legenda tem espaço fixo embaixo. */
 .comando__nucleo {
+  position: relative;
   flex: 1 1 0;
   min-height: 0;
   max-height: 640px;
@@ -729,6 +731,313 @@
   display: block;
   width: 100%;
   height: 100%;
+}
+
+/* --- Cartões: o assunto do momento e a fileira da sessão (Cartoes.tsx) ------ */
+
+/* O cartão em destaque fica no meio do orbe, por cima dos fios. */
+.comando__destaque {
+  position: absolute;
+  inset: 0 0 64px; /* embaixo fica a fileira, que encosta na borda do orbe */
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.cartao {
+  width: min(400px, 92%);
+  max-height: 100%;
+  overflow: hidden;
+  padding: 14px 18px 16px;
+  text-align: left;
+  color: var(--texto);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--destaque) 12%, transparent), transparent 60%),
+    rgba(4, 12, 24, 0.82);
+  border: 1px solid color-mix(in srgb, var(--destaque) 35%, transparent);
+  border-radius: 6px;
+  box-shadow:
+    0 0 30px color-mix(in srgb, var(--destaque) 18%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--destaque) 25%, transparent);
+  backdrop-filter: blur(6px);
+  pointer-events: auto;
+  animation: surgir-cartao 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes surgir-cartao {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(10px);
+    filter: blur(4px);
+  }
+}
+
+.cartao__cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cartao__numero {
+  padding: 1px 5px;
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  font-size: 10px;
+  color: #04121f;
+  background: var(--destaque);
+}
+
+.cartao__rotulo {
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--destaque) 80%, white);
+}
+
+.cartao__titulo {
+  margin: 8px 0 0;
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: white;
+}
+
+.cartao__lista {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cartao__item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.cartao__hora {
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  font-size: 13px;
+  color: var(--destaque);
+}
+
+.cartao__marca {
+  flex-shrink: 0;
+  width: 5px;
+  height: 5px;
+  background: var(--destaque);
+  transform: translateY(-2px);
+}
+
+/* Conta: o resultado é o título (grande); a expressão vai embaixo. */
+.cartao--conta .cartao__titulo {
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  font-size: 34px;
+  font-weight: 400;
+  color: var(--destaque);
+}
+
+.cartao__expressao {
+  margin: 4px 0 0;
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.achado {
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--destaque) 15%, transparent);
+}
+
+.achado__titulo {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.achado__resumo {
+  display: -webkit-box;
+  margin: 3px 0 0;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--texto-suave);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.achado__fonte {
+  margin: 3px 0 0;
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  font-size: 10px;
+  color: color-mix(in srgb, var(--destaque) 70%, transparent);
+}
+
+/* Clima: a temperatura grande à esquerda, o céu ao lado e os dias embaixo. */
+.clima {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 6px;
+}
+
+.clima__temperatura {
+  margin: 0;
+  font-size: 54px;
+  font-weight: 200;
+  line-height: 1;
+  color: var(--destaque);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--destaque) 45%, transparent);
+}
+
+.clima__temperatura span {
+  font-size: 30px;
+  vertical-align: top;
+}
+
+.clima__ceu {
+  margin: 0;
+  font-size: 15px;
+  text-transform: capitalize;
+}
+
+.clima__detalhe {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--texto-suave);
+}
+
+.clima__dias {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.clima__dia {
+  display: grid;
+  gap: 2px;
+  padding: 7px 8px;
+  background: color-mix(in srgb, var(--destaque) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--destaque) 14%, transparent);
+}
+
+.clima__dia-nome {
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.clima__dia-faixa {
+  font-size: 15px;
+}
+
+.clima__dia-faixa small {
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+.clima__dia-chuva {
+  font-size: 10px;
+  color: color-mix(in srgb, var(--destaque) 75%, white);
+}
+
+/* Progresso: "Consultando o clima…" com uma barra correndo embaixo. */
+.cartao--progresso {
+  width: min(320px, 80%);
+  border-color: color-mix(in srgb, var(--pensando) 45%, transparent);
+  box-shadow: 0 0 30px color-mix(in srgb, var(--pensando) 20%, transparent);
+}
+
+.cartao--progresso .cartao__rotulo {
+  color: var(--pensando);
+}
+
+.cartao--progresso .cartao__titulo {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.cartao__barra {
+  display: block;
+  height: 2px;
+  margin-top: 12px;
+  background: linear-gradient(90deg, transparent, var(--pensando), transparent) 0 0 / 40% 100%
+    no-repeat;
+  background-color: color-mix(in srgb, var(--pensando) 15%, transparent);
+  animation: correr-barra 1.2s linear infinite;
+}
+
+@keyframes correr-barra {
+  from {
+    background-position: -40% 0;
+  }
+  to {
+    background-position: 140% 0;
+  }
+}
+
+/* A fileira da sessão: por cima da borda de baixo do orbe, logo acima da legenda. */
+.comando__fila {
+  position: absolute;
+  left: 50%;
+  bottom: calc(14px * 1.5 + 8px + 21px * 1.45 * 3 + 6px);
+  display: flex;
+  gap: 8px;
+  max-width: calc(100% - 500px);
+  transform: translateX(-50%);
+}
+
+.cartao-mini {
+  display: grid;
+  gap: 3px;
+  width: 150px;
+  padding: 8px 10px;
+  text-align: left;
+  background: rgba(4, 12, 24, 0.78);
+  border: 1px solid color-mix(in srgb, var(--destaque) 22%, transparent);
+  border-radius: 4px;
+  animation: descer-cartao 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes descer-cartao {
+  from {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.9);
+  }
+}
+
+.cartao-mini__rotulo {
+  overflow: hidden;
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--texto-suave);
+}
+
+.cartao-mini__resumo {
+  overflow: hidden;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: color-mix(in srgb, var(--destaque) 25%, white);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cartao,
+  .cartao-mini,
+  .cartao__barra {
+    animation: none;
+  }
 }
 
 /* A legenda, como num filme: espaço reservado sempre (a sua frase + três

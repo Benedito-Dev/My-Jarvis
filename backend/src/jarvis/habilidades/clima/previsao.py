@@ -81,8 +81,8 @@ def encontrar(cidade: str, obter: ObterJson = _obter_json) -> Lugar:
     return Lugar(r["name"], r.get("admin1", ""), r["latitude"], r["longitude"])
 
 
-def clima(cidade: str, obter: ObterJson = _obter_json) -> str:
-    """Agora e os próximos 3 dias em `cidade`, num texto curto para a IA."""
+def consultar(cidade: str, obter: ObterJson = _obter_json) -> tuple[Lugar, dict]:
+    """O lugar e os dados da Open-Meteo: agora e os próximos 3 dias em `cidade`."""
     lugar = encontrar(cidade, obter)
     consulta = urllib.parse.urlencode(
         {
@@ -95,8 +95,12 @@ def clima(cidade: str, obter: ObterJson = _obter_json) -> str:
             "forecast_days": 3,
         }
     )
-    dados = obter(f"{URL_PREVISAO}?{consulta}")
-    return resumir(lugar, dados)
+    return lugar, obter(f"{URL_PREVISAO}?{consulta}")
+
+
+def clima(cidade: str, obter: ObterJson = _obter_json) -> str:
+    """Agora e os próximos 3 dias em `cidade`, num texto curto para a IA."""
+    return resumir(*consultar(cidade, obter))
 
 
 def resumir(lugar: Lugar, dados: dict) -> str:
@@ -117,3 +121,28 @@ def resumir(lugar: Lugar, dados: dict) -> str:
             f"chance de chuva {chuva if chuva is not None else '?'}%."
         )
     return "\n".join(linhas)
+
+
+def cartao(lugar: Lugar, dados: dict) -> dict:
+    """O mesmo clima, para o cartão na tela (números, não frases)."""
+    agora = dados["current"]
+    dia = dados["daily"]
+    return {
+        "tipo": "clima",
+        "rotulo": "Clima · agora",
+        "titulo": lugar.nome,
+        "temperatura": round(agora["temperature_2m"]),
+        "sensacao": round(agora["apparent_temperature"]),
+        "umidade": agora["relative_humidity_2m"],
+        "ceu": CEU.get(agora["weather_code"], "tempo indefinido"),
+        "dias": [
+            {
+                "nome": nome,
+                "ceu": CEU.get(dia["weather_code"][i], "tempo indefinido"),
+                "maxima": round(dia["temperature_2m_max"][i]),
+                "minima": round(dia["temperature_2m_min"][i]),
+                "chuva": dia["precipitation_probability_max"][i],
+            }
+            for i, nome in enumerate(DIAS[: len(dia["time"])])
+        ],
+    }

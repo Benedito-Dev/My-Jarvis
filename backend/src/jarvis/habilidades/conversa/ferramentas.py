@@ -3,6 +3,10 @@
 Cada ferramenta tem um nome, uma descrição (é por ela que a IA sabe quando usar)
 e os parâmetros que espera, no formato de "function calling" do OpenRouter.
 Nova ferramenta = nova função aqui que devolve uma `Ferramenta`.
+
+Além do texto para a IA, cada resultado pode trazer um `cartao`: os mesmos
+dados, organizados para a tela mostrar enquanto o Jarvis fala. Todo cartão tem
+`tipo` (clima, lembretes, pesquisa, notas, conta, abrir), `rotulo` e `titulo`.
 """
 
 import json
@@ -29,6 +33,7 @@ class Resultado:
 
     para_ia: str
     fala: str | None = None
+    cartao: dict | None = None
 
 
 @dataclass(frozen=True)
@@ -82,6 +87,7 @@ def lembrete(agenda: Agenda) -> Ferramenta:
         return Resultado(
             para_ia=f"Lembrete agendado para {horario}: {criado.texto}.",
             fala=f"Certo. Te aviso {horario}.",
+            cartao=_cartao_lembretes("Lembrete criado", [criado]),
         )
 
     return Ferramenta(
@@ -115,7 +121,10 @@ def listar_lembretes(agenda: Agenda) -> Ferramenta:
         if not pendentes:
             return Resultado(para_ia="Nenhum lembrete pendente.")
         itens = "; ".join(f"{as_horas(lem.quando)}: {lem.texto}" for lem in pendentes)
-        return Resultado(para_ia=f"Lembretes pendentes: {itens}.")
+        return Resultado(
+            para_ia=f"Lembretes pendentes: {itens}.",
+            cartao=_cartao_lembretes("Lembretes", pendentes),
+        )
 
     return Ferramenta(
         nome="listar_lembretes",
@@ -125,18 +134,39 @@ def listar_lembretes(agenda: Agenda) -> Ferramenta:
     )
 
 
+def _cartao_lembretes(rotulo: str, lembretes) -> dict:
+    quantos = len(lembretes)
+    return {
+        "tipo": "lembretes",
+        "rotulo": rotulo,
+        "titulo": "1 lembrete" if quantos == 1 else f"{quantos} lembretes",
+        "itens": [{"hora": f"{lem.quando:%H:%M}", "texto": lem.texto} for lem in lembretes],
+    }
+
+
 # --- Pesquisa na web --------------------------------------------------------------
+
+
+CARTAO_MAXIMO_DE_ACHADOS = 3
 
 
 def pesquisar_web(buscar: web.Buscar = web._buscar_ddgs) -> Ferramenta:
     def executar_busca(parametros: dict) -> Resultado:
+        noticias = bool(parametros.get("noticias"))
         try:
-            achados = web.pesquisar(
-                parametros["consulta"], bool(parametros.get("noticias")), buscar=buscar
-            )
+            achados = web.pesquisar(parametros["consulta"], noticias, buscar=buscar)
         except web.PesquisaIndisponivelError as erro:
             return Resultado(para_ia=f"A busca falhou ({erro}). Diga que não conseguiu pesquisar.")
-        return Resultado(para_ia=web.para_a_ia(achados))
+        cartao = {
+            "tipo": "pesquisa",
+            "rotulo": "Notícias" if noticias else "Pesquisa",
+            "titulo": parametros["consulta"],
+            "itens": [
+                {"titulo": a.titulo, "resumo": a.resumo, "fonte": a.fonte}
+                for a in achados[:CARTAO_MAXIMO_DE_ACHADOS]
+            ],
+        }
+        return Resultado(para_ia=web.para_a_ia(achados), cartao=cartao if achados else None)
 
     return Ferramenta(
         nome="pesquisar_web",
@@ -169,9 +199,12 @@ def clima(obter: previsao.ObterJson = previsao._obter_json) -> Ferramenta:
         if not cidade:
             return Resultado(para_ia="Não sei a cidade. Pergunte ao usuário de qual cidade.")
         try:
-            return Resultado(para_ia=previsao.clima(cidade, obter=obter))
+            lugar, dados = previsao.consultar(cidade, obter=obter)
         except previsao.ClimaIndisponivelError as erro:
             return Resultado(para_ia=str(erro))
+        return Resultado(
+            para_ia=previsao.resumir(lugar, dados), cartao=previsao.cartao(lugar, dados)
+        )
 
     return Ferramenta(
         nome="clima",
@@ -199,7 +232,11 @@ def abrir_site(rodar=None) -> Ferramenta:
             sistema.abrir(comando, **({"rodar": rodar} if rodar else {}))
         except sistema.NaoConsigoAbrirError as erro:
             return Resultado(para_ia=str(erro))
-        return Resultado(para_ia="Site aberto.", fala="Abrindo.")
+        return Resultado(
+            para_ia="Site aberto.",
+            fala="Abrindo.",
+            cartao={"tipo": "abrir", "rotulo": "Abrindo site", "titulo": parametros["endereco"]},
+        )
 
     return Ferramenta(
         nome="abrir_site",
@@ -226,7 +263,11 @@ def abrir_app(rodar=None) -> Ferramenta:
             sistema.abrir(comando, **({"rodar": rodar} if rodar else {}))
         except sistema.NaoConsigoAbrirError as erro:
             return Resultado(para_ia=str(erro))
-        return Resultado(para_ia=f"{nome} aberto.", fala=f"Abrindo o {nome}.")
+        return Resultado(
+            para_ia=f"{nome} aberto.",
+            fala=f"Abrindo o {nome}.",
+            cartao={"tipo": "abrir", "rotulo": "Abrindo app", "titulo": nome},
+        )
 
     return Ferramenta(
         nome="abrir_app",
@@ -251,7 +292,16 @@ def anotar(caderno: Caderno) -> Ferramenta:
             nota = caderno.anotar(parametros["texto"])
         except NotaInvalidaError as erro:
             return Resultado(para_ia=f"Não anotado: {erro}")
-        return Resultado(para_ia=f"Anotado: {nota.texto}", fala="Anotado.")
+        return Resultado(
+            para_ia=f"Anotado: {nota.texto}",
+            fala="Anotado.",
+            cartao={
+                "tipo": "notas",
+                "rotulo": "Anotado",
+                "titulo": "Nova nota",
+                "itens": [nota.texto],
+            },
+        )
 
     return Ferramenta(
         nome="anotar",
@@ -265,14 +315,23 @@ def anotar(caderno: Caderno) -> Ferramenta:
     )
 
 
+CARTAO_MAXIMO_DE_NOTAS = 5
+
+
 def ler_notas(caderno: Caderno) -> Ferramenta:
     def executar_ler(_parametros: dict) -> Resultado:
         notas = caderno.listar()
         if not notas:
             return Resultado(para_ia="Não há anotações.")
+        recentes = [n.texto for n in notas[-20:]]
         return Resultado(
-            para_ia="Anotações, da mais antiga à mais nova: "
-            + "; ".join(n.texto for n in notas[-20:])
+            para_ia="Anotações, da mais antiga à mais nova: " + "; ".join(recentes),
+            cartao={
+                "tipo": "notas",
+                "rotulo": "Notas",
+                "titulo": f"{len(notas)} anotações" if len(notas) != 1 else "1 anotação",
+                "itens": recentes[-CARTAO_MAXIMO_DE_NOTAS:],
+            },
         )
 
     return Ferramenta(
@@ -292,7 +351,17 @@ def calcular() -> Ferramenta:
             resultado = conta.calcular(parametros["expressao"])
         except conta.ContaInvalidaError as erro:
             return Resultado(para_ia=str(erro))
-        return Resultado(para_ia=f"{parametros['expressao']} = {conta.formatar(resultado)}")
+        expressao = parametros["expressao"]
+        formatado = conta.formatar(resultado)
+        return Resultado(
+            para_ia=f"{expressao} = {formatado}",
+            cartao={
+                "tipo": "conta",
+                "rotulo": "Cálculo",
+                "titulo": formatado.replace(".", ","),  # na tela, vírgula decimal
+                "expressao": expressao,
+            },
+        )
 
     return Ferramenta(
         nome="calcular",

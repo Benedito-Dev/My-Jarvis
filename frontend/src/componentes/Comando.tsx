@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import type { Habilidade, Lembrete } from "../api";
+import { type Cartao, arrumarCartoes } from "../cartoes";
 import {
   duracaoDaFala,
   type EstadoGravacao,
@@ -25,6 +26,7 @@ import {
   ModuloTempo,
 } from "./ModulosComando";
 import { useVozDoJarvis } from "../hooks/useVozDoJarvis";
+import { CartaoDestaque, CartaoMini, CartaoProgresso } from "./Cartoes";
 import { HistoricoConversa } from "./HistoricoConversa";
 import { type ModoNucleo, Nucleo } from "./Nucleo";
 import { OndaVoz } from "./OndaVoz";
@@ -189,6 +191,28 @@ export function Comando({
     };
   }, [cantoAberto]);
 
+  // Cartões: os desta conversa ficam em destaque enquanto ele trabalha e fala;
+  // quando outra conversa começa, eles passam para a sessão (a fileira de baixo).
+  const [anteriores, setAnteriores] = useState<Cartao[]>([]);
+  const ultimaOuvida = useRef<EstadoGravacao | null>(null);
+  useEffect(() => {
+    if (gravacao.estado === "ouvida") {
+      ultimaOuvida.current = gravacao;
+      return;
+    }
+    const passada = ultimaOuvida.current;
+    ultimaOuvida.current = null;
+    if (passada?.estado === "ouvida" && passada.cartoes.length > 0) {
+      setAnteriores((atual) => [...atual, ...passada.cartoes]);
+    }
+  }, [gravacao]);
+  const atuais = gravacao.estado === "ouvida" ? gravacao.cartoes : [];
+  const usando = gravacao.estado === "ouvida" ? gravacao.usando : null;
+  // Rodando uma ferramenta, o centro é do cartão de progresso: os outros descem.
+  const { destaque, fila } = arrumarCartoes(anteriores, atuais, fase === "espera" || !!usando);
+  // Numeração da sessão inteira: o destaque é sempre o último; a fileira vem antes.
+  const fimDaFila = anteriores.length + atuais.length - (destaque ? 1 : 0);
+
   const ultimaLatencia = latencias[latencias.length - 1];
   const ativas = habilidades.filter((h) => h.situacao === "pronta").length;
 
@@ -204,7 +228,25 @@ export function Comando({
       <section className="comando__centro">
         <div className="comando__nucleo">
           <Nucleo niveis={[nivel, voz.nivel]} tom={nucleo.tom} modo={modo} />
+          {/* O assunto do momento, na frente do orbe. */}
+          <div className="comando__destaque">
+            {usando ? (
+              <CartaoProgresso key={`usando-${usando}`} ferramenta={usando} />
+            ) : (
+              destaque && (
+                <CartaoDestaque key={fimDaFila + 1} cartao={destaque} numero={fimDaFila + 1} />
+              )
+            )}
+          </div>
         </div>
+        {fila.length > 0 && (
+          <div className="comando__fila" aria-label="Cartões desta sessão">
+            {fila.map((cartao, i) => {
+              const numero = fimDaFila - fila.length + i + 1;
+              return <CartaoMini key={numero} cartao={cartao} numero={numero} />;
+            })}
+          </div>
+        )}
         {/* A legenda: a sua frase pequena e a fala dele grande, como num filme.
             Fala longa mostra só as últimas linhas, as de cima vão sumindo. */}
         <div className="comando__legenda">
