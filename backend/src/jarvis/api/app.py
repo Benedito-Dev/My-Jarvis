@@ -406,7 +406,8 @@ def rodar() -> None:
     # Segredos (a chave da IA) vêm de backend/.env, que não vai para o git.
     carregar_segredos(PASTA_BACKEND / ".env")
     cerebro = criar_cerebro()
-    print(f"Cérebro de IA: {'ligado (' + MODELO_IA + ')' if cerebro else 'desligado (sem chave)'}")
+    estado = f"ligado ({MODELO_IA})" if cerebro else "desligado (sem chave)"
+    print(f"Cérebro de IA: {estado}", flush=True)  # flush: aparece já, mesmo em segundo plano
     # Já deixa os modelos carregados: o primeiro desbloqueio não espera 2 s e a
     # primeira fala não espera o Whisper (~3 s, ou o download no primeiro uso).
     threading.Thread(target=modelos, daemon=True).start()
