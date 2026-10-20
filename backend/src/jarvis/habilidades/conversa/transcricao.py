@@ -59,6 +59,15 @@ class Transcritor:
     def transcrever(self, audio: Path) -> str:
         """O que foi dito no arquivo de áudio. Texto vazio se não entendeu nada."""
         self.carregar()
+        try:
+            return self._transcrever(audio)
+        except Exception as erro:
+            # Um toque rápido no ESPAÇO gera um áudio quebrado (ex.: 5 bytes), e
+            # o leitor de áudio levanta erro. Para quem fala, é só "não entendi".
+            print(f"Não consegui ler o áudio {audio.name} ({erro}).", flush=True)
+            return ""
+
+    def _transcrever(self, audio: Path) -> str:
         trechos, _info = self._modelo.transcribe(
             str(audio),
             language="pt",

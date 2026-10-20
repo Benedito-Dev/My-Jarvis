@@ -41,6 +41,29 @@ def test_sem_resultados():
     assert "não encontrou" in para_a_ia([])
 
 
+def test_sem_resultados_tenta_o_outro_tipo_de_busca():
+    pedidas = []
+
+    def busca(consulta, noticias):
+        pedidas.append(noticias)
+        return [] if not noticias else [{"title": "Barça joga hoje", "body": "16h"}]
+
+    achados = pesquisar("jogo do Barcelona hoje", buscar=busca)
+
+    assert pedidas == [False, True]
+    assert achados[0].titulo == "Barça joga hoje"
+
+
+def test_no_results_do_ddgs_nao_e_falha(monkeypatch):
+    class DDGSVazio:
+        def text(self, *a, **k):
+            raise RuntimeError("No results found.")
+
+    monkeypatch.setattr("ddgs.DDGS", DDGSVazio)
+
+    assert _buscar_ddgs("x", noticias=False) == []
+
+
 def test_falha_da_busca_vira_pesquisa_indisponivel(monkeypatch):
     class DDGSQuebrado:
         def text(self, *a, **k):

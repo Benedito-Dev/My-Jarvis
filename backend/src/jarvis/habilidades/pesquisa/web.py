@@ -36,13 +36,21 @@ def _buscar_ddgs(consulta: str, noticias: bool) -> list[dict]:
             return cliente.news(consulta, region=REGIAO, max_results=MAXIMO_DE_RESULTADOS)
         return cliente.text(consulta, region=REGIAO, max_results=MAXIMO_DE_RESULTADOS)
     except Exception as erro:  # o ddgs levanta vários tipos; para nós é tudo "não deu"
+        if "no results" in str(erro).lower():
+            return []  # não é falha: só não achou (e o DuckDuckGo diz isso à toa)
         raise PesquisaIndisponivelError(str(erro)) from erro
 
 
 def pesquisar(consulta: str, noticias: bool = False, buscar: Buscar = _buscar_ddgs) -> list[Achado]:
-    """Os primeiros resultados para `consulta` (ou só notícias, se `noticias`)."""
+    """Os primeiros resultados para `consulta` (ou só notícias, se `noticias`).
+
+    O DuckDuckGo é instável: a mesma busca às vezes volta vazia e, logo depois,
+    com 5 resultados; e a de texto falha onde a de notícias acha. Por isso, sem
+    resultados, tenta o outro tipo antes de desistir.
+    """
+    itens = buscar(consulta, noticias) or buscar(consulta, not noticias)
     achados = []
-    for item in buscar(consulta, noticias)[:MAXIMO_DE_RESULTADOS]:
+    for item in itens[:MAXIMO_DE_RESULTADOS]:
         achados.append(
             Achado(
                 titulo=(item.get("title") or "").strip(),

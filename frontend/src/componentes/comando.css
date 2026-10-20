@@ -540,12 +540,31 @@
   align-items: center;
   justify-content: center;
   min-height: 0;
+  overflow: hidden; /* nada do centro invade a faixa de voz */
   text-align: center;
 }
 
 .comando__nucleo {
+  flex-shrink: 0;
   width: min(52vh, 100%);
   aspect-ratio: 1;
+  transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Resposta longa: o núcleo recua e o texto ganha espaço (e rolagem, se ainda faltar). */
+.comando__centro--longa .comando__nucleo {
+  width: min(30vh, 100%);
+}
+
+.comando__centro--longa .comando__resposta {
+  max-height: 9em;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--destaque) 40%, transparent) transparent;
+}
+
+.comando__centro--longa .comando__detalhe--fala {
+  font-size: 15px;
 }
 
 .nucleo {

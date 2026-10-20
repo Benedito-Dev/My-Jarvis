@@ -11,6 +11,9 @@ import "./comando.css";
 // A central de comando: o painel depois do desbloqueio. O núcleo no centro é o
 // Jarvis; as colunas dos lados mostram só dados reais, cada um com seu rótulo.
 
+// Acima disto (pergunta + resposta), o núcleo encolhe para o texto caber.
+const LETRAS_PARA_ENCOLHER = 140;
+
 const CORES = {
   aviso: "57, 197, 255",
   ok: "61, 220, 132",
@@ -57,6 +60,9 @@ export function Comando({
   const resposta = gravacao.estado === "ouvida" ? gravacao.resposta : null;
   const respostaVisivel = useDigitando(resposta ?? "", nucleo.detalhe.length * MS_POR_LETRA + 250);
 
+  // Resposta longa (comum com a IA): o núcleo encolhe para abrir espaço ao texto.
+  const conversaLonga = (resposta?.length ?? 0) + nucleo.detalhe.length > LETRAS_PARA_ENCOLHER;
+
   // Enquanto ele fala a resposta, o núcleo "fala" junto.
   const [falando, setFalando] = useState(false);
   useEffect(() => {
@@ -94,7 +100,7 @@ export function Comando({
         <ModuloLembretes lembretes={lembretes} agora={agora} />
       </aside>
 
-      <section className="comando__centro">
+      <section className={`comando__centro ${conversaLonga ? "comando__centro--longa" : ""}`}>
         <div className="comando__nucleo">
           <Nucleo nivel={nivel} tom={nucleo.tom} modo={modo} />
         </div>
