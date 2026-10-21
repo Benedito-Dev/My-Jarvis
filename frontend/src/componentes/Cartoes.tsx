@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { type Cartao, fraseDaFerramenta, resumoDoCartao } from "../cartoes";
 
 // Os cartões da conversa: o grande, na frente do orbe, com o assunto do momento;
@@ -8,6 +9,7 @@ import { type Cartao, fraseDaFerramenta, resumoDoCartao } from "../cartoes";
 export function CartaoDestaque({ cartao, numero }: { cartao: Cartao; numero: number }) {
   return (
     <article className={`cartao cartao--${cartao.tipo}`}>
+      {cartao.tipo === "noticia" && cartao.imagem && <FotoDaNoticia endereco={cartao.imagem} />}
       <header className="cartao__cabecalho">
         <span className="cartao__numero">{String(numero).padStart(2, "0")}</span>
         <span className="cartao__rotulo">{cartao.rotulo}</span>
@@ -15,6 +17,15 @@ export function CartaoDestaque({ cartao, numero }: { cartao: Cartao; numero: num
       <h3 className="cartao__titulo">{cartao.titulo}</h3>
       <CorpoDoCartao cartao={cartao} />
     </article>
+  );
+}
+
+/** A foto da manchete. Se não carregar (sem internet), some sem deixar buraco. */
+function FotoDaNoticia({ endereco }: { endereco: string }) {
+  const [falhou, setFalhou] = useState(false);
+  if (falhou) return null;
+  return (
+    <img className="cartao__foto" src={endereco} alt="" onError={() => setFalhou(true)} />
   );
 }
 
@@ -73,6 +84,8 @@ function CorpoDoCartao({ cartao }: { cartao: Cartao }) {
           ))}
         </ul>
       );
+    case "noticia":
+      return <p className="achado__fonte">{cartao.fonte}</p>;
     case "notas":
       return (
         <ul className="cartao__lista">

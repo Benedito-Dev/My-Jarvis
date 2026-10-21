@@ -53,6 +53,18 @@ describe("fraseDaFerramenta", () => {
 });
 
 describe("resumoDoCartao", () => {
+  it("notícia mostra a manchete", () => {
+    const noticia: Cartao = {
+      tipo: "noticia",
+      rotulo: "Notícias · Ceará",
+      titulo: "Fortaleza ganha parque",
+      fonte: "O Povo",
+      imagem: null,
+    };
+
+    expect(resumoDoCartao(noticia)).toBe("Fortaleza ganha parque");
+  });
+
   it("clima mostra a temperatura e o céu", () => {
     const clima: Cartao = {
       tipo: "clima",

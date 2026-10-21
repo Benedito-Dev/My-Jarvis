@@ -778,7 +778,7 @@ def test_bom_dia_conta_o_dia_com_um_cartao_antes_de_cada_assunto(tmp_path, monke
         "cartao",
         "trecho",
         "fim",
-    ]
+    ]  # uma notícia só no feed falso: um cartão para ela
     assert [e["ferramenta"] for e in eventos if e["tipo"] == "usando"] == [
         "clima",
         "listar_lembretes",
@@ -787,7 +787,7 @@ def test_bom_dia_conta_o_dia_com_um_cartao_antes_de_cada_assunto(tmp_path, monke
     assert [e["cartao"]["tipo"] for e in eventos if e["tipo"] == "cartao"] == [
         "clima",
         "lembretes",
-        "pesquisa",
+        "noticia",
     ]
     assert locutor.frases[0].startswith(("Bom dia", "Boa tarde", "Boa noite"))
     assert locutor.frases[1].startswith("Em Fortaleza, agora faz 27 graus")

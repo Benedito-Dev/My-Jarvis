@@ -4,6 +4,7 @@ import json
 import queue
 import threading
 from collections.abc import Iterator
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from importlib.metadata import version
 from pathlib import Path
@@ -297,11 +298,16 @@ def criar_app(
         sessao.falar_em_sequencia(falas[0])
         yield _linha(tipo="trecho", texto=falas[0])
         partes = []
-        for assunto in resumo.assuntos(
+        assuntos = resumo.assuntos(
             agenda.pendentes, datetime.now(FUSO), obter_clima, obter_noticias
-        ):
-            yield _linha(tipo="usando", ferramenta=assunto.ferramenta)
-            partes.append(assunto.preparar())
+        )
+        # Os três buscam ao mesmo tempo (~2 s em vez de ~5 s); a tela mostra o
+        # progresso na ordem em que eles serão falados.
+        with ThreadPoolExecutor(max_workers=len(assuntos)) as grupo:
+            buscas = [(a.ferramenta, grupo.submit(a.preparar)) for a in assuntos]
+            for ferramenta, busca in buscas:
+                yield _linha(tipo="usando", ferramenta=ferramenta)
+                partes += busca.result()
         # Cada cartão chega logo antes da sua fala: a tela o mostra quando ela começa.
         for parte in partes:
             if parte.cartao:

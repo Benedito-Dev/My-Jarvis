@@ -831,6 +831,20 @@
   transform: translateY(-2px);
 }
 
+/* Notícia: a foto da manchete ocupa o topo do cartão, de borda a borda. */
+.cartao__foto {
+  display: block;
+  width: calc(100% + 36px);
+  aspect-ratio: 16 / 9;
+  margin: -14px -18px 12px;
+  object-fit: cover;
+  border-bottom: 1px solid color-mix(in srgb, var(--destaque) 35%, transparent);
+}
+
+.cartao--noticia .cartao__titulo {
+  font-size: 17px;
+}
+
 /* Conta: o resultado é o título (grande); a expressão vai embaixo. */
 .cartao--conta .cartao__titulo {
   font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;

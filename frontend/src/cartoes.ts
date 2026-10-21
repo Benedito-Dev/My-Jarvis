@@ -25,6 +25,7 @@ export type Cartao = Base &
       }
     | { tipo: "lembretes"; itens: { hora: string; texto: string }[] }
     | { tipo: "pesquisa"; itens: { titulo: string; resumo: string; fonte: string }[] }
+    | { tipo: "noticia"; fonte: string; imagem: string | null }
     | { tipo: "notas"; itens: string[] }
     | { tipo: "conta"; expressao: string }
     | { tipo: "abrir" }

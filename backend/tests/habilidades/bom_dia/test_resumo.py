@@ -4,9 +4,9 @@ import pytest
 
 from jarvis.habilidades.bom_dia.resumo import (
     assuntos,
-    parte_das_noticias,
     parte_do_clima,
     parte_dos_lembretes,
+    partes_das_noticias,
     saudacao,
 )
 from jarvis.habilidades.clima.previsao import ClimaIndisponivelError
@@ -35,6 +35,17 @@ FEED = b"""<rss><channel>
 <item><title>Chuva forte atinge o Ceara - G1</title><source>G1</source></item>
 <item><title>Dolar fecha em queda.</title></item>
 </channel></rss>"""
+FEED_LOCAL = b"""<rss><channel>
+<item><title>Chuva forte atinge o Ceara - G1</title><source>G1</source></item>
+<item><title>Fortaleza ganha novo parque - O Povo</title><source>O Povo</source></item>
+</channel></rss>"""
+SEM_FOTOS = b"<rss><channel></channel></rss>"
+
+
+def noticias_falsas(url):
+    if "bing.com" in url:
+        return SEM_FOTOS
+    return FEED_LOCAL if "/search" in url else FEED
 
 
 def clima_falso(url):
@@ -100,21 +111,29 @@ def test_varios_lembretes_e_nenhum():
     assert nenhum.cartao["titulo"] == "Nada agendado"
 
 
-def test_noticias_le_as_manchetes_e_oferece_detalhar():
-    parte = parte_das_noticias(lambda url: FEED)
+def test_uma_parte_por_noticia_com_a_da_regiao_no_fim(monkeypatch):
+    monkeypatch.setenv("JARVIS_NOTICIAS_LOCAL", "Ceará")
 
-    assert parte.fala == (
-        "Nas notícias: Chuva forte atinge o Ceara. Dolar fecha em queda. "
-        "Quer que eu detalhe alguma delas?"
-    )
-    assert len(parte.cartao["itens"]) == 2
+    partes = partes_das_noticias(noticias_falsas)
+
+    assert [p.fala for p in partes] == [
+        "Nas notícias: Chuva forte atinge o Ceara.",
+        "E mais: Dolar fecha em queda.",
+        "Na sua região: Fortaleza ganha novo parque. Quer que eu detalhe alguma delas?",
+    ]
+    assert [p.cartao["rotulo"] for p in partes] == [
+        "Notícias · Brasil",
+        "Notícias · Brasil",
+        "Notícias · Ceará",
+    ]
+    assert partes[0].cartao["tipo"] == "noticia"
 
 
 def test_noticias_fora_do_ar():
     def fora_do_ar(url):
         raise NoticiasIndisponiveisError("sem internet")
 
-    parte = parte_das_noticias(fora_do_ar)
+    [parte] = partes_das_noticias(fora_do_ar)
 
     assert parte.fala == "Não consegui ler as notícias agora."
     assert parte.cartao is None
@@ -128,8 +147,8 @@ def test_assuntos_na_ordem_e_so_buscam_quando_preparados(monkeypatch):
         pedidas.append(url)
         return clima_falso(url)
 
-    lista = assuntos(lambda: [], AGORA, clima, lambda url: FEED)
+    lista = assuntos(lambda: [], AGORA, clima, noticias_falsas)
 
     assert [a.ferramenta for a in lista] == ["clima", "listar_lembretes", "noticias"]
     assert pedidas == []
-    assert lista[0].preparar().cartao["tipo"] == "clima"
+    assert lista[0].preparar()[0].cartao["tipo"] == "clima"

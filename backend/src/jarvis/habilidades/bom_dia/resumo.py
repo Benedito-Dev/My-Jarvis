@@ -15,7 +15,6 @@ from jarvis.habilidades.lembretes import agenda as mod_agenda
 from jarvis.habilidades.lembretes.agenda import Lembrete
 from jarvis.habilidades.noticias import manchetes
 
-MANCHETES_NO_BOM_DIA = 3
 LEMBRETES_FALADOS = 3  # mais que isso, o cartão mostra e a fala só conta
 
 
@@ -30,10 +29,11 @@ class Parte:
 @dataclass(frozen=True)
 class Assunto:
     """Um assunto do resumo, ainda por buscar. `ferramenta` é o nome que a tela
-    conhece para mostrar o progresso ("Consultando o clima...")."""
+    conhece para mostrar o progresso ("Consultando o clima..."). Um assunto pode
+    ter várias partes: as notícias são uma por manchete, cada uma com o seu cartão."""
 
     ferramenta: str
-    preparar: Callable[[], Parte]
+    preparar: Callable[[], list[Parte]]
 
 
 def saudacao(usuario: str, agora: datetime) -> str:
@@ -51,9 +51,9 @@ def assuntos(
 ) -> list[Assunto]:
     """Os assuntos do resumo, na ordem em que são falados."""
     return [
-        Assunto("clima", lambda: parte_do_clima(obter_clima)),
-        Assunto("listar_lembretes", lambda: parte_dos_lembretes(pendentes(), agora)),
-        Assunto("noticias", lambda: parte_das_noticias(obter_noticias)),
+        Assunto("clima", lambda: [parte_do_clima(obter_clima)]),
+        Assunto("listar_lembretes", lambda: [parte_dos_lembretes(pendentes(), agora)]),
+        Assunto("noticias", lambda: partes_das_noticias(obter_noticias)),
     ]
 
 
@@ -92,14 +92,24 @@ def parte_dos_lembretes(pendentes: list[Lembrete], agora: datetime) -> Parte:
     return Parte(f"Você tem {len(de_hoje)} lembretes hoje: {lista}.", cartao)
 
 
-def parte_das_noticias(obter: manchetes.ObterFeed = manchetes._obter_feed) -> Parte:
+def partes_das_noticias(obter: manchetes.ObterFeed = manchetes._obter_feed) -> list[Parte]:
+    """Uma parte por manchete: a tela troca o cartão (com a foto) a cada uma."""
     try:
-        lista = manchetes.manchetes(MANCHETES_NO_BOM_DIA, obter=obter)
+        lista = manchetes.do_dia(obter)
     except manchetes.NoticiasIndisponiveisError:
-        return Parte("Não consegui ler as notícias agora.")
+        return [Parte("Não consegui ler as notícias agora.")]
     if not lista:
-        return Parte("Não achei notícias agora.")
-    titulos = " ".join(f"{m.titulo.rstrip('.')}." for m in lista)
-    return Parte(
-        f"Nas notícias: {titulos} Quer que eu detalhe alguma delas?", manchetes.cartao(lista)
-    )
+        return [Parte("Não achei notícias agora.")]
+    partes = []
+    for i, manchete in enumerate(lista):
+        titulo = manchete.titulo.rstrip(".")
+        if manchete.onde != "Brasil":
+            fala = f"Na sua região: {titulo}."
+        elif i == 0:
+            fala = f"Nas notícias: {titulo}."
+        else:
+            fala = f"E mais: {titulo}."
+        partes.append(Parte(fala, manchetes.cartao_da_noticia(manchete)))
+    ultima = partes[-1]
+    partes[-1] = Parte(f"{ultima.fala} Quer que eu detalhe alguma delas?", ultima.cartao)
+    return partes
