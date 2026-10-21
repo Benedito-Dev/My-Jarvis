@@ -42,6 +42,20 @@ Medimos tudo com 40 gravações reais do dono (17 com "Jarvis") e falas sintéti
 - Botão no rodapé liga e desliga a escuta (o microfone fecha de verdade).
 - O ESPAÇO continua funcionando.
 
+### Treinar e retreinar
+
+`backend/ferramentas/treinar_escuta.py` refaz tudo: gera falas sintéticas (vozes
+Piper e, no macOS, as do sistema), transcreve as gravações do dono
+(`dados/gravacoes/`) para achar onde cada "Jarvis" termina e treina a rede. As
+características são calculadas com os mesmos dois modelos ONNX do detector (sem
+instalar o openWakeWord); só o treino precisa do `scikit-learn`, como extra:
+
+    uv run --with scikit-learn python ferramentas/treinar_escuta.py [--avaliar]
+
+Cada conversa vira gravação nova, então retreinar de tempos em tempos melhora o
+detector. Na primeira rodada pelo projeto (47 gravações, 19 com o nome), o teste
+honesto (metade treina, metade testa) achou **17 de 19**.
+
 ## Alternativas consideradas
 
 - **Porcupine (Picovoice):** já tem "Jarvis" e costuma ser mais preciso, mas é
@@ -55,6 +69,6 @@ Medimos tudo com 40 gravações reais do dono (17 com "Jarvis") e falas sintéti
 
 - ✅ Chamar pelo nome, de longe do teclado, sem conta nem nuvem
 - ✅ Alarme falso fica invisível (o Whisper descarta e o áudio é apagado)
-- ⚠️ Perde ~1 em cada 5 chamadas nos testes: dá para repetir ou usar o ESPAÇO
+- ⚠️ Perde ~1 em cada 10 chamadas nos testes: dá para repetir ou usar o ESPAÇO
 - ⚠️ O detector é pessoal: outra pessoa (ou outra máquina) precisa treinar o seu
 - ⚠️ Sem `dados/escuta/jarvis.npz` a escuta fica "indisponível" (o resto funciona)

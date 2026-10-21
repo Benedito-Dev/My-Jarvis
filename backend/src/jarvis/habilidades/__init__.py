@@ -41,4 +41,9 @@ HABILIDADES = [
         nome="Bom dia",
         descricao="Resumo do dia: clima, lembretes de hoje e notícias",
     ),
+    Habilidade(
+        id="escuta",
+        nome="Escuta",
+        descricao='Chamar pelo nome, sem tecla: "Jarvis, que horas são?"',
+    ),
 ]

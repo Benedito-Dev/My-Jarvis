@@ -45,6 +45,7 @@ uv run python -m jarvis servidor   # liga só o backend (o app já faz isso sozi
 uv run python -m jarvis    # desbloqueio pelo terminal (sem o app)
 uv run pytest              # testes
 uv run ruff check . && uv run ruff format --check .
+uv run --with scikit-learn python ferramentas/treinar_escuta.py   # retreina o "Jarvis" com a sua voz
 ```
 
 ## Comandos (dentro de `frontend/`)
