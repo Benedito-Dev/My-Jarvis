@@ -827,3 +827,105 @@ def test_bom_dia_bloqueado_e_so_um_cumprimento(tmp_path):
 
     assert corpo["resposta"] == "Bom dia."
     assert "cartao" not in corpo["eventos"]
+
+
+# --- Escuta sem tecla ---------------------------------------------------------------
+
+ORIGEM_DO_APP = {"origin": "http://localhost:1420"}
+
+
+class DetectorFalso:
+    """Ouve "Jarvis" quando o som traz a amostra 7 (o resto é silêncio)."""
+
+    def __init__(self):
+        self.recebido = 0
+
+    def ouvir(self, pcm):
+        self.recebido += len(pcm)
+        return bool((pcm == 7).any())
+
+
+def cliente_de_escuta(tmp_path, sessao, criar_detector=DetectorFalso):
+    return TestClient(
+        criar_app(pasta_gravacoes=tmp_path, sessao=sessao, criar_detector=criar_detector)
+    )
+
+
+def test_escuta_avisa_quando_ouve_jarvis(tmp_path):
+    cliente = cliente_de_escuta(tmp_path, sessao_aberta(tmp_path))
+
+    with cliente.websocket_connect("/escuta", headers=ORIGEM_DO_APP) as canal:
+        assert canal.receive_json() == {"tipo": "pronta"}
+        canal.send_bytes(np.zeros(1280, "<i2").tobytes())
+        canal.send_bytes(np.full(1280, 7, "<i2").tobytes())
+
+        assert canal.receive_json() == {"tipo": "jarvis"}
+
+
+def test_escuta_recusa_outra_origem(tmp_path):
+    from starlette.websockets import WebSocketDisconnect
+
+    cliente = cliente_de_escuta(tmp_path, sessao_aberta(tmp_path))
+
+    with pytest.raises(WebSocketDisconnect) as erro:
+        with cliente.websocket_connect("/escuta", headers={"origin": "https://site-malicioso.com"}):
+            pass
+    assert erro.value.code == 1008
+
+
+def test_escuta_bloqueada_nao_ouve(tmp_path):
+    from starlette.websockets import WebSocketDisconnect
+
+    cliente = cliente_de_escuta(tmp_path, Sessao(tmp_path / "rostos", locutor=LocutorQueAnota()))
+
+    with pytest.raises(WebSocketDisconnect):
+        with cliente.websocket_connect("/escuta", headers=ORIGEM_DO_APP):
+            pass
+
+
+def test_escuta_sem_treino_avisa_que_esta_indisponivel(tmp_path):
+    from jarvis.habilidades.escuta.detector import EscutaIndisponivelError
+
+    def sem_treino():
+        raise EscutaIndisponivelError("A escuta ainda não foi treinada com a sua voz.")
+
+    cliente = cliente_de_escuta(tmp_path, sessao_aberta(tmp_path), sem_treino)
+
+    with cliente.websocket_connect("/escuta", headers=ORIGEM_DO_APP) as canal:
+        resposta = canal.receive_json()
+    assert resposta["tipo"] == "indisponivel"
+    assert "treinada" in resposta["motivo"]
+
+
+def test_chamado_pela_voz_sem_o_nome_e_descartado_e_apagado(tmp_path):
+    cerebro = CerebroFalso()
+    cliente = cliente_de_gravacao(
+        tmp_path, TranscritorFalso("e aí, vamos ver o jogo"), sessao_aberta(tmp_path), cerebro
+    )
+
+    resposta = cliente.post("/conversa/gravacao?chamado=true", content=b"voz")
+
+    eventos = [json.loads(linha) for linha in resposta.text.splitlines() if linha]
+    assert eventos == [{"tipo": "ignorado"}]
+    assert not list(tmp_path.glob("*.webm"))  # não guarda conversa alheia
+    assert cerebro.perguntas == []
+
+
+def test_chamado_pela_voz_com_o_nome_segue_a_conversa(tmp_path):
+    cliente = cliente_de_gravacao(
+        tmp_path, TranscritorFalso("Jarvis, que horas são?"), sessao_aberta(tmp_path)
+    )
+
+    corpo = ler_conversa(cliente.post("/conversa/gravacao?chamado=true", content=b"voz"))
+
+    assert corpo["resposta"].startswith(("São", "É"))
+    assert list(tmp_path.glob("*.webm"))
+
+
+def test_so_o_nome_responde_pois_nao_e_pede_para_escutar(tmp_path):
+    cliente = cliente_de_gravacao(tmp_path, TranscritorFalso("Jarvis?"), sessao_aberta(tmp_path))
+
+    corpo = ler_conversa(cliente.post("/conversa/gravacao?chamado=true", content=b"voz"))
+
+    assert corpo["resposta"] == "Pois não?"
+    assert corpo["acao"] == "escutar"

@@ -6,6 +6,7 @@ from jarvis.habilidades.conversa.comandos import (
     FUSO,
     NAO_SEI,
     as_horas,
+    chamou,
     falar_data,
     falar_hora,
     normalizar,
@@ -148,3 +149,19 @@ def test_entende_bom_dia(frase):
 @pytest.mark.parametrize("frase", ["Bom dia, qual a previsão para amanhã?", "Que dia bom"])
 def test_bom_dia_com_outro_pedido_vai_para_a_ia(frase):
     assert responder(frase, AGORA).acao is None
+
+
+@pytest.mark.parametrize("frase", ["Jarvis", "Jarvis?", "Ei, Jarvis!", "Oi Jarvis"])
+def test_so_o_nome_responde_e_fica_ouvindo(frase):
+    resposta = responder(frase, AGORA)
+
+    assert resposta.fala == "Pois não?"
+    assert resposta.acao == "escutar"
+
+
+@pytest.mark.parametrize(
+    ("texto", "esperado"),
+    [("Jarvis, que horas são?", True), ("Bom dia, Javis", True), ("Chaves, que horas são?", False)],
+)
+def test_percebe_quando_chamaram_pelo_nome(texto, esperado):
+    assert chamou(texto) is esperado

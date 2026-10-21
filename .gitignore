@@ -21,3 +21,6 @@ backend/src/jarvis/nucleo/modelos/
 
 # Segredos (chave da IA): nunca vão para o git
 backend/.env
+
+# Escuta ("Jarvis" sem tecla): modelos genéricos baixados no primeiro uso
+backend/src/jarvis/habilidades/escuta/modelos/

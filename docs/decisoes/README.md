@@ -28,6 +28,7 @@ Cada decisão importante ganha **um arquivo** nesta pasta.
 | [0020](0020-app-liga-o-backend.md) | O app liga o backend: um clique e tudo funciona | ✅ Aceita | 2026-10-20 |
 | [0021](0021-bom-dia-sem-ia-e-noticias-por-rss.md) | Bom dia montado sem IA, com notícias pelo RSS do Google Notícias | ✅ Aceita | 2026-10-21 |
 | [0022](0022-uma-noticia-por-cartao-com-foto.md) | Uma notícia por cartão, com foto do Bing e uma da sua região | ✅ Aceita | 2026-10-21 |
+| [0023](0023-escuta-sem-tecla-detector-proprio.md) | Escuta sem tecla: detector de "Jarvis" treinado com a voz do dono + confirmação do Whisper | ✅ Aceita | 2026-10-21 |
 
 ## Como criar uma nova decisão
 

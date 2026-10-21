@@ -24,8 +24,10 @@ NAO_SEI = "Ainda não sei fazer isso."
 BLOQUEANDO = "Bloqueando. Até logo."
 # Sem a sessão aberta, o bom dia é só um cumprimento (o resumo tem dados do dono).
 BOM_DIA = "Bom dia."
+# Chamaram só pelo nome: ele responde e fica ouvindo o pedido (acao "escutar").
+POIS_NAO = "Pois não?"
 # Respostas que não mudam: o servidor deixa a voz delas pronta ao subir.
-FRASES_FIXAS = [NAO_SEI, BLOQUEANDO, BOM_DIA]
+FRASES_FIXAS = [NAO_SEI, BLOQUEANDO, BOM_DIA, POIS_NAO]
 
 # Palavras que pedem para bloquear. Também vale uma palavra *parecida*: o
 # Whisper às vezes escreve "bloquia" ou "bokear" para um "bloquear" falado.
@@ -38,7 +40,7 @@ class Resposta:
     """O que o Jarvis fala de volta e, se for o caso, o que ele faz."""
 
     fala: str
-    acao: str | None = None  # "bloquear" ou "bom_dia"
+    acao: str | None = None  # "bloquear", "bom_dia" ou "escutar"
     entendeu: bool = True
 
 
@@ -131,6 +133,20 @@ def pede_bloqueio(frase: str) -> bool:
     return any(parece_bloquear(p) for p in palavras) and so_tem(frase, SO_BLOQUEIO, parece_bloquear)
 
 
+# Como o Whisper costuma escrever o nome (com a dica "Jarvis", quase sempre certo).
+NOME = r"\b(jarvis|javis|jervis|jarvi)\b"
+
+
+def chamou(texto: str) -> bool:
+    """O nome do Jarvis aparece no que foi dito?"""
+    return bool(re.search(NOME, normalizar(texto)))
+
+
+def so_o_nome(frase: str) -> bool:
+    """'Jarvis?', 'Ei, Jarvis', 'Oi Jarvis': só chamou, ainda sem pedido."""
+    return chamou(frase) and so_tem(frase, CORTESIA | {"ei"}, chamou)
+
+
 def pede_bom_dia(frase: str) -> bool:
     """'Bom dia', 'Jarvis, bom dia', 'resumo do dia' ou 'briefing', e só isso."""
     pediu = re.search(r"\b(bom dia|resumo do dia|briefing)\b", frase)
@@ -151,6 +167,8 @@ def responder(texto: str, agora: datetime | None = None) -> Resposta | None:
 
     if pede_bloqueio(frase):
         return Resposta(fala=BLOQUEANDO, acao="bloquear")
+    if so_o_nome(frase):
+        return Resposta(fala=POIS_NAO, acao="escutar")
     if pede_bom_dia(frase):
         return Resposta(fala=BOM_DIA, acao="bom_dia")
     palavras = set(frase.split())

@@ -18,6 +18,7 @@ import {
   type Troca,
 } from "../gravacao";
 import { MS_POR_LETRA, useDigitando } from "../hooks/useDigitando";
+import { type Escuta, useEscuta } from "../hooks/useEscuta";
 import { useSustentado } from "../hooks/useSustentado";
 import { duracaoDesde, resumoDosLembretes } from "../modulos";
 import { cumprimento, formatarData, formatarHora } from "../tempo";
@@ -72,6 +73,7 @@ type Props = {
   gravacao: EstadoGravacao;
   nivel: RefObject<number>;
   onEnviarTexto: (texto: string) => void;
+  onEnviarPedido: (audio: Blob, chamado: boolean) => void;
   onCadastrarRosto: () => void;
   onConfigurarPin: () => void;
 };
@@ -88,6 +90,7 @@ export function Comando({
   gravacao,
   nivel,
   onEnviarTexto,
+  onEnviarPedido,
   onCadastrarRosto,
   onConfigurarPin,
 }: Props) {
@@ -182,7 +185,20 @@ export function Comando({
     const temporizador = setTimeout(() => setFalouNestaConversa(true), ESPERA_MAXIMA_DA_VOZ_MS);
     return () => clearTimeout(temporizador);
   }, [aguardandoVoz]);
-  const fase = faseDoPainel(gravacao, falandoComFolga, aguardandoVoz);
+  const faseDaConversa = faseDoPainel(gravacao, falandoComFolga, aguardandoVoz);
+  // Sem tecla: "Jarvis" acorda. Ocupado (falando, pensando, gravando), ele não
+  // procura o nome, para não acordar com a própria voz.
+  const escuta = useEscuta(true, faseDaConversa !== "espera" || gravando, onEnviarPedido);
+  // Depois do "Pois não?", ele está ouvindo o pedido: a tela mostra.
+  const ouvindoPedido = escuta.atencao === "pedido";
+  const fase: FasePainel = ouvindoPedido ? "ouvindo" : faseDaConversa;
+  const pediuParaEscutar = useRef<EstadoGravacao | null>(null);
+  useEffect(() => {
+    if (gravacao.estado !== "ouvida" || gravacao.acao !== "escutar" || !gravacao.terminou) return;
+    if (faseDaConversa !== "espera" || pediuParaEscutar.current === gravacao) return;
+    pediuParaEscutar.current = gravacao;
+    escuta.escutarAgora();
+  }, [gravacao, faseDaConversa, escuta]);
   // Erro ou "não entendi" aparecem na própria manchete, para não passarem despercebidos.
   const deuErrado =
     gravacao.estado === "erro" || (gravacao.estado === "ouvida" && gravacao.texto === "");
@@ -192,7 +208,9 @@ export function Comando({
     : fase === "espera"
       ? `${cumprimento(agora)}, ${usuario}`
       : fase === "ouvindo"
-        ? "Solte ESPAÇO quando terminar"
+        ? ouvindoPedido
+          ? "Pode falar"
+          : "Solte ESPAÇO quando terminar"
         : fase === "pensando"
           ? "Preparando a resposta"
           : "";
@@ -271,7 +289,11 @@ export function Comando({
 
       <section className="comando__centro">
         <div className="comando__nucleo">
-          <Nucleo niveis={[nivel, voz.nivel]} tom={nucleo.tom} modo={modo} />
+          <Nucleo
+            niveis={[nivel, voz.nivel]}
+            tom={ouvindoPedido ? "ok" : nucleo.tom}
+            modo={ouvindoPedido ? "ouvindo" : modo}
+          />
           {/* O assunto do momento, na frente do orbe. */}
           <div className="comando__destaque">
             {usando ? (
@@ -383,12 +405,17 @@ export function Comando({
             className="comando__entrada"
             value={digitado}
             onChange={(evento) => setDigitado(evento.target.value)}
-            placeholder="Digite para o Jarvis… ou segure ESPAÇO para falar"
+            placeholder={
+              escuta.estado === "ouvindo"
+                ? "Digite para o Jarvis… ou diga “Jarvis”"
+                : "Digite para o Jarvis… ou segure ESPAÇO para falar"
+            }
             maxLength={500}
             aria-label="Mensagem para o Jarvis"
           />
         </form>
         <OndaVoz niveis={[nivel, voz.nivel]} cor={CORES[nucleo.tom]} />
+        <BotaoDaEscuta escuta={escuta} />
         <kbd className={`comando__tecla ${gravando ? "comando__tecla--apertada" : ""}`}>ESPAÇO</kbd>
         <button
           className="comando__historico"
@@ -404,5 +431,35 @@ export function Comando({
         <HistoricoConversa trocas={historico} onFechar={fecharHistorico} />
       )}
     </main>
+  );
+}
+
+const TEXTO_DA_ESCUTA = {
+  desligada: "Escuta off",
+  ligando: "Escuta…",
+  ouvindo: "Escuta on",
+  indisponivel: "Escuta —",
+  erro: "Escuta !",
+} as const;
+
+/** Liga e desliga a escuta sem tecla. Mostra quando ele está prestando atenção. */
+function BotaoDaEscuta({ escuta }: { escuta: Escuta }) {
+  const atento = escuta.atencao !== null;
+  const dica =
+    escuta.motivo ??
+    (escuta.ligada
+      ? "Escuta ligada: diga “Jarvis”. Clique para desligar o microfone."
+      : "Escuta desligada. Clique para chamar o Jarvis pelo nome.");
+  return (
+    <button
+      type="button"
+      className={`comando__escuta comando__escuta--${atento ? "atenta" : escuta.estado}`}
+      onClick={escuta.alternar}
+      title={dica}
+      aria-pressed={escuta.ligada}
+    >
+      <span className="comando__escuta-luz" aria-hidden="true" />
+      {atento ? "Ouvindo" : TEXTO_DA_ESCUTA[escuta.estado]}
+    </button>
   );
 }

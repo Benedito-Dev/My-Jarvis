@@ -101,7 +101,7 @@ function App() {
 
   // Segurar ESPAÇO grava a voz. Só depois de desbloquear: na tela de bloqueio o
   // espaço não deve fazer nada.
-  const { gravacao, nivel, enviarTexto } = useGravacao(!!usuario && conexao.estado === "conectado");
+  const { gravacao, nivel, enviarTexto, enviarPedido } = useGravacao(!!usuario && conexao.estado === "conectado");
 
   // "Jarvis, bloquear": o backend já bloqueou a sessão; o painel fecha depois
   // de ele terminar de se despedir. Depende só da gravação, para não disparar
@@ -155,6 +155,7 @@ function App() {
               gravacao={gravacao}
               nivel={nivel}
               onEnviarTexto={enviarTexto}
+              onEnviarPedido={enviarPedido}
               onCadastrarRosto={() => setCadastrando(true)}
               onConfigurarPin={() => setConfigurandoPin(true)}
             />

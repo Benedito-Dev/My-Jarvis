@@ -3,7 +3,7 @@
 import json
 import queue
 import threading
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from importlib.metadata import version
@@ -12,7 +12,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 import uvicorn
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -49,6 +49,7 @@ from jarvis.habilidades.desbloqueio_facial.desbloqueio import (
     EstadoDesbloqueio,
     NenhumRostoCadastradoError,
 )
+from jarvis.habilidades.escuta import detector as mod_detector
 from jarvis.habilidades.lembretes.agenda import Agenda, Lembrete
 from jarvis.habilidades.notas.caderno import Caderno
 from jarvis.habilidades.noticias import manchetes
@@ -73,6 +74,9 @@ ORIGENS_PERMITIDAS = [
     "tauri://localhost",  # app instalado no macOS e no Linux
     "http://tauri.localhost",  # app instalado no Windows (lá o webview não usa tauri://)
 ]
+
+# Um pedaço do som da escuta: o app manda ~80-250 ms (2,5-8 KB). Mais que 1 s é engano.
+TAMANHO_MAXIMO_DO_SOM = 32_000
 
 # Um quadro JPEG de 640x360 tem uns 30-60 KB. Bem acima disso é engano ou abuso.
 TAMANHO_MAXIMO_QUADRO = 2 * 1024 * 1024
@@ -222,6 +226,7 @@ def criar_app(
     caderno: Caderno | None = None,
     obter_clima: previsao.ObterJson = previsao._obter_json,
     obter_noticias: manchetes.ObterFeed = manchetes._obter_feed,
+    criar_detector: Callable[[], mod_detector.Detector] = mod_detector.criar_detector,
 ) -> FastAPI:
     """Monta a API. Sem `cerebro`, perguntas livres recebem "Ainda não sei fazer isso"."""
     sessao = sessao or Sessao(pasta_rostos)
@@ -468,7 +473,7 @@ def criar_app(
         return {"havia": cadastros.cancelar(nome)}
 
     @app.post("/conversa/gravacao")
-    async def guardar_gravacao(request: Request) -> StreamingResponse:
+    async def guardar_gravacao(request: Request, chamado: bool = False) -> StreamingResponse:
         """Recebe o áudio gravado no app, guarda em dados/gravacoes/ e responde EM FLUXO.
 
         Uma linha JSON por evento (NDJSON), enviada assim que acontece:
@@ -479,6 +484,10 @@ def criar_app(
         - {"tipo": "fim", "acao"}: acabou ("bloquear" se for o caso).
         Assim o app mostra "Você disse..." e o Jarvis começa a falar antes de a IA
         terminar a resposta inteira.
+
+        `chamado=true`: a gravação começou porque a escuta ouviu "Jarvis" (sem
+        tecla). Se a transcrição não tiver o nome, foi alarme falso: o áudio é
+        apagado (pode ser a TV ou outra pessoa) e vem só {"tipo": "ignorado"}.
         """
         audio = await request.body()
         if not audio:
@@ -498,7 +507,43 @@ def criar_app(
         except TranscricaoIndisponivelError as erro:
             raise HTTPException(503, str(erro)) from erro
 
+        if chamado and not comandos.chamou(texto):
+            caminho.unlink(missing_ok=True)
+            return _em_fluxo(iter([_linha(tipo="ignorado")]))
         return _em_fluxo(fluxo_da_conversa(texto, arquivo=caminho.name))
+
+    @app.websocket("/escuta")
+    async def escutar(canal: WebSocket) -> None:
+        """Escuta sem tecla: o app manda o som do microfone (PCM 16 bits, 16 kHz,
+        mono) em pedaços binários; a cada "Jarvis" ouvido, volta {"tipo": "jarvis"}.
+
+        CORS não vale para WebSocket: a origem é conferida aqui. E só com a sessão
+        aberta: bloqueado, o Jarvis não fica ouvindo.
+        """
+        if canal.headers.get("origin") not in ORIGENS_PERMITIDAS or sessao.usuario is None:
+            await canal.close(code=1008)
+            return
+        await canal.accept()
+        try:
+            detector = await run_in_threadpool(criar_detector)
+        except (mod_detector.EscutaIndisponivelError, OSError) as erro:
+            await canal.send_json({"tipo": "indisponivel", "motivo": str(erro)})
+            await canal.close()
+            return
+        await canal.send_json({"tipo": "pronta"})
+        try:
+            while True:
+                som = await canal.receive_bytes()
+                if sessao.usuario is None:  # bloquearam no meio: para de ouvir
+                    await canal.close()
+                    return
+                if len(som) > TAMANHO_MAXIMO_DO_SOM or len(som) % 2:
+                    continue
+                pcm = np.frombuffer(som, dtype="<i2")
+                if await run_in_threadpool(detector.ouvir, pcm):
+                    await canal.send_json({"tipo": "jarvis"})
+        except WebSocketDisconnect:
+            return
 
     @app.post("/conversa/texto")
     def conversar_por_texto(entrada: TextoRequest) -> StreamingResponse:

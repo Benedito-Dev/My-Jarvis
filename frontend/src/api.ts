@@ -155,8 +155,11 @@ export const cancelarCadastro = (nome: string) =>
 export async function conversar(
   audio: Blob,
   aoEvento: (evento: EventoConversa) => void,
+  chamado = false,
 ): Promise<void> {
-  const resposta = await fetch(`${URL_BACKEND}/conversa/gravacao`, {
+  // `chamado`: veio da escuta (o nome, sem tecla). O backend confere se era mesmo.
+  const rota = chamado ? "/conversa/gravacao?chamado=true" : "/conversa/gravacao";
+  const resposta = await fetch(`${URL_BACKEND}${rota}`, {
     method: "POST",
     headers: { "Content-Type": audio.type || "audio/webm" },
     body: audio,

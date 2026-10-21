@@ -7,7 +7,9 @@ export type EventoConversa =
   | { tipo: "trecho"; texto: string }
   | { tipo: "usando"; ferramenta: string }
   | { tipo: "cartao"; cartao: Cartao }
-  | { tipo: "fim"; acao: string | null };
+  | { tipo: "fim"; acao: string | null }
+  /** A escuta achou ter ouvido "Jarvis", mas não era: nada a mostrar. */
+  | { tipo: "ignorado" };
 
 export type EstadoGravacao =
   | { estado: "parado" }
@@ -126,6 +128,8 @@ export function aplicarEvento(atual: EstadoGravacao, evento: EventoConversa): Es
     case "fim":
       if (atual.estado !== "ouvida") return atual;
       return { ...atual, acao: evento.acao, terminou: true, usando: null };
+    case "ignorado":
+      return atual;
   }
 }
 

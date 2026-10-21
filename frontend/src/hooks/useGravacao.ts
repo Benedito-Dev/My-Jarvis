@@ -17,13 +17,15 @@ export type Gravacao = {
   nivel: RefObject<number>;
   /** Manda um texto digitado: segue o mesmo caminho da voz, sem a transcrição. */
   enviarTexto: (texto: string) => void;
+  /** Manda um pedido gravado pela escuta (sem tecla). Ver useEscuta. */
+  enviarPedido: (audio: Blob, chamado: boolean) => void;
 };
 
 /**
  * Grava a voz enquanto a barra de espaço fica segurada e manda ao backend ao soltar.
  *
- * O microfone é ligado no momento de falar e desligado ao soltar a tecla: o app
- * nunca fica escutando sozinho.
+ * O microfone desta gravação é ligado no momento de falar e desligado ao soltar
+ * a tecla. Ouvir sem tecla é outra peça, a escuta (useEscuta), que se desliga.
  */
 export function useGravacao(ligado: boolean): Gravacao {
   const [gravacao, setGravacao] = useState<EstadoGravacao>({ estado: "parado" });
@@ -47,6 +49,26 @@ export function useGravacao(ligado: boolean): Gravacao {
       });
     } catch (erro) {
       if (montado.current) setGravacao({ estado: "erro", mensagem: descreverErro(erro) });
+    }
+  }, []);
+
+  const enviarPedido = useCallback(async (audio: Blob, chamado: boolean) => {
+    if (gravador.current) return; // o ESPAÇO tem a vez
+    // Chamado pelo nome: a tela só acorda quando o backend confirmar o "Jarvis"
+    // (o "ouvido"). Alarme falso (a TV, outra pessoa) não aparece.
+    if (!chamado) setGravacao({ estado: "enviando" });
+    try {
+      await conversar(
+        audio,
+        (evento) => {
+          if (montado.current) setGravacao((atual) => aplicarEvento(atual, evento));
+        },
+        chamado,
+      );
+    } catch (erro) {
+      if (montado.current && !chamado) {
+        setGravacao({ estado: "erro", mensagem: descreverErro(erro) });
+      }
     }
   }, []);
 
@@ -151,7 +173,7 @@ export function useGravacao(ligado: boolean): Gravacao {
     return () => clearTimeout(temporizador);
   }, [gravacao]);
 
-  return { gravacao, nivel, enviarTexto };
+  return { gravacao, nivel, enviarTexto, enviarPedido };
 }
 
 /**

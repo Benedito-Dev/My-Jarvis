@@ -1337,6 +1337,61 @@
   }
 }
 
+/* Escuta sem tecla: a luz acesa = microfone aberto, esperando o "Jarvis". */
+.comando__escuta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--destaque) 30%, transparent);
+  cursor: pointer;
+}
+
+.comando__escuta-luz {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--texto-suave) 50%, transparent);
+}
+
+.comando__escuta--ouvindo {
+  color: var(--destaque);
+}
+
+.comando__escuta--ouvindo .comando__escuta-luz {
+  background: var(--destaque);
+  box-shadow: 0 0 6px var(--destaque);
+}
+
+.comando__escuta--atenta {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+
+.comando__escuta--atenta .comando__escuta-luz {
+  background: var(--ok);
+  box-shadow: 0 0 8px var(--ok);
+  animation: piscar-escuta 0.8s ease-in-out infinite alternate;
+}
+
+.comando__escuta--indisponivel,
+.comando__escuta--erro {
+  color: var(--erro);
+  border-color: color-mix(in srgb, var(--erro) 40%, transparent);
+}
+
+@keyframes piscar-escuta {
+  to {
+    opacity: 0.3;
+  }
+}
+
 .comando__tecla {
   padding: 5px 12px;
   font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
