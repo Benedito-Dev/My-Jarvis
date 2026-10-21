@@ -123,3 +123,14 @@ class Agenda:
         temporario = self.arquivo.with_suffix(".tmp")
         temporario.write_text(json.dumps(itens, ensure_ascii=False, indent=2))
         temporario.replace(self.arquivo)
+
+
+def cartao(rotulo: str, lembretes: list[Lembrete]) -> dict:
+    """Os lembretes para o cartão na tela (ver conversa/ferramentas.py)."""
+    quantos = len(lembretes)
+    return {
+        "tipo": "lembretes",
+        "rotulo": rotulo,
+        "titulo": "1 lembrete" if quantos == 1 else f"{quantos} lembretes",
+        "itens": [{"hora": f"{lem.quando:%H:%M}", "texto": lem.texto} for lem in lembretes],
+    }

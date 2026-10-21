@@ -25,6 +25,11 @@ export type EstadoGravacao =
       cartoes: Cartao[];
       /** A ferramenta rodando agora (ex.: "clima"), ou null. */
       usando: string | null;
+      /** Quantos trechos da resposta já chegaram. */
+      trechos: number;
+      /** Para cada cartão, quantos trechos tinham chegado antes dele: o cartão
+       * é sobre a fala seguinte e só aparece quando ela começa a tocar. */
+      falaDoCartao: number[];
     }
   | { estado: "erro"; mensagem: string };
 
@@ -97,19 +102,27 @@ export function aplicarEvento(atual: EstadoGravacao, evento: EventoConversa): Es
         terminou: false,
         cartoes: [],
         usando: null,
+        trechos: 0,
+        falaDoCartao: [],
       };
     case "trecho":
       if (atual.estado !== "ouvida") return atual;
       return {
         ...atual,
         resposta: atual.resposta ? `${atual.resposta} ${evento.texto}` : evento.texto,
+        trechos: atual.trechos + 1,
       };
     case "usando":
       if (atual.estado !== "ouvida") return atual;
       return { ...atual, usando: evento.ferramenta };
     case "cartao":
       if (atual.estado !== "ouvida") return atual;
-      return { ...atual, cartoes: [...atual.cartoes, evento.cartao], usando: null };
+      return {
+        ...atual,
+        cartoes: [...atual.cartoes, evento.cartao],
+        falaDoCartao: [...atual.falaDoCartao, atual.trechos],
+        usando: null,
+      };
     case "fim":
       if (atual.estado !== "ouvida") return atual;
       return { ...atual, acao: evento.acao, terminou: true, usando: null };

@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 import type { Habilidade, Lembrete } from "../api";
-import { type Cartao, arrumarCartoes } from "../cartoes";
+import { type Cartao, arrumarCartoes, cartoesJaFalados } from "../cartoes";
 import {
   duracaoDaFala,
   type EstadoGravacao,
@@ -234,15 +234,28 @@ export function Comando({
   }, [gravacao]);
   const atuais = gravacao.estado === "ouvida" ? gravacao.cartoes : [];
   const usando = gravacao.estado === "ouvida" ? gravacao.usando : null;
-  // O cartão só sobe quando a voz começa; antes disso (e com uma ferramenta
+  // Quantas falas desta conversa já começaram a tocar: conta a partir de quando
+  // ela começou (antes do "ouvido", a gravação passa por gravando/enviando).
+  const falasAntes = useRef(0);
+  useEffect(() => {
+    if (gravacao.estado !== "ouvida") falasAntes.current = voz.falas;
+  }, [gravacao.estado, voz.falas]);
+  const falasTocadas = voz.temEnvelope ? voz.falas - falasAntes.current : null;
+  // O cartão só sobe quando a fala dele começa; antes disso (e com uma ferramenta
   // rodando, quando o centro é do cartão de progresso) ele espera escondido.
-  const { destaque, fila } = arrumarCartoes(
-    anteriores,
-    atuais,
-    fase === "espera" ? "espera" : fase === "falando" && !usando ? "falando" : "trabalhando",
-  );
+  const momento =
+    fase === "espera" ? "espera" : fase === "falando" && !usando ? "falando" : "trabalhando";
+  const mostrados =
+    momento === "espera"
+      ? atuais
+      : cartoesJaFalados(
+          atuais,
+          gravacao.estado === "ouvida" ? gravacao.falaDoCartao : [],
+          falasTocadas,
+        );
+  const { destaque, fila } = arrumarCartoes(anteriores, mostrados, momento);
   // Numeração da sessão inteira: o destaque é sempre o último; a fileira vem antes.
-  const fimDaFila = anteriores.length + atuais.length - (destaque ? 1 : 0);
+  const fimDaFila = anteriores.length + mostrados.length - (destaque ? 1 : 0);
 
   const ultimaLatencia = latencias[latencias.length - 1];
   const ativas = habilidades.filter((h) => h.situacao === "pronta").length;

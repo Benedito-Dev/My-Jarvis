@@ -53,6 +53,8 @@ describe("estadoDoNucleo", () => {
     terminou,
     cartoes: [],
     usando: null,
+    trechos: 0,
+    falaDoCartao: [],
   });
 
   it("ouvida com resposta, volta ao azul e repete o que foi dito", () => {
@@ -123,6 +125,17 @@ describe("aplicarEvento", () => {
     estado = aplicarEvento(estado, { tipo: "cartao", cartao });
     expect(estado).toMatchObject({ usando: null, cartoes: [cartao] });
   });
+
+  it("cada cartão guarda quantos trechos vieram antes dele", () => {
+    const cartao = { tipo: "abrir" as const, rotulo: "Abrindo app", titulo: "Spotify" };
+    let estado = aplicarEvento({ estado: "enviando" }, { tipo: "ouvido", texto: "bom dia", arquivo: "" });
+    estado = aplicarEvento(estado, { tipo: "trecho", texto: "Bom dia, Benedito." });
+    estado = aplicarEvento(estado, { tipo: "cartao", cartao });
+    estado = aplicarEvento(estado, { tipo: "trecho", texto: "Em Fortaleza..." });
+    estado = aplicarEvento(estado, { tipo: "cartao", cartao });
+
+    expect(estado).toMatchObject({ trechos: 2, falaDoCartao: [1, 2] });
+  });
 });
 
 describe("faseDoPainel", () => {
@@ -134,6 +147,8 @@ describe("faseDoPainel", () => {
     terminou,
     cartoes: [],
     usando: null,
+    trechos: 0,
+    falaDoCartao: [],
   });
 
   it("a pausa entre frases não vira espera enquanto a resposta não terminou", () => {
@@ -165,6 +180,8 @@ describe("registrarTroca", () => {
     terminou: true,
     cartoes: [],
     usando: null,
+    trechos: 0,
+    falaDoCartao: [],
   };
 
   it("guarda a troca quando a conversa termina", () => {

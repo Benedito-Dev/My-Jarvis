@@ -136,3 +136,15 @@ def test_pergunta_com_mais_coisa_vai_para_a_ia(frase):
 )
 def test_so_o_pedido_de_hora_continua_atalho(frase):
     assert responder(frase, AGORA).fala == "São 13 horas e 57."
+
+
+@pytest.mark.parametrize(
+    "frase", ["Bom dia", "Jarvis, bom dia!", "Bom dia, senhor", "Resumo do dia", "briefing"]
+)
+def test_entende_bom_dia(frase):
+    assert responder(frase, AGORA).acao == "bom_dia"
+
+
+@pytest.mark.parametrize("frase", ["Bom dia, qual a previsão para amanhã?", "Que dia bom"])
+def test_bom_dia_com_outro_pedido_vai_para_a_ia(frase):
+    assert responder(frase, AGORA).acao is None

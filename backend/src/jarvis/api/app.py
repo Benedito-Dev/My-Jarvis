@@ -4,6 +4,7 @@ import json
 import queue
 import threading
 from collections.abc import Iterator
+from datetime import datetime
 from importlib.metadata import version
 from pathlib import Path
 
@@ -24,6 +25,8 @@ from jarvis.api.sessao import (
     modelos,
 )
 from jarvis.habilidades import HABILIDADES, Situacao
+from jarvis.habilidades.bom_dia import resumo
+from jarvis.habilidades.clima import previsao
 from jarvis.habilidades.conversa import comandos, ferramentas, gravacoes
 from jarvis.habilidades.conversa.cerebro import MODELO as MODELO_IA
 from jarvis.habilidades.conversa.cerebro import (
@@ -34,7 +37,7 @@ from jarvis.habilidades.conversa.cerebro import (
     Usando,
     criar_cerebro,
 )
-from jarvis.habilidades.conversa.comandos import as_horas
+from jarvis.habilidades.conversa.comandos import FUSO, as_horas
 from jarvis.habilidades.conversa.gravacoes import TipoDeAudioInvalidoError
 from jarvis.habilidades.conversa.memoria import Memoria
 from jarvis.habilidades.conversa.transcricao import TranscricaoIndisponivelError, Transcritor
@@ -47,6 +50,7 @@ from jarvis.habilidades.desbloqueio_facial.desbloqueio import (
 )
 from jarvis.habilidades.lembretes.agenda import Agenda, Lembrete
 from jarvis.habilidades.notas.caderno import Caderno
+from jarvis.habilidades.noticias import manchetes
 from jarvis.nucleo.acesso_pin import (
     AcessoPin,
     IdentificadorEmUsoError,
@@ -215,6 +219,8 @@ def criar_app(
     agenda: Agenda | None = None,
     memoria: Memoria | None = None,
     caderno: Caderno | None = None,
+    obter_clima: previsao.ObterJson = previsao._obter_json,
+    obter_noticias: manchetes.ObterFeed = manchetes._obter_feed,
 ) -> FastAPI:
     """Monta a API. Sem `cerebro`, perguntas livres recebem "Ainda não sei fazer isso"."""
     sessao = sessao or Sessao(pasta_rostos)
@@ -227,7 +233,8 @@ def criar_app(
         ferramentas.lembrete(agenda),
         ferramentas.listar_lembretes(agenda),
         ferramentas.pesquisar_web(),
-        ferramentas.clima(),
+        ferramentas.clima(obter_clima),
+        ferramentas.noticias(obter_noticias),
         ferramentas.abrir_site(),
         ferramentas.abrir_app(),
         ferramentas.anotar(caderno),
@@ -260,9 +267,15 @@ def criar_app(
             yield _linha(tipo="fim", acao=None)
             return
 
-        # Não é um comando conhecido: pergunta à IA. Só com a sessão aberta, para
-        # ninguém gastar o crédito (nem ler respostas) com o Jarvis bloqueado.
+        # O resumo do dia e a IA só com a sessão aberta: ninguém ouve os dados do
+        # dono (nem gasta o crédito) com o Jarvis bloqueado.
         usuario = sessao.usuario
+        if resposta.acao == "bom_dia" and usuario is not None:
+            yield from _bom_dia(texto, usuario.capitalize())
+            yield _linha(tipo="fim", acao=None)
+            return
+
+        # Não é um comando conhecido: pergunta à IA.
         if not resposta.entendeu and cerebro is not None and usuario is not None:
             yield from _responder_com_a_ia(texto, usuario)
             yield _linha(tipo="fim", acao=None)
@@ -275,6 +288,29 @@ def criar_app(
         else:
             memoria.lembrar(texto, resposta.fala)
         yield _linha(tipo="fim", acao=resposta.acao)
+
+    def _bom_dia(texto: str, usuario: str) -> Iterator[str]:
+        """O resumo do dia: cumprimenta já, busca os assuntos (a tela mostra o
+        progresso) e depois fala cada um com o seu cartão."""
+        sessao.calar()
+        falas = [resumo.saudacao(usuario, datetime.now(FUSO))]
+        sessao.falar_em_sequencia(falas[0])
+        yield _linha(tipo="trecho", texto=falas[0])
+        partes = []
+        for assunto in resumo.assuntos(
+            agenda.pendentes, datetime.now(FUSO), obter_clima, obter_noticias
+        ):
+            yield _linha(tipo="usando", ferramenta=assunto.ferramenta)
+            partes.append(assunto.preparar())
+        # Cada cartão chega logo antes da sua fala: a tela o mostra quando ela começa.
+        for parte in partes:
+            if parte.cartao:
+                yield _linha(tipo="cartao", cartao=parte.cartao)
+            sessao.falar_em_sequencia(parte.fala)
+            falas.append(parte.fala)
+            yield _linha(tipo="trecho", texto=parte.fala)
+        # Na memória, para "detalha a segunda notícia" fazer sentido para a IA.
+        memoria.lembrar(texto, " ".join(falas))
 
     def _responder_com_a_ia(texto: str, usuario: str) -> Iterator[str]:
         sessao.calar()  # resposta nova: corta o que ele ainda estivesse falando

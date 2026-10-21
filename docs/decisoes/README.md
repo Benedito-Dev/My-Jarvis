@@ -26,6 +26,7 @@ Cada decisão importante ganha **um arquivo** nesta pasta.
 | [0018](0018-cerebro-openrouter-deepseek.md) | Cérebro de IA: DeepSeek V4.1 Flash pelo OpenRouter | ✅ Aceita | 2026-10-20 |
 | [0019](0019-ferramentas-da-ia.md) | As "mãos" do Jarvis: ferramentas que a IA decide usar | ✅ Aceita | 2026-10-20 |
 | [0020](0020-app-liga-o-backend.md) | O app liga o backend: um clique e tudo funciona | ✅ Aceita | 2026-10-20 |
+| [0021](0021-bom-dia-sem-ia-e-noticias-por-rss.md) | Bom dia montado sem IA, com notícias pelo RSS do Google Notícias | ✅ Aceita | 2026-10-21 |
 
 ## Como criar uma nova decisão
 

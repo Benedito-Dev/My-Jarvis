@@ -12,6 +12,8 @@ export type VozDoJarvis = {
   falando: boolean;
   /** O backend mede o envelope (voz Piper). Sem isso, o app volta à estimativa. */
   temEnvelope: boolean;
+  /** Quantas falas já começaram a tocar desde que o app abriu. */
+  falas: number;
 };
 
 /**
@@ -23,6 +25,7 @@ export function useVozDoJarvis(): VozDoJarvis {
   const nivel = useRef(0);
   const [falando, setFalando] = useState(false);
   const [temEnvelope, setTemEnvelope] = useState(false);
+  const [falas, setFalas] = useState(0);
 
   useEffect(() => {
     let ativo = true;
@@ -43,7 +46,9 @@ export function useVozDoJarvis(): VozDoJarvis {
       while (ativo) {
         try {
           await ouvirVozDoJarvis((evento) => {
-            if (evento.tipo !== "fala" || !evento.envelope?.length) return;
+            if (evento.tipo !== "fala") return;
+            setFalas((n) => n + 1);
+            if (!evento.envelope?.length) return;
             fala = { inicio: performance.now(), envelope: evento.envelope, passo: evento.passo_ms };
             setTemEnvelope(true);
             setFalando(true);
@@ -69,5 +74,5 @@ export function useVozDoJarvis(): VozDoJarvis {
     };
   }, []);
 
-  return { nivel, falando, temEnvelope };
+  return { nivel, falando, temEnvelope, falas };
 }

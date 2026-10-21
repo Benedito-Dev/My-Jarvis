@@ -425,6 +425,7 @@ def test_a_ia_recebe_todas_as_ferramentas(tmp_path):
         "listar_lembretes",
         "pesquisar_web",
         "clima",
+        "noticias",
         "abrir_site",
         "abrir_app",
         "anotar",
@@ -715,3 +716,114 @@ def test_ferramenta_e_cartao_chegam_no_fluxo_antes_da_fala(tmp_path):
     assert [e["tipo"] for e in eventos] == ["ouvido", "usando", "cartao", "trecho", "fim"]
     assert eventos[1]["ferramenta"] == "clima"
     assert eventos[2]["cartao"] == cartao
+
+
+FEED_FALSO = (
+    b"<rss><channel><item><title>Dolar cai - G1</title><source>G1</source></item></channel></rss>"
+)
+
+
+def clima_falso(url):
+    if "geocoding" in url:
+        return {"results": [{"name": "Fortaleza", "latitude": 0, "longitude": 0}]}
+    return {
+        "current": {
+            "temperature_2m": 27,
+            "apparent_temperature": 30,
+            "weather_code": 0,
+            "relative_humidity_2m": 70,
+        },
+        "daily": {
+            "time": ["2026-10-21"],
+            "weather_code": [0],
+            "temperature_2m_max": [31],
+            "temperature_2m_min": [24],
+            "precipitation_probability_max": [0],
+        },
+    }
+
+
+def cliente_de_bom_dia(tmp_path, sessao, cerebro=None):
+    return TestClient(
+        criar_app(
+            pasta_gravacoes=tmp_path,
+            transcritor=TranscritorFalso("Jarvis, bom dia"),
+            sessao=sessao,
+            cerebro=cerebro,
+            obter_clima=clima_falso,
+            obter_noticias=lambda url: FEED_FALSO,
+        )
+    )
+
+
+def test_bom_dia_conta_o_dia_com_um_cartao_antes_de_cada_assunto(tmp_path, monkeypatch):
+    monkeypatch.setenv("JARVIS_CIDADE", "Fortaleza")
+    locutor = LocutorQueAnota()
+    cerebro = CerebroFalso()
+    cliente = cliente_de_bom_dia(tmp_path, sessao_aberta(tmp_path, locutor), cerebro)
+
+    resposta = cliente.post("/conversa/gravacao", content=b"voz")
+
+    eventos = [json.loads(linha) for linha in resposta.text.splitlines() if linha]
+    assert [e["tipo"] for e in eventos] == [
+        "ouvido",
+        "trecho",  # o cumprimento sai na hora, enquanto busca o resto
+        "usando",
+        "usando",
+        "usando",
+        "cartao",
+        "trecho",
+        "cartao",
+        "trecho",
+        "cartao",
+        "trecho",
+        "fim",
+    ]
+    assert [e["ferramenta"] for e in eventos if e["tipo"] == "usando"] == [
+        "clima",
+        "listar_lembretes",
+        "noticias",
+    ]
+    assert [e["cartao"]["tipo"] for e in eventos if e["tipo"] == "cartao"] == [
+        "clima",
+        "lembretes",
+        "pesquisa",
+    ]
+    assert locutor.frases[0].startswith(("Bom dia", "Boa tarde", "Boa noite"))
+    assert locutor.frases[1].startswith("Em Fortaleza, agora faz 27 graus")
+    assert locutor.frases[2] == "Nenhum lembrete para hoje."
+    assert "Dolar cai" in locutor.frases[3]
+    assert cerebro.perguntas == []  # sem IA: sai rápido e de graça
+
+
+def test_depois_do_bom_dia_a_ia_lembra_das_noticias(tmp_path, monkeypatch):
+    monkeypatch.setenv("JARVIS_CIDADE", "Fortaleza")
+    transcritor = TranscritorFalso("bom dia")
+    cerebro = CerebroFalso()
+    cliente = TestClient(
+        criar_app(
+            pasta_gravacoes=tmp_path,
+            transcritor=transcritor,
+            sessao=sessao_aberta(tmp_path),
+            cerebro=cerebro,
+            obter_clima=clima_falso,
+            obter_noticias=lambda url: FEED_FALSO,
+        )
+    )
+    cliente.post("/conversa/gravacao", content=b"voz")
+
+    transcritor.texto = "detalha a primeira"
+    cliente.post("/conversa/gravacao", content=b"voz")
+
+    [historico] = cerebro.historicos
+    assert "Dolar cai" in historico[1]["content"]
+
+
+def test_bom_dia_bloqueado_e_so_um_cumprimento(tmp_path):
+    locutor = LocutorQueAnota()
+    cliente = cliente_de_bom_dia(tmp_path, Sessao(tmp_path / "rostos", locutor=locutor))
+
+    corpo = ler_conversa(cliente.post("/conversa/gravacao", content=b"voz"))
+
+    assert corpo["resposta"] == "Bom dia."
+    assert "cartao" not in corpo["eventos"]

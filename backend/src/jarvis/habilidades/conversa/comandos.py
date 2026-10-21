@@ -22,8 +22,10 @@ MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho",
 
 NAO_SEI = "Ainda não sei fazer isso."
 BLOQUEANDO = "Bloqueando. Até logo."
+# Sem a sessão aberta, o bom dia é só um cumprimento (o resumo tem dados do dono).
+BOM_DIA = "Bom dia."
 # Respostas que não mudam: o servidor deixa a voz delas pronta ao subir.
-FRASES_FIXAS = [NAO_SEI, BLOQUEANDO]
+FRASES_FIXAS = [NAO_SEI, BLOQUEANDO, BOM_DIA]
 
 # Palavras que pedem para bloquear. Também vale uma palavra *parecida*: o
 # Whisper às vezes escreve "bloquia" ou "bokear" para um "bloquear" falado.
@@ -36,7 +38,7 @@ class Resposta:
     """O que o Jarvis fala de volta e, se for o caso, o que ele faz."""
 
     fala: str
-    acao: str | None = None  # hoje só "bloquear"
+    acao: str | None = None  # "bloquear" ou "bom_dia"
     entendeu: bool = True
 
 
@@ -103,6 +105,7 @@ CORTESIA = {
 SO_HORA = CORTESIA | {"hora", "horas", "sao", "son"}
 SO_DATA = CORTESIA | {"dia", "data", "hoje", "estamos"}
 SO_BLOQUEIO = CORTESIA | {"tela", "computador", "sistema", "tudo", "se", "isso"}
+SO_BOM_DIA = CORTESIA | {"bom", "dia", "resumo", "briefing", "meu", "senhor"}
 
 
 def so_tem(
@@ -128,6 +131,12 @@ def pede_bloqueio(frase: str) -> bool:
     return any(parece_bloquear(p) for p in palavras) and so_tem(frase, SO_BLOQUEIO, parece_bloquear)
 
 
+def pede_bom_dia(frase: str) -> bool:
+    """'Bom dia', 'Jarvis, bom dia', 'resumo do dia' ou 'briefing', e só isso."""
+    pediu = re.search(r"\b(bom dia|resumo do dia|briefing)\b", frase)
+    return bool(pediu) and so_tem(frase, SO_BOM_DIA)
+
+
 def responder(texto: str, agora: datetime | None = None) -> Resposta | None:
     """A resposta para o que foi dito, ou None se não foi dito nada."""
     frase = normalizar(texto)
@@ -142,6 +151,8 @@ def responder(texto: str, agora: datetime | None = None) -> Resposta | None:
 
     if pede_bloqueio(frase):
         return Resposta(fala=BLOQUEANDO, acao="bloquear")
+    if pede_bom_dia(frase):
+        return Resposta(fala=BOM_DIA, acao="bom_dia")
     palavras = set(frase.split())
     if palavras & {"dia", "data"} and so_tem(frase, SO_DATA):
         return Resposta(fala=falar_data(momento))

@@ -36,4 +36,9 @@ HABILIDADES = [
         nome="Conversa",
         descricao="Conversa por voz: comandos e perguntas livres (IA)",
     ),
+    Habilidade(
+        id="bom_dia",
+        nome="Bom dia",
+        descricao="Resumo do dia: clima, lembretes de hoje e notícias",
+    ),
 ]

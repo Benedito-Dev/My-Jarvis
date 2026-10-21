@@ -16,8 +16,10 @@ from dataclasses import dataclass
 from jarvis.habilidades.calculadora import conta
 from jarvis.habilidades.clima import previsao
 from jarvis.habilidades.conversa.comandos import as_horas
+from jarvis.habilidades.lembretes import agenda as mod_agenda
 from jarvis.habilidades.lembretes.agenda import Agenda, LembreteInvalidoError
 from jarvis.habilidades.notas.caderno import Caderno, NotaInvalidaError
+from jarvis.habilidades.noticias import manchetes
 from jarvis.habilidades.pesquisa import web
 from jarvis.nucleo import sistema
 
@@ -87,7 +89,7 @@ def lembrete(agenda: Agenda) -> Ferramenta:
         return Resultado(
             para_ia=f"Lembrete agendado para {horario}: {criado.texto}.",
             fala=f"Certo. Te aviso {horario}.",
-            cartao=_cartao_lembretes("Lembrete criado", [criado]),
+            cartao=mod_agenda.cartao("Lembrete criado", [criado]),
         )
 
     return Ferramenta(
@@ -123,7 +125,7 @@ def listar_lembretes(agenda: Agenda) -> Ferramenta:
         itens = "; ".join(f"{as_horas(lem.quando)}: {lem.texto}" for lem in pendentes)
         return Resultado(
             para_ia=f"Lembretes pendentes: {itens}.",
-            cartao=_cartao_lembretes("Lembretes", pendentes),
+            cartao=mod_agenda.cartao("Lembretes", pendentes),
         )
 
     return Ferramenta(
@@ -132,16 +134,6 @@ def listar_lembretes(agenda: Agenda) -> Ferramenta:
         parametros={"type": "object", "properties": {}},
         executar=listar,
     )
-
-
-def _cartao_lembretes(rotulo: str, lembretes) -> dict:
-    quantos = len(lembretes)
-    return {
-        "tipo": "lembretes",
-        "rotulo": rotulo,
-        "titulo": "1 lembrete" if quantos == 1 else f"{quantos} lembretes",
-        "itens": [{"hora": f"{lem.quando:%H:%M}", "texto": lem.texto} for lem in lembretes],
-    }
 
 
 # --- Pesquisa na web --------------------------------------------------------------
@@ -187,6 +179,31 @@ def pesquisar_web(buscar: web.Buscar = web._buscar_ddgs) -> Ferramenta:
             "required": ["consulta"],
         },
         executar=executar_busca,
+    )
+
+
+# --- Notícias -----------------------------------------------------------------------
+
+
+def noticias(obter: manchetes.ObterFeed = manchetes._obter_feed) -> Ferramenta:
+    def executar_noticias(_parametros: dict) -> Resultado:
+        try:
+            lista = manchetes.manchetes(5, obter=obter)
+        except manchetes.NoticiasIndisponiveisError as erro:
+            return Resultado(para_ia=f"{erro} Diga que não conseguiu ler as notícias.")
+        return Resultado(
+            para_ia=manchetes.para_a_ia(lista),
+            cartao=manchetes.cartao(lista[:CARTAO_MAXIMO_DE_ACHADOS]) if lista else None,
+        )
+
+    return Ferramenta(
+        nome="noticias",
+        descricao=(
+            "As principais manchetes de agora no Brasil. Use para 'quais as notícias?' "
+            "ou 'o que está acontecendo?'. Para um assunto específico, use pesquisar_web."
+        ),
+        parametros={"type": "object", "properties": {}},
+        executar=executar_noticias,
     )
 
 

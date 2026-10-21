@@ -67,7 +67,7 @@ function CorpoDoCartao({ cartao }: { cartao: Cartao }) {
           {cartao.itens.map((item, i) => (
             <li key={i} className="achado">
               <p className="achado__titulo">{item.titulo}</p>
-              <p className="achado__resumo">{item.resumo}</p>
+              {item.resumo && <p className="achado__resumo">{item.resumo}</p>}
               <p className="achado__fonte">{item.fonte}</p>
             </li>
           ))}

@@ -39,6 +39,7 @@ const EM_USO: Record<string, string> = {
   anotar: "Anotando",
   ler_notas: "Lendo suas notas",
   calcular: "Calculando",
+  noticias: "Lendo as notícias",
   abrir_app: "Abrindo o app",
   abrir_site: "Abrindo o site",
 };
@@ -46,6 +47,21 @@ const EM_USO: Record<string, string> = {
 /** "Consultando o clima": o que o Jarvis está fazendo com a ferramenta `nome`. */
 export function fraseDaFerramenta(nome: string): string {
   return EM_USO[nome] ?? "Trabalhando nisso";
+}
+
+/**
+ * Os cartões desta conversa cuja fala já começou a tocar. `falaDoCartao[i]` é
+ * quantos trechos vieram antes do cartão i; `falasTocadas` é quantas falas da
+ * conversa já começaram (null quando o backend não avisa: aí, todos).
+ * No bom dia, o cartão do clima sobe com a fala do clima, o das notícias com a das notícias.
+ */
+export function cartoesJaFalados(
+  cartoes: Cartao[],
+  falaDoCartao: number[],
+  falasTocadas: number | null,
+): Cartao[] {
+  if (falasTocadas === null) return cartoes;
+  return cartoes.filter((_, i) => (falaDoCartao[i] ?? 0) < falasTocadas);
 }
 
 /** Quantos cartões cabem na fileira de baixo. */

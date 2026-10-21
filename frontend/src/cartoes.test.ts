@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { type Cartao, arrumarCartoes, fraseDaFerramenta, resumoDoCartao } from "./cartoes";
+import {
+  type Cartao,
+  arrumarCartoes,
+  cartoesJaFalados,
+  fraseDaFerramenta,
+  resumoDoCartao,
+} from "./cartoes";
 
 const cartao = (titulo: string): Cartao => ({ tipo: "abrir", rotulo: "Abrindo app", titulo });
 
@@ -69,5 +75,21 @@ describe("resumoDoCartao", () => {
       itens: [{ hora: "15:00", texto: "ligar pro banco" }],
     };
     expect(resumoDoCartao(lembrete)).toBe("15:00 · ligar pro banco");
+  });
+});
+
+describe("cartoesJaFalados", () => {
+  const tres = [cartao("clima"), cartao("lembretes"), cartao("noticias")];
+  // Bom dia: cumprimento (fala 0), depois cada cartão antes da sua fala.
+  const falaDoCartao = [1, 2, 3];
+
+  it("mostra cada cartão só quando a fala dele começa", () => {
+    expect(cartoesJaFalados(tres, falaDoCartao, 1)).toEqual([]);
+    expect(cartoesJaFalados(tres, falaDoCartao, 2).map((c) => c.titulo)).toEqual(["clima"]);
+    expect(cartoesJaFalados(tres, falaDoCartao, 4)).toHaveLength(3);
+  });
+
+  it("sem aviso das falas (sem voz), mostra todos", () => {
+    expect(cartoesJaFalados(tres, falaDoCartao, null)).toHaveLength(3);
   });
 });

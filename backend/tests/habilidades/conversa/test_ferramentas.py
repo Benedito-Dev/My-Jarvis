@@ -230,3 +230,15 @@ def test_notas_e_conta_viram_cartao(tmp_path):
     assert anotado["itens"] == ["comprar café"]
     assert (lidas["titulo"], lidas["itens"]) == ("1 anotação", ["comprar café"])
     assert (conta["titulo"], conta["expressao"]) == ("591,6", "3480 * 17 / 100")
+
+
+def test_noticias_traz_manchetes_e_cartao():
+    feed = (
+        b"<rss><channel><item><title>Dolar cai - G1</title>"
+        b"<source>G1</source></item></channel></rss>"
+    )
+
+    resultado = ferramentas.noticias(obter=lambda url: feed).executar({})
+
+    assert resultado.para_ia == "Manchetes de agora:\n- Dolar cai (G1)"
+    assert resultado.cartao["rotulo"] == "Notícias"
